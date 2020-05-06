@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <vector>
+#include <memory>
 
 class CFFT1D
 {

@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 project(MolTwister LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(PythonLibs REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
+find_package(Threads REQUIRED)
 
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
@@ -311,5 +312,5 @@ set(MT_SOURCE_FILES
     )
 
 add_executable(MolTwister ${MT_SOURCE_FILES})
-target_link_libraries(MolTwister ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
+target_link_libraries(MolTwister Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)

@@ -1,4 +1,5 @@
 #include <math.h>
+#include <memory>
 #include "FFT1D.h"
 
 std::shared_ptr<std::vector<CFFT1D::CCplx>> CFFT1D::fft1D(const std::vector<CCplx> &in, EDir dir) const

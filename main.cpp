@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
     g_pMT = &mt;
 
     #if PY_MAJOR_VERSION >= 3
-    Py_SetProgramName(L"moltwister");
+    wchar_t name[] = L"moltwister";
+    Py_SetProgramName(name);
     PyImport_AppendInittab("moltwister", &PyInitMolTwister);
     #else
     Py_SetProgramName(argv[0]);

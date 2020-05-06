@@ -2,6 +2,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <memory>
 
 //////////////////////////////////////////////////////
 // Conditionals are of the form x>num, where x can

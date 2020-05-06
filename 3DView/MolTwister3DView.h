@@ -5,6 +5,7 @@
 #include "ExpLookup.h"
 #include "MolTwisterAtom.h"
 #include "MolTwisterGLObject.h"
+#include <memory>
 
 class C3DView
 {
