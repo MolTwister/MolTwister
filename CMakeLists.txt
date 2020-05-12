@@ -1,5 +1,20 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
-project(MolTwister LANGUAGES CXX)
+
+option(CUDA_DBG_INFO "Include CUDA debug info" ON)
+option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" ON)
+
+if(${INCLUDE_CUDA_COMMANDS})
+    project(MolTwister LANGUAGES CXX CUDA)
+
+    # Equivalent to #define INCLUDE_CUDA_COMMANDS=1
+    add_definitions(-DINCLUDE_CUDA_COMMANDS=1)
+else()
+    project(MolTwister LANGUAGES CXX)
+
+    # Equivalent to #define INCLUDE_CUDA_COMMANDS=0
+    add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
+endif()
+
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(PythonLibs REQUIRED)
@@ -176,8 +191,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ProgressBar.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdParser.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdParser.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdAdd/CmdAtom.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdAdd/CmdAtom.cpp
@@ -311,6 +326,56 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.cpp
     )
 
-add_executable(MolTwister ${MT_SOURCE_FILES})
-target_link_libraries(MolTwister Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
+if(${INCLUDE_CUDA_COMMANDS})
+    set(MT_SOURCE_FILES_REQUIRING_CUDA
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn.cpp
+
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.cpp
+        )
+endif()
+
+set(MT_CUDALIB_SOURCE_FILES
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests_cuda.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.cu
+    )
+
+add_executable(MolTwister ${MT_SOURCE_FILES} ${MT_SOURCE_FILES_REQUIRING_CUDA})
+
+if(${INCLUDE_CUDA_COMMANDS})
+    if(${CUDA_DBG_INFO})
+        set(NVIDIA_FLAGS_DBG "${CUDA_NVCC_FLAGS} -g -G -gencode arch=compute_50,code=sm_50")
+        set(CUDA_NVCC_FLAGS ${NVIDIA_FLAGS_DBG})
+        set(CUDA_NVCC_FLAGS_DEBUG ${NVIDIA_FLAGS_DBG})
+        set(CMAKE_CUDA_FLAGS ${NVIDIA_FLAGS_DBG})
+        set(CUDA_NVCC_FLAGS_RELEASE ${NVIDIA_FLAGS_DBG})
+        message(STATUS "CUDA debug info included...")
+    else()
+        message(STATUS "CUDA debug info NOT included...")
+    endif()
+
+    add_library(MolTwisterCudaLib STATIC ${MT_CUDALIB_SOURCE_FILES})
+    target_compile_features(MolTwisterCudaLib PUBLIC cxx_std_11)
+    set_target_properties(MolTwisterCudaLib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_property(TARGET MolTwister PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    set(CUDA_MT_LIB MolTwisterCudaLib)
+endif()
+
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
