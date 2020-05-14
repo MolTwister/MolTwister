@@ -1,5 +1,7 @@
 #include "CmdRun.h"
 #include "../../Utilities/ASCIIUtility.h"
+#include "MDLoop/MDLoop.h"
+#include "MDLoop/Printf.h"
 
 std::string CCmdRun::getCmd()
 {
@@ -37,6 +39,19 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     lastError_ = "";
 
     size_t arg = 0;
+
+    int             iNStep = 50000;
+    int             iOutputEvery = 400;
+    int             iM = 4;
+    std::string     szSystem;
+    CMDLoop         MDLoop;
+    CSimulationBox  SimBox;
+
+    SimBox.bNPTEnsemble = true;
+    COut::SetOutputFile(fopen("out.txt", "w"));
+    SimBox.InitSystem(CSimulationBox::sysLJCH4NormDens, iM);
+    MDLoop.RunSimulation(SimBox, iNStep, iOutputEvery);
+    COut::CloseOutputFile();
 
 /*    CConditionalOnXYZ cond;
     std::string fromName, toName, text;

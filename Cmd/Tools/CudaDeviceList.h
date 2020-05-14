@@ -78,6 +78,7 @@ public:
     CCudaDeviceInfo& GetDevice(int iIndex) const;
     CCudaDeviceInfo& operator[](int iIndex) const;
     void ResetActiveGPU();
+    void print(FILE* file=stdout) const;
     
     long GetThreadsPerBlock();
     long GetRegistersPerBlock();

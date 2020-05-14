@@ -1,8 +1,10 @@
 #include "VelVerlet.h"
+#include "../MDLoop/Printf.h"
 #include "Math.h"
 #include <float.h>
-/*
-void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, vector<CParticle3D>& aParticles, vector<C3DVector> &aF, vector<C3DVector> &aFpi, bool bNPT)
+#include <math.h>
+
+void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)
 {
     if(!bNPT)
     {
@@ -19,6 +21,22 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, vector<CPart
     
     else
     {
+        // :TODO: run thrust::transform() on each particle (instead of below for loop), where its functor calculates the forces for each particle.
+        // The result vector from transform should be aF[k] for all k. To do this, we need to upload some information to the GPU via the transform
+        // call. Hence, this information must be included with all particles in the list (the functor will only see a single particle). This therefore
+        // includes the following items:
+        // * k
+        // * N
+        // * dim
+        // * Lm, Lm, Lm
+        // * Fcut
+        // * Array of force profiles
+        // * Matrix of non-bonded force assignments
+        // * Vector of bonded force assignments
+        // * Vector of angular force assignments
+        // * Vector of dihedral force assignments
+        // NOTE! To save space, try to make a common struct, preloaded to the GPU, pointed to by each particle. The paricles will each contain
+        // * Array of particles (m, r, p, array of neighbour indices)
         p_eps+= ((dt / 2.0) * G_eps(N, aParticles, aFpi));  // Step 3.1
         Prop_p(N, dt, aParticles, aF);                      // Step 3.2
         Prop_r(N, dt, aParticles, aF);                      // Step 3.3
@@ -31,7 +49,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, vector<CPart
     }
 }
 
-void CVelVerlet::Prop_p(int N, double dt, vector<CParticle3D>& aParticles, vector<C3DVector> &aF)
+void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, std::vector<C3DVector>& aF)
 {
     double u_eps = p_eps / W;
     double alpha = (1.0 + 1.0/double(N));
@@ -39,19 +57,21 @@ void CVelVerlet::Prop_p(int N, double dt, vector<CParticle3D>& aParticles, vecto
     double coeff = CMt::Exp(-parm);
     double coeff2 = coeff*coeff;
     double coeff3 = CMt::SinhXoverX(parm); // sinh(parm) / parm;
+    // :TODO: This can be parallelized using thrust::transform(), where the same array as for Propegator() is used as input (thus, avoiding unecessary uploads)
     for(int k=0; k<N; k++)
     {
         aParticles[k].p = aParticles[k].p*coeff2 + aF[k]*((dt/2.0)*coeff*coeff3);
     }
 }
 
-void CVelVerlet::Prop_r(int N, double dt, vector<CParticle3D>& aParticles, vector<C3DVector> &aF)
+void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, std::vector<C3DVector>&)
 {
     double u_eps = p_eps / W;
     double parm = u_eps*dt / 2.0;
     double coeff = CMt::Exp(parm);
     double coeff2 = coeff*coeff;
     double coeff3 = CMt::SinhXoverX(parm) * coeff;
+    // :TODO: This can be parallelized using thrust::transform(), where the same array as for Propegator() is used as input (thus, avoiding unecessary uploads)
     for(int k=0; k<N; k++)
     {
         C3DVector u_k = aParticles[k].p * (1.0 / aParticles[k].m);
@@ -59,7 +79,7 @@ void CVelVerlet::Prop_r(int N, double dt, vector<CParticle3D>& aParticles, vecto
     }
 }
 
-C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, vector<CParticle3D>& aParticles, C3DVector& Fpi)
+C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi)
 {
     C3DVector F;
     C3DVector PBCx = C3DVector( Lx, 0.0, 0.0);
@@ -93,7 +113,7 @@ C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double
     F+= Fpi;
     
     // Add forces from harmonic bonds on particle k
-    for(int j=0; j<aFHarmBond.size(); j++)
+    for(int j=0; j<(int)aFHarmBond.size(); j++)
     {
         int iBondTo = -1;
         int iPotential = -1;
@@ -126,7 +146,7 @@ C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double
     return F;
 }
 
-double CVelVerlet::G_eps(int N, vector<CParticle3D>& aParticles, vector<C3DVector> &aF)
+double CVelVerlet::G_eps(int N, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF)
 {
     double V = V0 * exp(3.0 * eps);
     
@@ -159,7 +179,7 @@ double CVelVerlet::GetV(double Lmax, bool bNPT)
 
 void CVelVerlet::StoreMaxF(C3DVector& F)
 {
-    double fAbs = F.Abs();
+    double fAbs = F.norm();
     
     if(fAbs > m_dLastFMax) m_dLastFMax = fAbs;
 }
@@ -168,15 +188,15 @@ void CVelVerlet::PrintCutMsgAndReset()
 {
     if(m_bCutF)
     {
-//        COut::Printf("\t****************************************\r\n");
-//        COut::Printf("\t* Warning! Forces were cut!!!          *\r\n");
-//        COut::Printf("\t****************************************\r\n");
+        COut::Printf("\t****************************************\r\n");
+        COut::Printf("\t* Warning! Forces were cut!!!          *\r\n");
+        COut::Printf("\t****************************************\r\n");
         m_dLastFMax = 0.0;
         m_bCutF = false;
     }
 }
 
-void CVelVerlet::PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, vector<CParticle3D>& aParticles)
+void CVelVerlet::PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles)
 {
     C3DVector F;
     C3DVector PBCx = C3DVector( Lx, 0.0, 0.0);
@@ -186,72 +206,72 @@ void CVelVerlet::PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, d
     if(m_bCutF)
     {
         C3DVector r_k = aParticles[k].x;
-//        COut::Printf("\r\n\r\n------------------ Center -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Center -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
         
-//        COut::Printf("\r\n\r\n------------------ Plus PBCx -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Plus PBCx -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x + PBCx;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::Printf("\r\n\r\n------------------ Minus PBCx -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Minus PBCx -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x - PBCx;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::Printf("\r\n\r\n------------------ Plus PBCy -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Plus PBCy -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x + PBCy;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::Printf("\r\n\r\n------------------ Minus PBCy -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Minus PBCy -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x - PBCy;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::Printf("\r\n\r\n------------------ Plus PBCz -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Plus PBCz -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x + PBCz;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::Printf("\r\n\r\n------------------ Minus PBCz -----------------------\r\n");
-//        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x, r_k.y, r_k.z, F.x, F.y, F.z, m_dLastFMax);
+        COut::Printf("\r\n\r\n------------------ Minus PBCz -----------------------\r\n");
+        COut::Printf("Force on particle %i at (%g, %g, %g), Ftot=(%g, %g, %g), |Ftot|=%g\r\n", k, r_k.x_, r_k.y_, r_k.z_, F.x_, F.y_, F.z_, m_dLastFMax);
         for(int i=0; i<N; i++)
         {
             C3DVector r_i = aParticles[i].x - PBCz;
             
             F = aFNonBonded[i][k].CalcForce(r_k, r_i);
-//            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.Abs() > 10.0) ? "***" : "   ", i, r_i.x, r_i.y, r_i.z, F.x, F.y, F.z);
+            COut::Printf("\t%-4sFrom index %i at (%g, %g, %g) with F=(%g, %g, %g)\r\n", (F.norm() > 10.0) ? "***" : "   ", i, r_i.x_, r_i.y_, r_i.z_, F.x_, F.y_, F.z_);
         }
-//        COut::CloseOutputFile();
+        COut::CloseOutputFile();
         exit(0);
     }
 }
-*/
+

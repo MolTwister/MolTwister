@@ -1,9 +1,10 @@
 #pragma once
 #include <stdio.h>
 #include <vector>
-#include "../../../Utilities/3DVector.h"
 #include "Particle3D.h"
 #include "Constants.h"
+#include "../../../Utilities/3DVector.h"
+#include "../ForceFields/ForceFields.h"
 
 class CVelVerlet
 {
@@ -33,9 +34,9 @@ public:
     double p_eps;
     double eps;
     double tau;
-//    std::vector<vector<CForceNonBonded>> aFNonBonded;  // Matrix of non-bonded forces between particles
-//    std::vector<CForceExternal> aFExternal;            // External forces assigned to each particle
-//    std::vector<CForceHarmBond> aFHarmBond;            // Harmonic bonds between particles
+    std::vector<std::vector<CForceNonBonded>> aFNonBonded;  // Matrix of non-bonded forces between particles
+    std::vector<CForceExternal> aFExternal;                 // External forces assigned to each particle
+    std::vector<CForceHarmBond> aFHarmBond;                 // Harmonic bonds between particles
     
 private:
     double m_dLastFMax;

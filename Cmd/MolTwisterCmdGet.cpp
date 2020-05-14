@@ -5,6 +5,10 @@
 #include "MolTwisterCmdGet.h"
 #include "Tools/MolTwisterStateTools.h"
 
+#if INCLUDE_CUDA_COMMANDS == 1
+#include "Cmd/Tools/CudaDeviceList.h"
+#endif
+
 void CCmdGet::onAddKeywords()
 {
     addKeyword("get");
@@ -166,6 +170,15 @@ void CCmdGet::parseUserdefpbcCommand(std::string, int&)
 
 void CCmdGet::parseGpuinfoCommand(std::string, int&)
 {
-    fprintf(stdOut_, "\r\n\tNot compiled with NVCC, no CUDA acceleration available!\r\n");
+    #if INCLUDE_CUDA_COMMANDS == 1
+    {
+        CCudaDeviceList devList;
+        devList.print(stdOut_);
+    }
+    #else
+    {
+        fprintf(stdOut_, "\r\n\tNo CUDA acceleration available. You need to have an Nvidia compatible GPU, the CUDA toolkit installed and set INCLUDE_CUDA_COMMANDS=1 in CMake!\r\n");
+    }
+    #endif
 }
 

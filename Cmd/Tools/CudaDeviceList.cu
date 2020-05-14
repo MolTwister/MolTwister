@@ -202,9 +202,20 @@ void CCudaDeviceList::ResetActiveGPU()
 
     cudaGetDevice(&iDevice);
     if(cudaDeviceReset() == cudaSuccess)
-        printf("\tSuccesfully reset GPU %i\r\n", iDevice);
+        printf("\r\n\tSuccesfully reset GPU %i\r\n", iDevice);
     else
-        printf("\tFailed to reset GPU %i\r\n", iDevice);
+        printf("\r\n\tFailed to reset GPU %i\r\n", iDevice);
+}
+
+void CCudaDeviceList::print(FILE* file) const
+{
+    int numDevices = GetNumDevices();
+    fprintf(file, "\r\n");
+    for(int i=0; i<numDevices; i++)
+    {
+        GetDevice(i).Print(file);
+        fprintf(file, "\r\n");
+    }
 }
 
 long CCudaDeviceList::GetThreadsPerBlock()

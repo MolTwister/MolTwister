@@ -168,7 +168,7 @@ bool CMolTwister::_run()
     cmdList_.clear();
     CMolTwisterCommandPool::generateCmdList(&state_, cmdList_);
     
-    for(int i=0; i<cmdList_.size(); i++) cmdList_[i]->init();
+    for(int i=0; i<(int)cmdList_.size(); i++) cmdList_[i]->init();
     
     readShortcutDirs();
     initReadline();
@@ -201,7 +201,7 @@ bool CMolTwister::_run()
             if(cmdString.size() == 0)
             {
                 printf("\r\n");
-                for(int i=0; i<cmdList_.size(); i++)
+                for(int i=0; i<(int)cmdList_.size(); i++)
                 {
                     CBashColor::setColor(CBashColor::colGreen);
                     CBashColor::setSpecial(CBashColor::specBright);
@@ -235,12 +235,16 @@ bool CMolTwister::_run()
                 printf("\t              applied algorithms.\r\n");
                 printf("\t   * Alt + p: Switch on or off visibility of bonds stretching\r\n");
                 printf("\t              across periodic boundaries (PBC)\r\n");
+                printf("\t   * ->:      Go forward one frame or 10, 100, 1000, with Shift,\r\n");
+                printf("\t              Alt, Shift+Alt, respectively\r\n");
+                printf("\t   * <-:      Go back one frame or 10, 100, 1000, with Shift,\r\n");
+                printf("\t              Alt, Shift+Alt, respectively\r\n");
             }
             else
             {
                 int cmdIndex = -1;
                 
-                for(int i=0; i<cmdList_.size(); i++)
+                for(int i=0; i<(int)cmdList_.size(); i++)
                 {
                     if(cmdList_[i]->checkCmd(cmdString.data()))
                     {
@@ -293,7 +297,7 @@ bool CMolTwister::_run()
             int pipeSymbIndex = CASCIIUtility::findString("> ", commandLine);
             FILE* fileStdOut;
 
-            for(int i=0; i<cmdList_.size(); i++)
+            for(int i=0; i<(int)cmdList_.size(); i++)
             {
                 if(cmdList_[i] && cmdList_[i]->checkCmd(command.data()))
                 {

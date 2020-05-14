@@ -50,7 +50,7 @@ std::string CCmdCudaTest::execute(std::vector<std::string>)
 
     CCudaTest_cuda::addBIntoA(A.data(), B.data());
 
-    fprintf(stdOut_, "\tCalculating A_i + B_i, where A_i = i and B_i = i + 1, and i is in [0, %i], using CUDA\r\n", CCudaTest_cuda::getArraySize());
+    fprintf(stdOut_, "\r\n\tCalculating A_i + B_i, where A_i = i and B_i = i + 1, and i is in [0, %i], using CUDA\r\n", CCudaTest_cuda::getArraySize());
     for(int i=0; i<CCudaTest_cuda::getArraySize(); i++)
     {
         fprintf(stdOut_, "\t%i + %i = %i\r\n", cpyA[i], B[i], A[i]);

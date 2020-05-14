@@ -2,6 +2,7 @@
 
 #include "MolTwisterCmdMolDyn/CmdRun.h"
 #include "MolTwisterCmdMolDyn/CmdCudaTest.h"
+#include "MolTwisterCmdMolDyn/CmdResetGPU.h"
 
 void CCmdMolDyn::onAddKeywords()
 {
@@ -14,6 +15,7 @@ void CCmdMolDyn::onRegisterSubCommands()
     parser_->purge();
     parser_->registerCmd(std::make_shared<CCmdRun>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdCudaTest>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdResetGPU>(state_, stdOut_));
 }
 
 std::string CCmdMolDyn::getHelpString() const

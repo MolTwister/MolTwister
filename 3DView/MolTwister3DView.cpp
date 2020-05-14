@@ -497,7 +497,7 @@ void C3DView::drawMolecules(ESelModes mode)
     
     if(atoms_ && currentFrame_ && defaultAtProp_)
     {
-        for(int i=0; i<atoms_->size(); i++)
+        for(int i=0; i<(int)atoms_->size(); i++)
         {
             std::string ID = (*atoms_)[i]->getID();
             defaultAtProp_->getCPKColor(ID.data(), r, g, b);
@@ -530,7 +530,7 @@ void C3DView::drawMolecules(ESelModes mode)
 
         if(mode != selmodeAtoms)
         {
-            for(int i=0; i<atoms_->size(); i++)
+            for(int i=0; i<(int)atoms_->size(); i++)
             {            
                 if((*atoms_)[i]->isSelected())
                 {
@@ -549,7 +549,7 @@ void C3DView::drawGLObjects(ESelModes mode)
     
     if(glObjects_)
     {
-        for(int i=0; i<glObjects_->size(); i++)
+        for(int i=0; i<(int)glObjects_->size(); i++)
         {
             if((*glObjects_)[i]->getType() == CGLObject::objLine)
             {
@@ -586,7 +586,7 @@ void C3DView::drawSelectionHUD(ESelModes mode)
     // Draw HUD text
     if(atoms_ && currentFrame_)
     {
-        for(int i=0; i<atoms_->size(); i++)
+        for(int i=0; i<(int)atoms_->size(); i++)
         {
             if((*atoms_)[i]->isSelected() && (selCount < numSelRotColors_))
             {
@@ -655,7 +655,7 @@ double C3DView::calcVDWDensity(double x, double y, double z)
     const double scale = 0.5;
 
     density = 0.0;
-    for(int i=0; i<atoms_->size(); i++)
+    for(int i=0; i<(int)atoms_->size(); i++)
     {
         if(!(*atoms_)[i]) continue;
         C3DVector R = r - currFrmAtVec(*(*atoms_)[i]);
@@ -681,7 +681,7 @@ void C3DView::drawIsoSurfaces(ESelModes mode)
     
     // Detect PBC of atom selection
     C3DVector r;
-    for(int i=0; i<atoms_->size(); i++)
+    for(int i=0; i<(int)atoms_->size(); i++)
     {
         if(!(*atoms_)[i]) continue;
         
@@ -824,7 +824,7 @@ void C3DView::drawScene(ESelModes mode)
     drawPBCGrid(mode);
 
     bool objectMoveMode = leftMButtonPressed_ || middleMButtonPressed_ || rightMButtonPressed_;
-    bool movingAndLarge = objectMoveMode && atoms_ && atoms_->size() > numAtomsBeforeNoDraw_;
+    bool movingAndLarge = objectMoveMode && atoms_ && (int)atoms_->size() > numAtomsBeforeNoDraw_;
     if(!movingAndLarge)
     {
         drawMolecules(mode);
@@ -1001,7 +1001,7 @@ void C3DView::onMouseClick(int button, int state, int x, int y)
             {
                 if(atoms_)
                 {
-                    for(int i=0; i<atoms_->size(); i++)
+                    for(int i=0; i<(int)atoms_->size(); i++)
                     {
                         (*atoms_)[i]->select(false);
                     }
@@ -1188,12 +1188,18 @@ void C3DView::onKeyboard(unsigned char key, int, int)
 
 void C3DView::onSpecialFunc(int key, int, int)
 {
+    int mod = glutGetModifiers();
+
     if(key == GLUT_KEY_RIGHT)
     {
         if(currentFrame_ && atoms_)
         {
-            (*currentFrame_)++;
-            if((atoms_->size() > 0) && ((*currentFrame_) >= (*atoms_)[0]->r_.size()))
+            if((mod & GLUT_ACTIVE_ALT) && (mod & GLUT_ACTIVE_SHIFT)) (*currentFrame_)+=1000;
+            else if(mod & GLUT_ACTIVE_ALT)                           (*currentFrame_)+= 100;
+            else if(mod & GLUT_ACTIVE_SHIFT)                         (*currentFrame_)+= 10;
+            else                                                     (*currentFrame_)++;
+
+            if((atoms_->size() > 0) && ((*currentFrame_) >= (int)(*atoms_)[0]->r_.size()))
                 (*currentFrame_) = 0;
 
             update(false);
@@ -1205,7 +1211,11 @@ void C3DView::onSpecialFunc(int key, int, int)
     {
         if(currentFrame_ && atoms_)
         {
-            (*currentFrame_)--;
+            if((mod & GLUT_ACTIVE_ALT) && (mod & GLUT_ACTIVE_SHIFT)) (*currentFrame_)-=1000;
+            else if(mod & GLUT_ACTIVE_ALT)                           (*currentFrame_)-= 100;
+            else if(mod & GLUT_ACTIVE_SHIFT)                         (*currentFrame_)-= 10;
+            else                                                     (*currentFrame_)--;
+
             if((atoms_->size() > 0) && ((*currentFrame_) < 0))
                 (*currentFrame_) = (int)(*atoms_)[0]->r_.size()-1;
             
@@ -1289,7 +1299,7 @@ void C3DView::pickAtoms(int x, int y)
     
     if(atoms_)
     {
-        if((selAtIndex != -1) && (selAtIndex < atoms_->size()))
+        if((selAtIndex != -1) && (selAtIndex < (int)atoms_->size()))
         {
             if((*atoms_)[selAtIndex]->isSelected())
                 (*atoms_)[selAtIndex]->select(false);
