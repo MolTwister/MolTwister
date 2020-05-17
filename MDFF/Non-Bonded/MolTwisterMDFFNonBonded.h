@@ -43,6 +43,7 @@ public:
 
 protected:
     double J2cal(double val, bool convertToCal) const { return convertToCal ? (val / 4.184) : val; }
+    C3DVector calcNonBondForceCoeffs12(C3DVector r1, C3DVector r2);
 
 protected:
     std::string atomNamesToBond_[2];

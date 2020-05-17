@@ -45,6 +45,8 @@ public:
     virtual void calcForces(C3DVector, C3DVector, C3DVector, C3DVector& f1, C3DVector& f2, C3DVector& f3) const { f1 = f2 = f3 = C3DVector(0.0, 0.0, 0.0); }
     bool calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector r3, C3DVector& f1, C3DVector& f2, C3DVector& f3, double error=1E-3, int maxIter=50) const;
     virtual std::vector<std::string> getCmdHelpLines() = 0;
+    std::vector<std::pair<float, float>> calc1DForceProfile(float thetaStart, float thetaEnd, int points) const;
+    std::vector<std::pair<float, float>> calc1DPotentialProfile(float thetaStart, float thetaEnd, int points) const;
 
 protected:
     double J2cal(double val, bool convertToCal) const { return convertToCal ? (val / 4.184) : val; }

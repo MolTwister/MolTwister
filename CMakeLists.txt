@@ -337,6 +337,8 @@ if(${INCLUDE_CUDA_COMMANDS})
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.cpp
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.cpp
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp

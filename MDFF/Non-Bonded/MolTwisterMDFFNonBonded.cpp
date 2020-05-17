@@ -84,3 +84,12 @@ bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector
     
     return foundReliableResult;
 }
+
+C3DVector CMDFFNonBonded::calcNonBondForceCoeffs12(C3DVector r1, C3DVector r2)
+{
+    C3DVector   r12 = r2 - r1;
+    double      R = r12.norm();
+    double      RInv = (R == 0.0) ? 1.0 / 1E-10 : 1.0 / R;
+
+    return (r12 * RInv);
+}

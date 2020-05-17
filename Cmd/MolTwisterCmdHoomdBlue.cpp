@@ -194,12 +194,12 @@ void CCmdHoomdblue::parseGenrunCommand(std::string commandLine, int& arg)
     // Generate group of mobile atoms
     fprintf(stdOut_, "\t# Set up mobile region\r\n");
     std::vector<int> startTags, endTags;
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         bool bFoundMobiles = false;
         int iFirstTag = i;
 
-        while((i<state_->atoms_.size()) && state_->atoms_[i]->isMobile_)
+        while((i<(int)state_->atoms_.size()) && state_->atoms_[i]->isMobile_)
         {
             bFoundMobiles = true;
             i++;
@@ -212,7 +212,7 @@ void CCmdHoomdblue::parseGenrunCommand(std::string commandLine, int& arg)
         }
     }
     
-    for(int i=0; i<startTags.size(); i++)
+    for(int i=0; i<(int)startTags.size(); i++)
     {
         if(i == 0)
             fprintf(stdOut_, "\tranges=range(%i, %i)\r\n", startTags[i], endTags[i]+1);
@@ -337,9 +337,9 @@ void CCmdHoomdblue::parseGenffCommand(std::string, int&)
     // Print sorted pair coefficients list
     fprintf(stdOut_, "\t# Set all required pair coefficeints\r\n");
     havePrinted = false;
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
-        for(int j=i; j<listOfAtomTypes.size(); j++)
+        for(int j=i; j<(int)listOfAtomTypes.size(); j++)
         {
             if(hasMorse)
             {
@@ -363,7 +363,7 @@ void CCmdHoomdblue::parseGenffCommand(std::string, int&)
             }
 
             std::shared_ptr<std::vector<int>> indicesList = state_->mdFFNonBondedList_.indexFromNames(listOfAtomTypes[i], listOfAtomTypes[j]);
-            for(int n=0; n<indicesList->size(); n++)
+            for(int n=0; n<(int)indicesList->size(); n++)
             {
                 nonBonded = state_->mdFFNonBondedList_.get((*indicesList)[n]);
                 if(!nonBonded) continue;
@@ -517,12 +517,12 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print coordinates
     fprintf(stdOut_, "\t\t\t<position>\r\n");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         C3DVector pos;
         int iCurrFrame = state_->getCurrFrameIndex();
         atomPtr = state_->atoms_[i].get();
-        if((iCurrFrame >= 0) && (iCurrFrame < atomPtr->r_.size()))
+        if((iCurrFrame >= 0) && (iCurrFrame < (int)atomPtr->r_.size()))
             pos = atomPtr->r_[iCurrFrame];
         
         // [Pos] = Å, need input in m, so multimly with 10^{-10} before div. by dist units in m
@@ -533,7 +533,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print types
     fprintf(stdOut_, "\t\t\t<type>\r\n");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atomPtr = state_->atoms_[i].get();
         std::string ID = atomPtr->getID();
@@ -545,7 +545,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print masses
     fprintf(stdOut_, "\t\t\t<mass>\r\n");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atomPtr = state_->atoms_[i].get();
         
@@ -557,7 +557,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print charges
     fprintf(stdOut_, "\t\t\t<charge>\r\n");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atomPtr = state_->atoms_[i].get();
         
@@ -569,7 +569,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print bonds
     if(bondAtoms1.size()) fprintf(stdOut_, "\t\t\t<bond>\r\n");
-    for(int i=0; i<bondAtoms1.size(); i++)
+    for(int i=0; i<(int)bondAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t\t\t\tbondtype%i %i %i\r\n", bondMDTypeIndices[i]+1, bondAtoms1[i], bondAtoms2[i]);
     }
@@ -578,7 +578,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print angles
     if(angleAtoms1.size()) fprintf(stdOut_, "\t\t\t<angle>\r\n");
-    for(int i=0; i<angleAtoms1.size(); i++)
+    for(int i=0; i<(int)angleAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t\t\t\tangletype%i %i %i %i\r\n", angleMDTypeIndices[i]+1, angleAtoms1[i], angleAtoms2[i], angleAtoms3[i]);
     }
@@ -587,7 +587,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print dihedrals
     if(dihAtoms1.size()) fprintf(stdOut_, "\t\t\t<dihedral>\r\n");
-    for(int i=0; i<dihAtoms1.size(); i++)
+    for(int i=0; i<(int)dihAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t\t\t\tdihedraltype%i %i %i %i %i\r\n", dihMDTypeIndices[i]+1, dihAtoms1[i], dihAtoms2[i], dihAtoms3[i], dihAtoms4[i]);
     }

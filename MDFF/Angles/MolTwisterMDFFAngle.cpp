@@ -157,3 +157,49 @@ bool CMDFFAngle::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector r3,
     return bFoundReliableResult;
 }
 
+std::vector<std::pair<float, float>> CMDFFAngle::calc1DForceProfile(float thetaStart, float thetaEnd, int points) const
+{
+    // We first note that for U=U(theta), the force is F_3=-grad_3 U = -dU/dtheta * (dtheta/dx_3, dtheta/dy_3, dtheta/dz_3),
+    // where theta = theta(r_1, r_2, r_3). We which to calculate dU/dtheta. This, is done by calling calcForces()
+    // to obtain F_3.x and then calcAngularForceCoeffs13() to obtain dr/dx_3. Thus, (-dU/dr) = F_3.x / (dr/dx_3).
+    std::vector<std::pair<float, float>> profile;
+
+    if(points <= 0) return profile;
+
+    C3DVector r1(-1.0f, 0.0f, 0.0f);
+    C3DVector r2(0.0f, 0.0f, 0.0f);
+    C3DVector r3(0.0f, 0.0f, 0.0f);
+    C3DVector f1, f2, f3;
+    float thetaDelta = (thetaEnd - thetaStart) / float(points);
+    for(float theta=thetaStart; theta<=thetaEnd; theta+= thetaDelta)
+    {
+        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0f);
+        calcForces(r1, r2, r3, f1, f2, f3);
+        C3DVector c = calcAngularForceCoeffs13(r1, r2, r3);
+
+        profile.emplace_back(std::pair<float, float>(theta, (c.x_ != 0.0f) ? f3.x_ / c.x_ : 0.0f));
+    }
+
+    return profile;
+}
+
+std::vector<std::pair<float, float>> CMDFFAngle::calc1DPotentialProfile(float thetaStart, float thetaEnd, int points) const
+{
+    std::vector<std::pair<float, float>> profile;
+
+    if(points <= 0) return profile;
+
+    C3DVector r1(-1.0f, 0.0f, 0.0f);
+    C3DVector r2(0.0f, 0.0f, 0.0f);
+    C3DVector r3(0.0f, 0.0f, 0.0f);
+    float thetaDelta = (thetaEnd - thetaStart) / float(points);
+    for(float theta=thetaStart; theta<=thetaEnd; theta+= thetaDelta)
+    {
+        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0f);
+        float E = (float)calcPotential(r1, r2, r3);
+
+        profile.emplace_back(std::pair<float, float>(theta, E));
+    }
+
+    return profile;
+}
