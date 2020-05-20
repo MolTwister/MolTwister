@@ -82,7 +82,7 @@ void CMDFFAngle_Harm::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3DVe
     C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r1, r2, r3);
     C3DVector   dTheta_dr2 = calcAngularForceCoeffs2(r1, r2, r3);
     C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r3, r2, r1);
-    double      dU_dTheta = 2.0*k_ * deltaTheta;
+    double      dU_dTheta = -2.0*k_ * deltaTheta;
 
     f3 = dTheta_dr3*dU_dTheta;
     f2 = dTheta_dr2*dU_dTheta;

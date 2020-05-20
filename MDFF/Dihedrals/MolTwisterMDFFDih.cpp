@@ -216,3 +216,51 @@ bool CMDFFDih::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector r3, C
     
     return foundReliableResult;
 }
+
+std::vector<std::pair<float, float>> CMDFFDih::calc1DForceProfile(float phiStart, float phiEnd, int points) const
+{
+    // We first note that for U=U(phi), the force is F_4=-grad_4 U = -dU/dphi * (dphi/dx_4, dphi/dy_4, dphi/dz_4),
+    // where phi = phi(r_1, r_2, r_3, r4). We which to calculate dU/dphi. This, is done by calling calcForces()
+    // to obtain F_4.x and then calcDihedralForceCoeffs14() to obtain dr/dx_4. Thus, (-dU/dphi) = F_4.x / (dr/dx_4).
+    std::vector<std::pair<float, float>> profile;
+
+    if(points <= 0) return profile;
+
+    C3DVector r1(0.0f, 1.0f, 0.0f);
+    C3DVector r2(0.0f, 0.0f, 0.0f);
+    C3DVector r3(0.0f, 0.0f, 1.0f);
+    C3DVector r4(0.0f, 1.0f, 1.0f);
+    C3DVector f1, f2, f3, f4;
+    float phiDelta = (phiEnd - phiStart) / float(points);
+    for(float phi=phiStart; phi<=phiEnd; phi+= phiDelta)
+    {
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0f);
+        calcForces(r1, r2, r3, r4, f1, f2, f3, f4);
+        C3DVector c = calcDihedralForceCoeffs14(r1, r2, r3, r4);
+
+        profile.emplace_back(std::pair<float, float>(phi, (c.x_ != 0.0f) ? f4.x_ / c.x_ : 0.0f));
+    }
+
+    return profile;
+}
+
+std::vector<std::pair<float, float>> CMDFFDih::calc1DPotentialProfile(float phiStart, float phiEnd, int points) const
+{
+    std::vector<std::pair<float, float>> profile;
+
+    C3DVector r1(0.0f, 1.0f, 0.0f);
+    C3DVector r2(0.0f, 0.0f, 0.0f);
+    C3DVector r3(0.0f, 0.0f, 1.0f);
+    C3DVector r4(0.0f, 1.0f, 1.0f);
+    C3DVector f1, f2, f3, f4;
+    float phiDelta = (phiEnd - phiStart) / float(points);
+    for(float phi=phiStart; phi<=phiEnd; phi+= phiDelta)
+    {
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0f);
+        float E = (float)calcPotential(r1, r2, r3, r4);
+
+        profile.emplace_back(std::pair<float, float>(phi, E));
+    }
+
+    return profile;
+}

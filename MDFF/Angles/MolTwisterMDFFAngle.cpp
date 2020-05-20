@@ -25,7 +25,7 @@ C3DVector CMDFFAngle::calcAngularForceCoeffs13(C3DVector r1, C3DVector r2, C3DVe
     double      dW_dz = (K.z_*B - r32.z_*A) / sqrtB3;
     double      W = (sqrtB == 0.0) ? A / 10E-3 : A / sqrtB;
     double      dDiv = sqrt(1.0 - W*W);
-    double      dTheta_dW = (dDiv == 0.0) ? 1.0 / 1E-10 : 1.0 / dDiv;
+    double      dTheta_dW = (dDiv == 0.0) ? -1.0 / 1E-10 : -1.0 / dDiv;
     C3DVector   dTheta_dr3 = C3DVector(dTheta_dW*dW_dx, dTheta_dW*dW_dy, dTheta_dW*dW_dz);
     
     return dTheta_dr3;
@@ -46,7 +46,7 @@ C3DVector CMDFFAngle::calcAngularForceCoeffs2(C3DVector r1, C3DVector r2, C3DVec
     double      dW_dz = ((2.0*r2.z_ - r1.z_ - r3.z_)*AB + (r32.z_*A + r12.z_*B)*C) / sqrtAB3;
     double      W = (sqrtAB == 0.0) ? A / 10E-3 : C / sqrtAB;
     double      dDiv = sqrt(1.0 - W*W);
-    double      dTheta_dW = (dDiv == 0.0) ? 1.0 / 1E-10 : 1.0 / dDiv;
+    double      dTheta_dW = (dDiv == 0.0) ? -1.0 / 1E-10 : -1.0 / dDiv;
     C3DVector   dTheta_dr2 = C3DVector(dTheta_dW*dW_dx, dTheta_dW*dW_dy, dTheta_dW*dW_dz);
     
     return dTheta_dr2;
@@ -161,7 +161,7 @@ std::vector<std::pair<float, float>> CMDFFAngle::calc1DForceProfile(float thetaS
 {
     // We first note that for U=U(theta), the force is F_3=-grad_3 U = -dU/dtheta * (dtheta/dx_3, dtheta/dy_3, dtheta/dz_3),
     // where theta = theta(r_1, r_2, r_3). We which to calculate dU/dtheta. This, is done by calling calcForces()
-    // to obtain F_3.x and then calcAngularForceCoeffs13() to obtain dr/dx_3. Thus, (-dU/dr) = F_3.x / (dr/dx_3).
+    // to obtain F_3.x and then calcAngularForceCoeffs13() to obtain dr/dx_3. Thus, (-dU/dtheta) = F_3.x / (dr/dx_3).
     std::vector<std::pair<float, float>> profile;
 
     if(points <= 0) return profile;

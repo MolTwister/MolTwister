@@ -40,10 +40,12 @@ public:
     virtual void calcForces(C3DVector, C3DVector, C3DVector& f1, C3DVector& f2) const { f1 = f2 = C3DVector(0.0, 0.0, 0.0); }
     bool calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector& f1, C3DVector& f2, double error=1E-3, int maxIter=50) const;
     virtual std::vector<std::string> getCmdHelpLines() = 0;
+    std::vector<std::pair<float, float>> calc1DForceProfile(float rStart, float rEnd, int points) const;
+    std::vector<std::pair<float, float>> calc1DPotentialProfile(float rStart, float rEnd, int points) const;
 
 protected:
     double J2cal(double val, bool convertToCal) const { return convertToCal ? (val / 4.184) : val; }
-    C3DVector calcNonBondForceCoeffs12(C3DVector r1, C3DVector r2);
+    C3DVector calcNonBondForceCoeffs12(C3DVector r1, C3DVector r2) const;
 
 protected:
     std::string atomNamesToBond_[2];

@@ -113,7 +113,7 @@ void CMDFFAngle_Class2::calcForcesHarm(C3DVector r1, C3DVector r2, C3DVector r3,
     C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r1, r2, r3);
     C3DVector   dTheta_dr2 = calcAngularForceCoeffs2(r1, r2, r3);
     C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r3, r2, r1);
-    double      dU_dTheta = double(degree)*k;
+    double      dU_dTheta = -double(degree)*k;
 
     for(int i=0; i<(degree-1); i++)
         dU_dTheta*= deltaTheta;
@@ -176,20 +176,20 @@ void CMDFFAngle_Class2::calcForcesMix(C3DVector r1, C3DVector r2, C3DVector r3, 
     double      R23 = r23.norm();
     double      RInv12 = (R12 == 0.0) ? 1.0 / 1E-10 : 1.0 / R12;
     double      RInv23 = (R23 == 0.0) ? 1.0 / 1E-10 : 1.0 / R23;
-    double      coeff = N1*(R12 - ra)*(R23 - rb);
+    double      coeff = N1*(R12 - ra) + N2*(R23 - rb);
     double      cosTheta = (r21*r23) * (RInv12*RInv23);
     double      Theta = acos(cosTheta);
     double      Theta0 = theta0 * toRad_;
     double      deltaTheta = Theta - Theta0;
     C3DVector   r12xRInv12 = r12*RInv12;
     C3DVector   r23xRInv23 = r23*RInv23;
-    C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r1, r2, r3);
+    C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r3, r2, r1);
     C3DVector   dTheta_dr2 = calcAngularForceCoeffs2(r1, r2, r3);
-    C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r3, r2, r1);
+    C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r1, r2, r3);
     
-    f1 = r12xRInv12*(N1*deltaTheta) + dTheta_dr1*coeff;
-    f2 = r12xRInv12*((-1.0)*N1*deltaTheta) + r23xRInv23*(N2*deltaTheta) + dTheta_dr2*coeff;
-    f3 = r23xRInv23*((-1.0)*N2*deltaTheta) + dTheta_dr3*coeff;
+    f1 = r12xRInv12*(N1*deltaTheta) - dTheta_dr1*coeff;
+    f2 = r12xRInv12*((-1.0)*N1*deltaTheta) + r23xRInv23*(N2*deltaTheta) - dTheta_dr2*coeff;
+    f3 = r23xRInv23*((-1.0)*N2*deltaTheta) - dTheta_dr3*coeff;
 }
 
 double CMDFFAngle_Class2::calcPotential(C3DVector r1, C3DVector r2, C3DVector r3) const
@@ -201,7 +201,7 @@ double CMDFFAngle_Class2::calcPotential(C3DVector r1, C3DVector r2, C3DVector r3
     U+= calcPotentialHarm(r1, r2, r3, Ea_.K4_, Ea_.theta0_, 4);
     
     U+= calcPotentialCartesian(r1, r2, r3, Ebb_.M_, Ebb_.r1_, Ebb_.r2_);
-    
+
     U+= calcPotentialMix(r1, r2, r3, Eba_.N1_, Eba_.N2_, Eba_.r1_, Eba_.r2_, Ea_.theta0_);
     
     return U;

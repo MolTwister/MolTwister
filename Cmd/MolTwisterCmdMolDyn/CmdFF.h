@@ -18,6 +18,8 @@ public:
 private:
     void parseBondforceprofileCommand(const std::vector<std::string>& arguments, size_t& arg);
     void parseAngleforceprofileCommand(const std::vector<std::string>& arguments, size_t& arg);
+    void parseDihedralforceprofileCommand(const std::vector<std::string>& arguments, size_t& arg);
+    void parseNonbondforceprofileCommand(const std::vector<std::string>& arguments, size_t& arg);
 
 private:
     std::string lastError_;
