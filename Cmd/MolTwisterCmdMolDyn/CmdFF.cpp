@@ -180,7 +180,6 @@ void CCmdFF::parseNonbondforceprofileCommand(const std::vector<std::string>& arg
     for(size_t i=0; i<forceProfile.size(); i++)
     {
         if(i >= potentialProfile.size()) continue;
-//        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first, forceProfile[i].second, potentialProfile[i].second);
-        fprintf(stdOut_, "\t%.4f %.4f %.4f\r\n", forceProfile[i].first, forceProfile[i].second, potentialProfile[i].second);
+        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first, forceProfile[i].second, potentialProfile[i].second);
     }
 }
