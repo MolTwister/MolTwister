@@ -4,6 +4,91 @@
 #include <float.h>
 #include <math.h>
 
+CVelVerlet::CVelVerlet()
+{
+    P = 1.0 / Conv_press;
+    p_eps = 1.0;
+    eps = 0.0;
+    W = 1.0;
+    m_dLastFMax = 0.0;
+    Fcut = 1000.0;
+    m_bCutF = false;
+    tau = 1.0;
+}
+
+void CVelVerlet::init(CMolTwisterState* state)
+{
+    const float rCutoff = 10.0f;
+
+    class CDevAtom
+    {
+    public:
+        CDevAtom() { typeIndex_ = -1; r_[0] = r_[1] = r_[2] = 0.0f; p_[0] = p_[1] = p_[2] = 0.0f; }
+
+    public:
+        float r_[3];
+        float p_[3];
+        int typeIndex_;
+    };
+
+    struct CFunctPoint
+    {
+        float x_;
+        float y_;
+    };
+
+    // Generate atom list for GPU and set initial positions
+    size_t numAtoms = state->atoms_.size();
+    std::vector<CDevAtom> atomList(numAtoms);
+    for(size_t i=0; i<numAtoms; i++)
+    {
+        if(state->atoms_[i]->r_.size() == 0) continue;
+        atomList[i].r_[0] = state->atoms_[i]->r_[0].x_;
+        atomList[i].r_[1] = state->atoms_[i]->r_[0].y_;
+        atomList[i].r_[2] = state->atoms_[i]->r_[0].z_;
+    }
+
+    // Assign atom-type indices to each atom in the atom list
+    std::vector<std::string> atomTypes;
+    state->searchForAtomTypes(atomTypes);
+    for(size_t i=0; i<numAtoms; i++)
+    {
+        atomList[i].typeIndex_ = CMolTwisterState::atomTypeToTypeIndex(atomTypes, state->atoms_[i]->getID());
+    }
+
+    // Generate non-bonded force-field matrix, [col][row][ffIndex][pointIndex]. Assigned are one ore more 1D force-profiles.
+    size_t numAtomTypes = atomTypes.size();
+    std::vector<std::vector<std::vector<std::vector<CFunctPoint>>>> nonBondFFMatrix(numAtomTypes);
+    for(auto& rowEntry : nonBondFFMatrix)
+    {
+        rowEntry.resize(numAtomTypes);
+    }
+
+    // Assign the 1D force-profiles
+    for(size_t c=0; c<numAtomTypes; c++)
+    {
+        std::string colTypeName = atomTypes[c];
+        for(size_t r=0; r<numAtomTypes; r++)
+        {
+            std::string rowTypeName = atomTypes[r];
+
+            std::shared_ptr<std::vector<int>> ffIndexList = state->mdFFNonBondedList_.indexFromNames(colTypeName, rowTypeName);
+            if(ffIndexList)
+            {
+                for(size_t i=0; i<ffIndexList->size(); i++)
+                {
+                    int ffIndex = (*ffIndexList)[i];
+                    if(ffIndex >= 0)
+                    {
+                        CMDFFNonBonded* forceField = state->mdFFNonBondedList_.get(ffIndex);
+                        std::vector<std::pair<float, float>> profile = forceField->calc1DForceProfile(0.01, rCutoff, 100); // :TODO: Create a lambda that takes as argument profile and returns directly the CFuncPoint variant into nonBondFFMatrix[c][r].push_back().
+                    }
+                }
+            }
+        }
+    }
+}
+
 void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)
 {
     if(!bNPT)

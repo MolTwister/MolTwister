@@ -5,13 +5,15 @@
 #include "Constants.h"
 #include "../../../Utilities/3DVector.h"
 #include "../ForceFields/ForceFields.h"
+#include "../../../MolTwisterState.h"
 
 class CVelVerlet
 {
 public:
-    CVelVerlet() { P = 1.0 / Conv_press; p_eps = 1.0; eps = 0.0; W = 1.0; m_dLastFMax = 0.0; Fcut = 1000.0; m_bCutF = false; tau = 1.0; }
+    CVelVerlet();
     
 public:
+    void init(CMolTwisterState* state);
     void Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT=false);
     C3DVector CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi);
     void SetRandMom(double tau);

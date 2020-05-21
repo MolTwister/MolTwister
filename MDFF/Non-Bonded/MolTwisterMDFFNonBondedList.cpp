@@ -22,7 +22,7 @@ std::shared_ptr<std::vector<int>> CMDFFNonBondedList::indexFromNames(std::string
 {
     auto indices = std::make_shared<std::vector<int>>();
 
-    for(int i=0; i<nonBonded_.size(); i++)
+    for(int i=0; i<(int)nonBonded_.size(); i++)
     {
         if(atom1 == nonBonded_[i]->getAtomInBond(0))
         {

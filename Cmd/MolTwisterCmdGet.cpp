@@ -85,7 +85,7 @@ void CCmdGet::parseAtomtypesCommand(std::string, int&)
     state_->searchForAtomTypes(listOfAtomTypes, &listOfResnames);
     
     printf("\r\n");
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
         atomPtr = state_->getFirstOccurenceOf(listOfAtomTypes[i]);
         fprintf(stdOut_, "\t%i\t %s m=%.4f q=%.4f resname=%s\r\n", i+1, listOfAtomTypes[i].data(), atomPtr ? atomPtr->m_ : 0.0, atomPtr ? atomPtr->Q_ : 0.0, listOfResnames[i].data());
@@ -108,13 +108,13 @@ void CCmdGet::parseBondinfoCommand(std::string commandLine, int& arg)
     text = CASCIIUtility::getWord(commandLine, arg++);
     indexAtom2 = atoi(text.data());
     
-    if((indexAtom1 < 0) || (indexAtom1 >= state_->atoms_.size()))
+    if((indexAtom1 < 0) || (indexAtom1 >= (int)state_->atoms_.size()))
     {
         printf("Error: bond %i could not be found!\r\n", indexAtom1);
         return;
     }
 
-    if((indexAtom2 < 0) || (indexAtom2 >= state_->atoms_.size()))
+    if((indexAtom2 < 0) || (indexAtom2 >= (int)state_->atoms_.size()))
     {
         printf("Error: bond %i could not be found!\r\n", indexAtom1);
         return;
@@ -135,7 +135,7 @@ void CCmdGet::parseBondinfoCommand(std::string commandLine, int& arg)
         double dR = -1.0;
         CAtom* atomPtr = atom1Ptr->getBondDest(i);
         if(atomPtr == atom2Ptr) CBashColor::setSpecial(CBashColor::specBright);
-        if(state_->currentFrame_ < atomPtr->r_.size()) dR = atomPtr->getDistanceTo(atom1Ptr, state_->currentFrame_);
+        if(state_->currentFrame_ < (int)atomPtr->r_.size()) dR = atomPtr->getDistanceTo(atom1Ptr, state_->currentFrame_);
         fprintf(stdOut_, "\t* Atom %i -> R=%.6f\r\n", state_->getAtomIndex(atomPtr), dR);
         CBashColor::setSpecial();
     }
@@ -146,7 +146,7 @@ void CCmdGet::parseBondinfoCommand(std::string commandLine, int& arg)
         double dR = -1.0;
         CAtom* atomPtr = atom2Ptr->getBondDest(i);
         if(atomPtr == atom1Ptr) CBashColor::setSpecial(CBashColor::specBright);
-        if(state_->currentFrame_ < atomPtr->r_.size()) dR = atomPtr->getDistanceTo(atom2Ptr, state_->currentFrame_);
+        if(state_->currentFrame_ < (int)atomPtr->r_.size()) dR = atomPtr->getDistanceTo(atom2Ptr, state_->currentFrame_);
         fprintf(stdOut_, "\t* Atom %i -> R=%.6f\r\n", state_->getAtomIndex(atomPtr), dR);
         CBashColor::setSpecial();
     }

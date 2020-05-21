@@ -64,7 +64,7 @@ void CCmdList::execute(std::string commandLine)
 void CCmdList::parseAllCommand(std::string, int&)
 {
     printListHeaderAtoms();
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         printListAtomicItem(state_->atoms_[i].get());
     }
@@ -118,7 +118,7 @@ void CCmdList::parseMolCommand(std::string commandLine, int& arg)
     molIndex = atoi(text.data());
 
     printListHeaderAtoms();
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(molIndex == state_->atoms_[i]->getMolIndex())
             printListAtomicItem(state_->atoms_[i].get());
@@ -263,7 +263,7 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
         fprintf(stdOut_, "\t\t\t\t\\toprule Atom & $Q$ & Atom & $Q$ & Atom & $Q$ \\\\ \\midrule\r\n");
     }
     
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
         if(useLongTable)   fprintf(stdOut_, "\t\t\t");
         else               fprintf(stdOut_, "\t\t\t\t\t");
@@ -271,7 +271,7 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
         for(int j=0; j<3; j++)
         {
             if(j != 0) fprintf(stdOut_, "& ");
-            if(i < listOfAtomTypes.size())
+            if(i < (int)listOfAtomTypes.size())
             {
                 atomPtr = state_->getFirstOccurenceOf(listOfAtomTypes[i]);
                 fprintf(stdOut_, "%s & %.8f ", listOfAtomTypes[i].data(), atomPtr ? atomPtr->Q_ : 0.0);
@@ -485,7 +485,7 @@ void CCmdList::printListAtomicItem(const CAtom* atom) const
     C3DVector r;
        
     std::string ID1 = atom->getID();
-    if(state_->currentFrame_ < atom->r_.size()) r = atom->r_[state_->currentFrame_];
+    if(state_->currentFrame_ < (int)atom->r_.size()) r = atom->r_[state_->currentFrame_];
     else if(atom->r_.size() > 0)                r = atom->r_[0];
     else                                        return;
     

@@ -24,7 +24,7 @@ int CMolTwisterState::deleteFrame(int frame)
     
     if(atoms_.size() == 0) numFrames = 0;
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         newNumFrames = atoms_[i]->deleteFrame(frame);
         if(currentFrame_ >= newNumFrames) currentFrame_ = newNumFrames-1;
@@ -50,8 +50,8 @@ void CMolTwisterState::purgeVariableList()
 }
 
 void CMolTwisterState::purgeFrames(bool keepFirstFrame)
-{    
-    for(int i=0; i<atoms_.size(); i++)
+{
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         C3DVector vectorKeep;
 
@@ -70,7 +70,7 @@ int CMolTwisterState::addFrame()
     int newIndex = -2, prev=0;
     bool indicesNotMatching = false;
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         newIndex = atoms_[i]->addFrame();
         if(i > 0)
@@ -130,7 +130,7 @@ int CMolTwisterState::addAtom(CAtom& atom)
 
 void CMolTwisterState::setAtomCoordinates(int frame, int atom, double X, double Y, double Z)
 {
-    if((atom < atoms_.size()) && (frame < atoms_[atom]->r_.size()))
+    if((atom < (int)atoms_.size()) && (frame < (int)atoms_[atom]->r_.size()))
     {
         atoms_[atom]->r_[frame] = C3DVector(X, Y, Z);
     }
@@ -141,7 +141,7 @@ int CMolTwisterState::deleteAtom(int index)
     CAtom* atomToDelete;
     
     if(atoms_.size() <= 0) return 0;
-    if(index >= atoms_.size()) return (int)atoms_.size();
+    if(index >= (int)atoms_.size()) return (int)atoms_.size();
     
     atomToDelete = atoms_[index].get();
     if(atomToDelete)
@@ -162,7 +162,7 @@ int CMolTwisterState::deleteAtom(int index)
 
 void CMolTwisterState::reassignAtomIndices()
 {
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         atoms_[i]->setAtomIndex(i);
     }
@@ -173,12 +173,12 @@ void CMolTwisterState::genMolIndices()
     int molIndex;
     int nextMolIndex = 0;
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         atoms_[i]->setMolIndex(-1);
     }
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         molIndex = atoms_[i]->searchForNonNegMolIndexInAttachedAtoms();
         
@@ -254,7 +254,7 @@ CVar* CMolTwisterState::getVariable(std::string name, int& variableIndex)
 {
     std::string text;
     
-    for(int i=0; i<variables_.size(); i++)
+    for(int i=0; i<(int)variables_.size(); i++)
     {
         variables_[i]->getName(text);
         if(text == name)
@@ -274,9 +274,9 @@ bool CMolTwisterState::saveCoordinates(int frame)
     if(frame < 0) return false;
     
     savedCoordinates_.clear();
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
-        if(frame >= atoms_[i]->r_.size()) return false;
+        if(frame >= (int)atoms_[i]->r_.size()) return false;
         savedCoordinates_.emplace_back(atoms_[i]->r_[frame]);
     }
     
@@ -285,9 +285,9 @@ bool CMolTwisterState::saveCoordinates(int frame)
 
 void CMolTwisterState::retrieveSavedCoordinates(int frame)
 {
-    for(int i=0; i<savedCoordinates_.size(); i++)
+    for(int i=0; i<(int)savedCoordinates_.size(); i++)
     {
-        if(i < atoms_.size())
+        if(i < (int)atoms_.size())
         {
             atoms_[i]->r_[frame] = savedCoordinates_[i];
         }
@@ -300,14 +300,14 @@ void CMolTwisterState::searchForAtomTypes(std::vector<std::string>& atomTypes, s
     
     atomTypes.clear();
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         // Get ID (i.e. atom name)
         std::string ID = atoms_[i]->getID();
         
         // Have we concidered this ID before?
         alreadyInList = false;
-        for(int j=0; j<atomTypes.size(); j++)
+        for(int j=0; j<(int)atomTypes.size(); j++)
         {
             if(ID == atomTypes[j]) alreadyInList = true;
         }
@@ -325,7 +325,7 @@ void CMolTwisterState::getMapAtomPtrToIndex(std::map<CAtom*,int>& map) const
 {
     map.clear();
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         map[atoms_[i].get()] = i;
     }
@@ -335,7 +335,7 @@ int CMolTwisterState::atomTypeToTypeIndex(const std::vector<std::string>& atomTy
 {
     int atomTypeIndex = -1;
     
-    for(int i=0; i<atomTypes.size(); i++)
+    for(int i=0; i<(int)atomTypes.size(); i++)
     {
         if(type == atomTypes[i])
         {
@@ -349,11 +349,11 @@ int CMolTwisterState::atomTypeToTypeIndex(const std::vector<std::string>& atomTy
 
 bool CMolTwisterState::getTypeIndexAtomArray(const std::vector<std::string>& atomTypes, std::vector<int>& atomTypeIndices) const
 {
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         bool found = false;
         std::string ID = atoms_[i]->getID();
-        for(int j=0; j<atomTypes.size(); j++)
+        for(int j=0; j<(int)atomTypes.size(); j++)
         {
             if(ID == atomTypes[j])
             {
@@ -377,7 +377,7 @@ CAtom* CMolTwisterState::getFirstOccurenceOf(std::string ID) const
 {
     CAtom* atomPtr = nullptr;
 
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         std::string cmpID = atoms_[i]->getID();
         if(ID == cmpID)
@@ -398,12 +398,12 @@ C3DRect CMolTwisterState::calcBoundingBox(int frame, const std::vector<int>& ato
     boundBox.rHigh_ = C3DVector(-(double)FLT_MAX, -(double)FLT_MAX, -(double)FLT_MAX);
     
     C3DVector r;
-    for(int n=0; n<atomIndices.size(); n++)
+    for(int n=0; n<(int)atomIndices.size(); n++)
     {
         int i = atomIndices[n];
         
-        if((i < 0) || (i >= atoms_.size())) continue;
-        if(frame >= atoms_[i]->r_.size()) continue;
+        if((i < 0) || (i >= (int)atoms_.size())) continue;
+        if(frame >= (int)atoms_[i]->r_.size()) continue;
         
         r = atoms_[i]->r_[frame];
         
@@ -423,7 +423,7 @@ void CMolTwisterState::getAtomsWithID(std::string ID, std::vector<int>& atomIndi
 {
     atomIndices.clear();
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         std::string cmpID = atoms_[i]->getID();
         if(cmpID == ID)
@@ -437,7 +437,7 @@ void CMolTwisterState::getAtomsWithID(std::string ID, std::vector<CAtom*>& atomI
 {
     atomIndices.clear();
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         std::string cmpID = atoms_[i]->getID();
         if(cmpID == ID)
@@ -451,7 +451,7 @@ void CMolTwisterState::getAtomsWithResname(std::string resname, std::vector<int>
 {
     atomIndices.clear();
     
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         if(atoms_[i]->resname_ == resname)
         {
@@ -462,7 +462,7 @@ void CMolTwisterState::getAtomsWithResname(std::string resname, std::vector<int>
 
 int CMolTwisterState::getAtomIndex(const CAtom* atom) const
 {
-    for(int i=0; i<atoms_.size(); i++)
+    for(int i=0; i<(int)atoms_.size(); i++)
     {
         if(atoms_[i].get() == atom) return i;
     }
