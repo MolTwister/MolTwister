@@ -11,6 +11,7 @@ public:
     CDevAtom() { typeIndex_ = -1; r_[0] = r_[1] = r_[2] = 0.0f; p_[0] = p_[1] = p_[2] = 0.0f; }
 
 public:
+    float m_;
     float r_[3];
     float p_[3];
     int typeIndex_;
@@ -54,6 +55,7 @@ void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList,
         atomList[i].r_[0] = state->atoms_[i]->r_[0].x_;
         atomList[i].r_[1] = state->atoms_[i]->r_[0].y_;
         atomList[i].r_[2] = state->atoms_[i]->r_[0].z_;
+        atomList[i].m_ = state->atoms_[i]->m_;
     }
 
     // Assign atom-type indices to each atom in the atom list
