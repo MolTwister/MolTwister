@@ -3,43 +3,51 @@
 #include "Math.h"
 #include <float.h>
 #include <math.h>
+#include <functional>
 
-CVelVerlet::CVelVerlet()
+class CDevAtom
 {
-    P = 1.0 / Conv_press;
-    p_eps = 1.0;
-    eps = 0.0;
-    W = 1.0;
-    m_dLastFMax = 0.0;
-    Fcut = 1000.0;
-    m_bCutF = false;
-    tau = 1.0;
+public:
+    CDevAtom() { typeIndex_ = -1; r_[0] = r_[1] = r_[2] = 0.0f; p_[0] = p_[1] = p_[2] = 0.0f; }
+
+public:
+    float r_[3];
+    float p_[3];
+    int typeIndex_;
+};
+
+class CFunctPoint
+{
+public:
+    CFunctPoint() { x_ = y_ = 0.0f; }
+    CFunctPoint(float x, float y) { x_ = x; y = y_; }
+
+public:
+    float x_;
+    float y_;
+};
+
+template<class T> T* raw_pointer_cast(T* ptr) { return ptr; }
+
+size_t toIndex(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
+{
+    return columnCount*(rowCount*(maxNumFFPerAtomicSet*pointIndex + ffIndex) + rowIndex) + columnIndex;
 }
 
-void CVelVerlet::init(CMolTwisterState* state)
+size_t toIndex(size_t rowIndex, size_t columnIndex, size_t columnCount)
+{
+    return columnCount*rowIndex + columnIndex;
+}
+
+void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList, std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount)
 {
     const float rCutoff = 10.0f;
-
-    class CDevAtom
-    {
-    public:
-        CDevAtom() { typeIndex_ = -1; r_[0] = r_[1] = r_[2] = 0.0f; p_[0] = p_[1] = p_[2] = 0.0f; }
-
-    public:
-        float r_[3];
-        float p_[3];
-        int typeIndex_;
-    };
-
-    struct CFunctPoint
-    {
-        float x_;
-        float y_;
-    };
+    const int maxNumFFPerAtomicSet = 5;
+    const int numPointsInForceProfiles = 100;
 
     // Generate atom list for GPU and set initial positions
     size_t numAtoms = state->atoms_.size();
-    std::vector<CDevAtom> atomList(numAtoms);
+    atomList = std::vector<CDevAtom>(numAtoms);
     for(size_t i=0; i<numAtoms; i++)
     {
         if(state->atoms_[i]->r_.size() == 0) continue;
@@ -56,15 +64,20 @@ void CVelVerlet::init(CMolTwisterState* state)
         atomList[i].typeIndex_ = CMolTwisterState::atomTypeToTypeIndex(atomTypes, state->atoms_[i]->getID());
     }
 
-    // Generate non-bonded force-field matrix, [col][row][ffIndex][pointIndex]. Assigned are one ore more 1D force-profiles.
+    // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();
-    std::vector<std::vector<std::vector<std::vector<CFunctPoint>>>> nonBondFFMatrix(numAtomTypes);
-    for(auto& rowEntry : nonBondFFMatrix)
-    {
-        rowEntry.resize(numAtomTypes);
-    }
+    nonBondFFMatrix = std::vector<CFunctPoint>(numAtomTypes * numAtomTypes * maxNumFFPerAtomicSet * numPointsInForceProfiles);
+    nonBondFFMatrixFFCount = std::vector<size_t>(numAtomTypes * numAtomTypes);
 
-    // Assign the 1D force-profiles
+    // Set up lambda to convert from pair based plots to CFuncPoint plots
+    std::function<std::vector<CFunctPoint>(const std::vector<std::pair<float, float>>&)> toFuncPtPlot = [](const std::vector<std::pair<float, float>>& fctIn)
+    {
+        std::vector<CFunctPoint> fctOut(fctIn.size());
+        for(size_t i=0; i<fctIn.size(); i++) fctOut[i] = CFunctPoint(fctIn[i].first, fctIn[i].second);
+        return fctOut;
+    };
+
+    // Assign the 1D force-profiles for non-bonded forces
     for(size_t c=0; c<numAtomTypes; c++)
     {
         std::string colTypeName = atomTypes[c];
@@ -75,18 +88,44 @@ void CVelVerlet::init(CMolTwisterState* state)
             std::shared_ptr<std::vector<int>> ffIndexList = state->mdFFNonBondedList_.indexFromNames(colTypeName, rowTypeName);
             if(ffIndexList)
             {
+                nonBondFFMatrixFFCount[toIndex(r, c, numAtomTypes)] = ffIndexList->size();
                 for(size_t i=0; i<ffIndexList->size(); i++)
                 {
                     int ffIndex = (*ffIndexList)[i];
                     if(ffIndex >= 0)
                     {
                         CMDFFNonBonded* forceField = state->mdFFNonBondedList_.get(ffIndex);
-                        std::vector<std::pair<float, float>> profile = forceField->calc1DForceProfile(0.01, rCutoff, 100); // :TODO: Create a lambda that takes as argument profile and returns directly the CFuncPoint variant into nonBondFFMatrix[c][r].push_back().
+                        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+                        for(size_t j=0; j<plot.size(); j++)
+                        {
+                            nonBondFFMatrix[toIndex(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
+                        }
                     }
                 }
             }
         }
     }
+
+    // Generate bond force field vector
+}
+
+CVelVerlet::CVelVerlet()
+{
+    P = 1.0 / Conv_press;
+    p_eps = 1.0;
+    eps = 0.0;
+    W = 1.0;
+    m_dLastFMax = 0.0;
+    Fcut = 1000.0;
+    m_bCutF = false;
+    tau = 1.0;
+
+    state_ = nullptr;
+}
+
+void CVelVerlet::init(CMolTwisterState* state)
+{
+    state_ = state;
 }
 
 void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)
@@ -120,7 +159,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
         // * Vector of bonded force assignments
         // * Vector of angular force assignments
         // * Vector of dihedral force assignments
-        // NOTE! To save space, try to make a common struct, preloaded to the GPU, pointed to by each particle. The paricles will each contain
+        // NOTE! To save space, try to make a common struct, preloaded to the GPU, which thus should be added as members to the functor passed to thrust::transform(). The paricles will each contain
         // * Array of particles (m, r, p, array of neighbour indices)
         p_eps+= ((dt / 2.0) * G_eps(N, aParticles, aFpi));  // Step 3.1
         Prop_p(N, dt, aParticles, aF);                      // Step 3.2

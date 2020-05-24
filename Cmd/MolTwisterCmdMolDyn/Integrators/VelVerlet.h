@@ -43,4 +43,5 @@ public:
 private:
     double m_dLastFMax;
     bool m_bCutF;
+    CMolTwisterState* state_;
 };
