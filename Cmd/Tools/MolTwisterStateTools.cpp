@@ -68,7 +68,7 @@ std::shared_ptr<std::vector<CMolTwisterStateTools::CCellListEntry>> CMolTwisterS
 
     auto atomCellList = std::make_shared<std::vector<CCellListEntry>>(size);
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         r = state_->atoms_[i]->r_[frame];
         cubeIndex = xyzToAtomCellIndex(pbc, r.x_, r.y_, r.z_, numPBCBisections);
@@ -77,7 +77,7 @@ std::shared_ptr<std::vector<CMolTwisterStateTools::CCellListEntry>> CMolTwisterS
             printf("Waring! Attempt to bisect PBC into smaller blocks failed. Atom found below cube boundaries!\r\n");
             cubeIndex = 0;
         }
-        if(cubeIndex >= atomCellList->size())
+        if(cubeIndex >= (int)atomCellList->size())
         {
             printf("Waring! Attempt to bisect PBC into smaller blocks failed. Atom found above cube boundaries!\r\n");
             cubeIndex = (int)atomCellList->size() - 1;
@@ -148,9 +148,9 @@ void CMolTwisterStateTools::generateBonds(double minR, bool verbose, bool, int f
     // Note which atoms to ignore bonds from
     if(bondAtomsToIgnore)
     {
-        for(int i=0; i<bondAtomsToIgnore->size(); i++)
+        for(int i=0; i<(int)bondAtomsToIgnore->size(); i++)
         {
-            for(int j=0; j<state_->atoms_.size(); j++)
+            for(int j=0; j<(int)state_->atoms_.size(); j++)
             {
                 std::string ID = state_->atoms_[j]->getID();
                 if(ID == (*bondAtomsToIgnore)[i]) state_->atoms_[j]->ignoreBondFrom_ = true;
@@ -161,7 +161,7 @@ void CMolTwisterStateTools::generateBonds(double minR, bool verbose, bool, int f
     // Delete all existing bonds
     if(frame == -1) frame = state_->currentFrame_;
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         state_->atoms_[i]->deleteAllBonds();
     }
@@ -252,7 +252,7 @@ void CMolTwisterStateTools::generateBonds(double minR, bool verbose, bool, int f
     int atomIndexP = state_->defaultAtProp_.identifyAtom("P");
     int atomIndexS = state_->defaultAtProp_.identifyAtom("S");
     pb.beginProgress("Bond gen step 2/3");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         std::string  ID = state_->atoms_[i]->getID();
         locatedAtomIndex = state_->defaultAtProp_.identifyAtom(ID.data());
@@ -278,7 +278,7 @@ void CMolTwisterStateTools::generateBonds(double minR, bool verbose, bool, int f
     state_->genMolIndices();
 
     pb.beginProgress("Bond gen step 3/3");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(state_->atoms_[i]) state_->atoms_[i]->buildListOf1to4Connections();
         pb.updateProgress(i, (int)state_->atoms_.size());
@@ -289,7 +289,7 @@ void CMolTwisterStateTools::generateBonds(double minR, bool verbose, bool, int f
 void CMolTwisterStateTools::getAtomsOfMolecule(int molIndex, std::vector<int>& atomIndices) const
 {
     atomIndices.clear();
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(state_->atoms_[i]->getMolIndex() == molIndex)
             atomIndices.emplace_back(i);
@@ -303,7 +303,7 @@ C3DVector CMolTwisterStateTools::getMoleculeDipoleMoment(const std::vector<int>&
     Rc = getCenterOfMass(atomIndices, frameIndex);
     if(!chargeNeutralFormulation) Rc_int = Rc;
 
-    for(int i=0; i<atomIndices.size(); i++)
+    for(int i=0; i<(int)atomIndices.size(); i++)
     {
         double q_i = state_->atoms_[atomIndices[i]]->Q_;
         C3DVector r_i = state_->atoms_[atomIndices[i]]->r_[frameIndex];
@@ -318,7 +318,7 @@ int CMolTwisterStateTools::getNumMolecules() const
 {
     int largestIndex = -1;
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(state_->atoms_[i]->getMolIndex() > largestIndex)
             largestIndex = state_->atoms_[i]->getMolIndex();
@@ -348,7 +348,7 @@ void CMolTwisterStateTools::getMolecules(std::vector<std::vector<int>>& molecule
         // Exclude the indices not belonging to aAtomTypesToInclude (or include all)
         if(numAtomTypesToInclude != 0)
         {
-            for(int j=0; j<atomIndices.size(); j++)
+            for(int j=0; j<(int)atomIndices.size(); j++)
             {
                 std::string ID = state_->atoms_[atomIndices[j]]->getID();
                 if(mapIDtoIndex.find(ID) == mapIDtoIndex.end())
@@ -382,7 +382,7 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
 
     // Count number of molecules
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(state_->atoms_[i]->getMolIndex() > numMolecules)
             numMolecules = state_->atoms_[i]->getMolIndex();
@@ -409,12 +409,12 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
             double boundsOfAtomsAtPBCBdry1[2] = { DBL_MAX, -DBL_MAX };
             double boundsOfAtomsAtPBCBdry2[2] = { DBL_MAX, -DBL_MAX };
-            for(int i=0; i<atomsAtPBCBdry1.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++)
             {
                 if(atomsAtPBCBdry1[i]->r_[iFrame].x_ < boundsOfAtomsAtPBCBdry1[0]) boundsOfAtomsAtPBCBdry1[0] = atomsAtPBCBdry1[i]->r_[iFrame].x_;
                 if(atomsAtPBCBdry1[i]->r_[iFrame].x_ > boundsOfAtomsAtPBCBdry1[1]) boundsOfAtomsAtPBCBdry1[1] = atomsAtPBCBdry1[i]->r_[iFrame].x_;
             }
-            for(int i=0; i<atomsAtPBCBdry2.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++)
             {
                 if(atomsAtPBCBdry2[i]->r_[iFrame].x_ < boundsOfAtomsAtPBCBdry2[0]) boundsOfAtomsAtPBCBdry2[0] = atomsAtPBCBdry2[i]->r_[iFrame].x_;
                 if(atomsAtPBCBdry2[i]->r_[iFrame].x_ > boundsOfAtomsAtPBCBdry2[1]) boundsOfAtomsAtPBCBdry2[1] = atomsAtPBCBdry2[i]->r_[iFrame].x_;
@@ -424,11 +424,11 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
             {
                 if(boundsOfAtomsAtPBCBdry1[1] < boundsOfAtomsAtPBCBdry2[0])
                 {
-                    for(int i=0; i<atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].x_+= PBCx;
+                    for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].x_+= PBCx;
                 }
                 else
                 {
-                    for(int i=0; i<atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].x_+= PBCx;
+                    for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].x_+= PBCx;
                 }
             }
 
@@ -438,12 +438,12 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
             boundsOfAtomsAtPBCBdry1[0] = DBL_MAX; boundsOfAtomsAtPBCBdry1[1] = -DBL_MAX;
             boundsOfAtomsAtPBCBdry2[0] = DBL_MAX; boundsOfAtomsAtPBCBdry2[1] = -DBL_MAX;
-            for(int i=0; i<atomsAtPBCBdry1.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++)
             {
                 if(atomsAtPBCBdry1[i]->r_[iFrame].y_ < boundsOfAtomsAtPBCBdry1[0]) boundsOfAtomsAtPBCBdry1[0] = atomsAtPBCBdry1[i]->r_[iFrame].y_;
                 if(atomsAtPBCBdry1[i]->r_[iFrame].y_ > boundsOfAtomsAtPBCBdry1[1]) boundsOfAtomsAtPBCBdry1[1] = atomsAtPBCBdry1[i]->r_[iFrame].y_;
             }
-            for(int i=0; i<atomsAtPBCBdry2.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++)
             {
                 if(atomsAtPBCBdry2[i]->r_[iFrame].y_ < boundsOfAtomsAtPBCBdry2[0]) boundsOfAtomsAtPBCBdry2[0] = atomsAtPBCBdry2[i]->r_[iFrame].y_;
                 if(atomsAtPBCBdry2[i]->r_[iFrame].y_ > boundsOfAtomsAtPBCBdry2[1]) boundsOfAtomsAtPBCBdry2[1] = atomsAtPBCBdry2[i]->r_[iFrame].y_;
@@ -451,11 +451,11 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
             if(boundsOfAtomsAtPBCBdry1[1] < boundsOfAtomsAtPBCBdry2[0])
             {
-                for(int i=0; i<atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].y_+= PBCy;
+                for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].y_+= PBCy;
             }
             else
             {
-                for(int i=0; i<atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].y_+= PBCy;
+                for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].y_+= PBCy;
             }
 
 
@@ -464,12 +464,12 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
             boundsOfAtomsAtPBCBdry1[0] = DBL_MAX; boundsOfAtomsAtPBCBdry1[1] = -DBL_MAX;
             boundsOfAtomsAtPBCBdry2[0] = DBL_MAX; boundsOfAtomsAtPBCBdry2[1] = -DBL_MAX;
-            for(int i=0; i<atomsAtPBCBdry1.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++)
             {
                 if(atomsAtPBCBdry1[i]->r_[iFrame].z_ < boundsOfAtomsAtPBCBdry1[0]) boundsOfAtomsAtPBCBdry1[0] = atomsAtPBCBdry1[i]->r_[iFrame].z_;
                 if(atomsAtPBCBdry1[i]->r_[iFrame].z_ > boundsOfAtomsAtPBCBdry1[1]) boundsOfAtomsAtPBCBdry1[1] = atomsAtPBCBdry1[i]->r_[iFrame].z_;
             }
-            for(int i=0; i<atomsAtPBCBdry2.size(); i++)
+            for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++)
             {
                 if(atomsAtPBCBdry2[i]->r_[iFrame].z_ < boundsOfAtomsAtPBCBdry2[0]) boundsOfAtomsAtPBCBdry2[0] = atomsAtPBCBdry2[i]->r_[iFrame].z_;
                 if(atomsAtPBCBdry2[i]->r_[iFrame].z_ > boundsOfAtomsAtPBCBdry2[1]) boundsOfAtomsAtPBCBdry2[1] = atomsAtPBCBdry2[i]->r_[iFrame].z_;
@@ -477,11 +477,11 @@ void CMolTwisterStateTools::atomicUnwrap(C3DRect pbc)
 
             if(boundsOfAtomsAtPBCBdry1[1] < boundsOfAtomsAtPBCBdry2[0])
             {
-                for(int i=0; i<atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].z_+= PBCz;
+                for(int i=0; i<(int)atomsAtPBCBdry1.size(); i++) atomsAtPBCBdry1[i]->r_[iFrame].z_+= PBCz;
             }
             else
             {
-                for(int i=0; i<atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].z_+= PBCz;
+                for(int i=0; i<(int)atomsAtPBCBdry2.size(); i++) atomsAtPBCBdry2[i]->r_[iFrame].z_+= PBCz;
             }
         }
     }
@@ -500,7 +500,7 @@ void CMolTwisterStateTools::getAllVisibleBondsInSystem(std::vector<int>& atoms1,
 
     state_->getMapAtomPtrToIndex(mapAtomPtrToIndex);
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atom1 = state_->atoms_[i].get();
         numBonds1 = atom1->getNumBonds();
@@ -561,9 +561,9 @@ void CMolTwisterStateTools::getAllMDBondsInSystem(std::vector<int>& atoms1, std:
             state_->getAtomsWithID(stringAtom1, atomsType1);
             state_->getAtomsWithID(stringAtom2, atomsType2);
 
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
-                for(int k=0; k<atomsType2.size(); k++)
+                for(int k=0; k<(int)atomsType2.size(); k++)
                 {
                     if(atomsType1[j] == atomsType2[k]) continue;
                     if(molTools.calcDistance2(atomsType1[j], atomsType2[k], state_->currentFrame_, PBC, bondsAcrossPBC) < R02)
@@ -585,13 +585,13 @@ void CMolTwisterStateTools::getAllMDBondsInSystem(std::vector<int>& atoms1, std:
             std::vector<CAtom*> atomsType1, atomsInMolecule1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
 
                 atom1->findAtomsInMolecule(atomsInMolecule1, state_->currentFrame_);
-                for(int k=0; k<atomsInMolecule1.size(); k++)
+                for(int k=0; k<(int)atomsInMolecule1.size(); k++)
                 {
                     atom2 = atomsInMolecule1[k];
                     if(!atom2) continue;
@@ -617,7 +617,7 @@ void CMolTwisterStateTools::getAllMDBondsInSystem(std::vector<int>& atoms1, std:
             std::vector<CAtom*> atomsType1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
@@ -649,7 +649,7 @@ void CMolTwisterStateTools::getAllMDBondsInSystem(std::vector<int>& atoms1, std:
             CAtom* atom4;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
@@ -716,7 +716,7 @@ void CMolTwisterStateTools::getAllVisibleAnglesInSystem(std::vector<int>& atoms1
 
     state_->getMapAtomPtrToIndex(mapAtomPtrToIndex);
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atom1 = state_->atoms_[i].get();
         numBonds1 = atom1->getNumBonds();
@@ -789,14 +789,14 @@ void CMolTwisterStateTools::getAllMDAnglesInSystem(std::vector<int>& atoms1, std
             state_->getAtomsWithID(stringAtom2, atomsType2);
             state_->getAtomsWithID(stringAtom3, atomsType3);
 
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
-                for(int k=0; k<atomsType2.size(); k++)
+                for(int k=0; k<(int)atomsType2.size(); k++)
                 {
                     if(atomsType1[j] == atomsType2[k]) continue;
                     if(molTools.calcDistance2(atomsType1[j], atomsType2[k], state_->currentFrame_, PBC, bondsAcrossPBC) < R02)
                     {
-                        for(int l=0; l<atomsType3.size(); l++)
+                        for(int l=0; l<(int)atomsType3.size(); l++)
                         {
                             if(atomsType3[l] == atomsType2[k]) continue;
                             if(atomsType3[l] == atomsType1[j]) continue;
@@ -823,13 +823,13 @@ void CMolTwisterStateTools::getAllMDAnglesInSystem(std::vector<int>& atoms1, std
             std::vector<CAtom*> atomsType1, atomsInMolecule1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
 
                 atom1->findAtomsInMolecule(atomsInMolecule1, state_->currentFrame_);
-                for(int k=0; k<atomsInMolecule1.size(); k++)
+                for(int k=0; k<(int)atomsInMolecule1.size(); k++)
                 {
                     atom2 = atomsInMolecule1[k];
                     if(!atom2) continue;
@@ -838,7 +838,7 @@ void CMolTwisterStateTools::getAllMDAnglesInSystem(std::vector<int>& atoms1, std
                     if(atom1 == atom2) continue;
                     if((ID == stringAtom2) && (molTools.calcDistance2(atom1, atom2, state_->currentFrame_, PBC, bondsAcrossPBC) < R02))
                     {
-                        for(int l=0; l<atomsInMolecule1.size(); l++)
+                        for(int l=0; l<(int)atomsInMolecule1.size(); l++)
                         {
                             atom3 = atomsInMolecule1[l];
                             if(!atom3) continue;
@@ -869,7 +869,7 @@ void CMolTwisterStateTools::getAllMDAnglesInSystem(std::vector<int>& atoms1, std
             std::vector<CAtom*> atomsType1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
@@ -935,7 +935,7 @@ void CMolTwisterStateTools::getAllVisibleDihedralsInSystem(std::vector<int>& ato
 
     state_->getMapAtomPtrToIndex(mapAtomPtrToIndex);
 
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         atom1 = state_->atoms_[i].get();
         numBonds1 = atom1->getNumBonds();
@@ -1019,20 +1019,20 @@ void CMolTwisterStateTools::getAllMDDihedralsInSystem(std::vector<int>& atoms1, 
             state_->getAtomsWithID(stringAtom3, atomsType3);
             state_->getAtomsWithID(stringAtom4, atomsType4);
 
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
-                for(int k=0; k<atomsType2.size(); k++)
+                for(int k=0; k<(int)atomsType2.size(); k++)
                 {
                     if(atomsType1[j] == atomsType2[k]) continue;
                     if(molTools.calcDistance2(atomsType1[j], atomsType2[k], state_->currentFrame_, PBC, bondsAcrossPBC) < R02)
                     {
-                        for(int l=0; l<atomsType3.size(); l++)
+                        for(int l=0; l<(int)atomsType3.size(); l++)
                         {
                             if(atomsType3[l] == atomsType2[k]) continue;
                             if(atomsType3[l] == atomsType1[j]) continue;
                             if(molTools.calcDistance2(atomsType2[k], atomsType3[l], state_->currentFrame_, PBC, bondsAcrossPBC) < R02)
                             {
-                                for(int m=0; m<atomsType4.size(); m++)
+                                for(int m=0; m<(int)atomsType4.size(); m++)
                                 {
                                     if(atomsType4[m] == atomsType3[l]) continue;
                                     if(atomsType4[m] == atomsType2[k]) continue;
@@ -1064,13 +1064,13 @@ void CMolTwisterStateTools::getAllMDDihedralsInSystem(std::vector<int>& atoms1, 
             std::vector<CAtom*> atomsType1, atomsInMolecule1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
 
                 atom1->findAtomsInMolecule(atomsInMolecule1, state_->currentFrame_);
-                for(int k=0; k<atomsInMolecule1.size(); k++)
+                for(int k=0; k<(int)atomsInMolecule1.size(); k++)
                 {
                     atom2 = atomsInMolecule1[k];
                     if(!atom2) continue;
@@ -1079,7 +1079,7 @@ void CMolTwisterStateTools::getAllMDDihedralsInSystem(std::vector<int>& atoms1, 
                     if(atom1 == atom2) continue;
                     if((ID == stringAtom2) && (molTools.calcDistance2(atom1, atom2, state_->currentFrame_, PBC, bondsAcrossPBC) < R02))
                     {
-                        for(int l=0; l<atomsInMolecule1.size(); l++)
+                        for(int l=0; l<(int)atomsInMolecule1.size(); l++)
                         {
                             atom3 = atomsInMolecule1[l];
                             if(!atom3) continue;
@@ -1089,7 +1089,7 @@ void CMolTwisterStateTools::getAllMDDihedralsInSystem(std::vector<int>& atoms1, 
                             if(atom3 == atom2) continue;
                             if((ID == stringAtom3) && (molTools.calcDistance2(atom2, atom3, state_->currentFrame_, PBC, bondsAcrossPBC) < R02))
                             {
-                                for(int m=0; m<atomsInMolecule1.size(); m++)
+                                for(int m=0; m<(int)atomsInMolecule1.size(); m++)
                                 {
                                     atom4 = atomsInMolecule1[m];
                                     if(!atom4) continue;
@@ -1125,7 +1125,7 @@ void CMolTwisterStateTools::getAllMDDihedralsInSystem(std::vector<int>& atoms1, 
             std::vector<CAtom*> atomsType1;
 
             state_->getAtomsWithID(stringAtom1, atomsType1);
-            for(int j=0; j<atomsType1.size(); j++)
+            for(int j=0; j<(int)atomsType1.size(); j++)
             {
                 atom1 = atomsType1[j];
                 if(!atom1) continue;
@@ -1205,9 +1205,9 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
     std::vector<bool> bondTypesUsedByDataFile;
     bondTypesUsedByDataFile.resize(state_->mdFFBondList_.size(), false);
 
-    for(int i=0; i<bondAtoms1.size(); i++)
+    for(int i=0; i<(int)bondAtoms1.size(); i++)
     {
-        if(bondMDTypeIndices[i] < bondTypesUsedByDataFile.size()) bondTypesUsedByDataFile[bondMDTypeIndices[i]] = true;
+        if(bondMDTypeIndices[i] < (int)bondTypesUsedByDataFile.size()) bondTypesUsedByDataFile[bondMDTypeIndices[i]] = true;
         else
         {
             fprintf(file, "\tBond type index %i does not exist, there are only %i bond types declared in total!\r\n", bondMDTypeIndices[i]+1, (int)bondTypesUsedByDataFile.size());
@@ -1223,9 +1223,9 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
 
     fprintf(file, "\r\n");
 
-    for(int i=0; i<angleAtoms1.size(); i++)
+    for(int i=0; i<(int)angleAtoms1.size(); i++)
     {
-        if(angleMDTypeIndices[i] < angleTypesUsedByDataFile.size()) angleTypesUsedByDataFile[angleMDTypeIndices[i]] = true;
+        if(angleMDTypeIndices[i] < (int)angleTypesUsedByDataFile.size()) angleTypesUsedByDataFile[angleMDTypeIndices[i]] = true;
         else
         {
             fprintf(file, "\tAngle type index %i does not exist, there are only %i angle types declared in total!\r\n", angleMDTypeIndices[i]+1, (int)angleTypesUsedByDataFile.size());
@@ -1241,9 +1241,9 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
 
     fprintf(file, "\r\n");
 
-    for(int i=0; i<dihAtoms1.size(); i++)
+    for(int i=0; i<(int)dihAtoms1.size(); i++)
     {
-        if(dihMDTypeIndices[i] < dihTypesUsedByDataFile.size()) dihTypesUsedByDataFile[dihMDTypeIndices[i]] = true;
+        if(dihMDTypeIndices[i] < (int)dihTypesUsedByDataFile.size()) dihTypesUsedByDataFile[dihMDTypeIndices[i]] = true;
         else
         {
             fprintf(file, "\tDihedral type index %i does not exist, there are only %i dihedral types declared in total!\r\n", dihMDTypeIndices[i]+1, (int)dihTypesUsedByDataFile.size());
@@ -1252,7 +1252,7 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
 
 
     // Output information about unused bonds
-    for(int i=0; i<bondTypesUsedByDataFile.size(); i++)
+    for(int i=0; i<(int)bondTypesUsedByDataFile.size(); i++)
     {
         if(!bondTypesUsedByDataFile[i])
         {
@@ -1264,7 +1264,7 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
 
 
     // Output information about unused anlges
-    for(int i=0; i<angleTypesUsedByDataFile.size(); i++)
+    for(int i=0; i<(int)angleTypesUsedByDataFile.size(); i++)
     {
         if(!angleTypesUsedByDataFile[i])
         {
@@ -1276,7 +1276,7 @@ void CMolTwisterStateTools::reportConsistencyOfMDForceField(FILE* file)
 
 
     // Output information about unused dihedrals
-    for(int i=0; i<dihTypesUsedByDataFile.size(); i++)
+    for(int i=0; i<(int)dihTypesUsedByDataFile.size(); i++)
     {
         if(!dihTypesUsedByDataFile[i])
         {
@@ -1292,7 +1292,7 @@ C3DVector CMolTwisterStateTools::getCenterOfMass(const std::vector<int>& atomInd
     double M = 0.0;
     C3DVector Rc;
 
-    for(int i=0; i<atomIndices.size(); i++)
+    for(int i=0; i<(int)atomIndices.size(); i++)
     {
         double m = state_->atoms_[atomIndices[i]]->m_;
         if(fabs(m) < 1E-5)
@@ -1302,7 +1302,7 @@ C3DVector CMolTwisterStateTools::getCenterOfMass(const std::vector<int>& atomInd
         }
         M+= m;
 
-        if((frameIndex < 0) || (frameIndex >= state_->atoms_[atomIndices[i]]->r_.size()))
+        if((frameIndex < 0) || (frameIndex >= (int)state_->atoms_[atomIndices[i]]->r_.size()))
         {
             printf("Error: frame %i does not exist!", frameIndex);
             return Rc;
@@ -1335,11 +1335,11 @@ double CMolTwisterStateTools::measureTotCoulombEnergy(const double* a1to4BondSep
 
     if(!a1to4BondSepCoeffs)
     {
-        for(int i=0; i<state_->atoms_.size(); i++)
+        for(int i=0; i<(int)state_->atoms_.size(); i++)
         {
             atom1Ptr = state_->atoms_[i].get();
             q1 = atom1Ptr->Q_;
-            for(int j=i+1; j<state_->atoms_.size(); j++)
+            for(int j=i+1; j<(int)state_->atoms_.size(); j++)
             {
                 atom2Ptr = state_->atoms_[j].get();
                 q2 = atom2Ptr->Q_;
@@ -1357,11 +1357,11 @@ double CMolTwisterStateTools::measureTotCoulombEnergy(const double* a1to4BondSep
         int bondSep;
         double coeff;
 
-        for(int i=0; i<state_->atoms_.size(); i++)
+        for(int i=0; i<(int)state_->atoms_.size(); i++)
         {
             atom1Ptr = state_->atoms_[i].get();
             q1 = atom1Ptr->Q_;
-            for(int j=i+1; j<state_->atoms_.size(); j++)
+            for(int j=i+1; j<(int)state_->atoms_.size(); j++)
             {
                 atom2Ptr = state_->atoms_[j].get();
                 q2 = atom2Ptr->Q_;
@@ -1395,7 +1395,7 @@ double CMolTwisterStateTools::measureCoulombPotential(C3DVector at, const std::v
     const double e = 1.602176565E-19; // [C]
     const double Ke = K * e * 1.0E10 / 1000.0; // [kJÅ/C]
 
-    for(int i=0; i<atoms->size(); i++)
+    for(int i=0; i<(int)atoms->size(); i++)
     {
         atomPtr = (*atoms)[i].get();
         q = atomPtr->Q_;

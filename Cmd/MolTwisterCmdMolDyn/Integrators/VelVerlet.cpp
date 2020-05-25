@@ -4,6 +4,7 @@
 #include <float.h>
 #include <math.h>
 #include <functional>
+#include "../../Tools/MolTwisterStateTools.h"
 
 class CDevAtom
 {
@@ -15,6 +16,17 @@ public:
     float r_[3];
     float p_[3];
     int typeIndex_;
+};
+
+class CDevBond
+{
+public:
+    CDevBond() { atomIndex1_ = atomIndex2_ = 0; bondType_ = -1; }
+
+public:
+    size_t atomIndex1_;
+    size_t atomIndex2_;
+    int bondType_;
 };
 
 class CFunctPoint
@@ -30,17 +42,25 @@ public:
 
 template<class T> T* raw_pointer_cast(T* ptr) { return ptr; }
 
-size_t toIndex(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
+size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
 {
     return columnCount*(rowCount*(maxNumFFPerAtomicSet*pointIndex + ffIndex) + rowIndex) + columnIndex;
 }
 
-size_t toIndex(size_t rowIndex, size_t columnIndex, size_t columnCount)
+size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount)
 {
     return columnCount*rowIndex + columnIndex;
 }
 
-void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList, std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount)
+size_t toIndexBond(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles)
+{
+    return listIndex*numPointsInForceProfiles + pointIndex;
+}
+
+void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
+                       std::vector<CDevAtom>& atomList,
+                       std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
+                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList)
 {
     const float rCutoff = 10.0f;
     const int maxNumFFPerAtomicSet = 5;
@@ -90,7 +110,7 @@ void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList,
             std::shared_ptr<std::vector<int>> ffIndexList = state->mdFFNonBondedList_.indexFromNames(colTypeName, rowTypeName);
             if(ffIndexList)
             {
-                nonBondFFMatrixFFCount[toIndex(r, c, numAtomTypes)] = ffIndexList->size();
+                nonBondFFMatrixFFCount[toIndexNonBond(r, c, numAtomTypes)] = ffIndexList->size();
                 for(size_t i=0; i<ffIndexList->size(); i++)
                 {
                     int ffIndex = (*ffIndexList)[i];
@@ -100,7 +120,7 @@ void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList,
                         std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
                         for(size_t j=0; j<plot.size(); j++)
                         {
-                            nonBondFFMatrix[toIndex(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
+                            nonBondFFMatrix[toIndexNonBond(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
                         }
                     }
                 }
@@ -108,7 +128,32 @@ void prepareFFMatrices(CMolTwisterState* state, std::vector<CDevAtom>& atomList,
         }
     }
 
-    // Generate bond force field vector
+    // Generate bond force field vectors
+    std::vector<int> bondAtoms1, bondAtoms2, bondMDTypeIndices;
+    CMolTwisterStateTools mtStateTools(state, stdOut);
+    mtStateTools.getAllMDBondsInSystem(bondAtoms1, bondAtoms2, bondMDTypeIndices, bondsAcrossPBC);
+
+    bondList = std::vector<CDevBond>(bondAtoms1.size());
+    for(size_t i=0; i<bondAtoms1.size(); i++)
+    {
+        if(i >= bondAtoms2.size()) continue;
+        if(i >= bondMDTypeIndices.size()) continue;
+
+        bondList[i].atomIndex1_ = bondAtoms1[i];
+        bondList[i].atomIndex2_ = bondAtoms2[i];
+        bondList[i].bondType_ = bondMDTypeIndices[i];
+    }
+
+    bondFFList = std::vector<CFunctPoint>(state->mdFFBondList_.size() * numPointsInForceProfiles);
+    for(int i=0; i<state->mdFFBondList_.size(); i++)
+    {
+        CMDFFBond* forceField = state->mdFFBondList_.get(i);
+        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        for(size_t j=0; j<plot.size(); j++)
+        {
+            bondFFList[toIndexBond(i, j, numPointsInForceProfiles)] = plot[j];
+        }
+    }
 }
 
 CVelVerlet::CVelVerlet()

@@ -83,14 +83,14 @@ void CCmdLammps::parseGenffCommand(std::string, int&)
     // Print sorted pair coefficients list
     fprintf(stdOut_, "\r\n");
     havePrinted = false;
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
-        for(int j=i; j<listOfAtomTypes.size(); j++)
+        for(int j=i; j<(int)listOfAtomTypes.size(); j++)
         {
             std::shared_ptr<std::vector<int>> indicesList = state_->mdFFNonBondedList_.indexFromNames(listOfAtomTypes[i], listOfAtomTypes[j]);
             if(indicesList->size())
             {
-                for(int n=0; n<indicesList->size(); n++)
+                for(int n=0; n<(int)indicesList->size(); n++)
                 {
                     nonBonded = state_->mdFFNonBondedList_.get((*indicesList)[n]);
                     if(!nonBonded) continue;
@@ -209,7 +209,7 @@ void CCmdLammps::parseGendataCommand(std::string commandLine, int& arg)
     
     // Print masses
     fprintf(stdOut_, "\t Masses\r\n\r\n");
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
         atomPtr = state_->getFirstOccurenceOf(listOfAtomTypes[i]);
         if(atomPtr)
@@ -220,13 +220,13 @@ void CCmdLammps::parseGendataCommand(std::string commandLine, int& arg)
 
     // Print atoms
     fprintf(stdOut_, "\r\n\r\n\t Atoms\r\n\r\n");
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         C3DVector pos;
         int currFrame = state_->getCurrFrameIndex();
         atomPtr = state_->atoms_[i].get();
         std::string ID = atomPtr->getID();
-        if((currFrame >= 0) && (currFrame < atomPtr->r_.size()))
+        if((currFrame >= 0) && (currFrame < (int)atomPtr->r_.size()))
            pos = atomPtr->r_[currFrame];
 
         fprintf(stdOut_, "\t%i %i %i %.6f %.6f %.6f %.6f\t# %s\r\n",
@@ -235,21 +235,21 @@ void CCmdLammps::parseGendataCommand(std::string commandLine, int& arg)
 
     // Print bonds
     if(bondAtoms1.size()) fprintf(stdOut_, "\r\n\r\n\t Bonds\r\n\r\n");
-    for(int i=0; i<bondAtoms1.size(); i++)
+    for(int i=0; i<(int)bondAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t%i %i %i %i\r\n", i+1, bondMDTypeIndices[i]+1, bondAtoms1[i]+1, bondAtoms2[i]+1);
     }
 
     // Print angles
     if(angleAtoms1.size()) fprintf(stdOut_, "\r\n\r\n\t Angles\r\n\r\n");
-    for(int i=0; i<angleAtoms1.size(); i++)
+    for(int i=0; i<(int)angleAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t%i %i %i %i %i\r\n", i+1, angleMDTypeIndices[i]+1, angleAtoms1[i]+1, angleAtoms2[i]+1, angleAtoms3[i]+1);
     }
 
     // Print Dihedrals
     if(dihAtoms1.size()) fprintf(stdOut_, "\r\n\r\n\t Dihedrals\r\n\r\n");
-    for(int i=0; i<dihAtoms1.size(); i++)
+    for(int i=0; i<(int)dihAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t%i %i %i %i %i %i\r\n", i+1, dihMDTypeIndices[i]+1, dihAtoms1[i]+1, dihAtoms2[i]+1, dihAtoms3[i]+1, dihAtoms4[i]+1);
     }
