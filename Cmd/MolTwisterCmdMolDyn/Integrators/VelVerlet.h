@@ -10,10 +10,9 @@
 class CVelVerlet
 {
 public:
-    CVelVerlet();
+    CVelVerlet(CMolTwisterState* state, FILE* stdOut);
     
 public:
-    void init(CMolTwisterState* state);
     void Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT=false);
     C3DVector CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi);
     void SetRandMom(double tau);
@@ -43,5 +42,4 @@ public:
 private:
     double m_dLastFMax;
     bool m_bCutF;
-    CMolTwisterState* state_;
 };

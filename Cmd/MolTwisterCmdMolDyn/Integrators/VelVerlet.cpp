@@ -29,6 +29,31 @@ public:
     int bondType_;
 };
 
+class CDevAngle
+{
+public:
+    CDevAngle() { atomIndex1_ = atomIndex2_ = atomIndex3_ = 0; angleType_ = -1; }
+
+public:
+    size_t atomIndex1_;
+    size_t atomIndex2_;
+    size_t atomIndex3_;
+    int angleType_;
+};
+
+class CDevDihedral
+{
+public:
+    CDevDihedral() { atomIndex1_ = atomIndex2_ = atomIndex3_ = atomIndex4_ = 0; dihedralType_ = -1; }
+
+public:
+    size_t atomIndex1_;
+    size_t atomIndex2_;
+    size_t atomIndex3_;
+    size_t atomIndex4_;
+    int dihedralType_;
+};
+
 class CFunctPoint
 {
 public:
@@ -40,7 +65,7 @@ public:
     float y_;
 };
 
-template<class T> T* raw_pointer_cast(T* ptr) { return ptr; }
+template<class T> T* raw_pointer_cast(T* ptr) { return ptr; } // :TODO: Do I need this one?
 
 size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
 {
@@ -52,7 +77,7 @@ size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount)
     return columnCount*rowIndex + columnIndex;
 }
 
-size_t toIndexBond(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles)
+size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles)
 {
     return listIndex*numPointsInForceProfiles + pointIndex;
 }
@@ -60,7 +85,9 @@ size_t toIndexBond(size_t listIndex, size_t pointIndex, size_t numPointsInForceP
 void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
                        std::vector<CDevAtom>& atomList,
                        std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
-                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList)
+                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
+                       std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
+                       std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList)
 {
     const float rCutoff = 10.0f;
     const int maxNumFFPerAtomicSet = 5;
@@ -151,12 +178,70 @@ void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPB
         std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
-            bondFFList[toIndexBond(i, j, numPointsInForceProfiles)] = plot[j];
+            bondFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
+        }
+    }
+
+    // Generate angle force field vectors
+    std::vector<int> angleAtoms1, angleAtoms2, angleAtoms3, angleMDTypeIndices;
+    mtStateTools.getAllMDAnglesInSystem(angleAtoms1, angleAtoms2, angleAtoms3, angleMDTypeIndices, bondsAcrossPBC);
+
+    angleList = std::vector<CDevAngle>(angleAtoms1.size());
+    for(size_t i=0; i<angleAtoms1.size(); i++)
+    {
+        if(i >= angleAtoms2.size()) continue;
+        if(i >= angleAtoms3.size()) continue;
+        if(i >= angleMDTypeIndices.size()) continue;
+
+        angleList[i].atomIndex1_ = angleAtoms1[i];
+        angleList[i].atomIndex2_ = angleAtoms2[i];
+        angleList[i].atomIndex3_ = angleAtoms3[i];
+        angleList[i].angleType_ = angleMDTypeIndices[i];
+    }
+
+    angleFFList = std::vector<CFunctPoint>(state->mdFFAngleList_.size() * numPointsInForceProfiles);
+    for(int i=0; i<state->mdFFAngleList_.size(); i++)
+    {
+        CMDFFAngle* forceField = state->mdFFAngleList_.get(i);
+        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        for(size_t j=0; j<plot.size(); j++)
+        {
+            angleFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
+        }
+    }
+
+    // Generate dihedral force field vectors
+    std::vector<int> dihedralAtoms1, dihedralAtoms2, dihedralAtoms3, dihedralAtoms4, dihedralMDTypeIndices;
+    mtStateTools.getAllMDDihedralsInSystem(dihedralAtoms1, dihedralAtoms2, dihedralAtoms3, dihedralAtoms4, dihedralMDTypeIndices, bondsAcrossPBC);
+
+    dihedralList = std::vector<CDevDihedral>(dihedralAtoms1.size());
+    for(size_t i=0; i<dihedralAtoms1.size(); i++)
+    {
+        if(i >= dihedralAtoms2.size()) continue;
+        if(i >= dihedralAtoms3.size()) continue;
+        if(i >= dihedralAtoms4.size()) continue;
+        if(i >= dihedralMDTypeIndices.size()) continue;
+
+        dihedralList[i].atomIndex1_ = dihedralAtoms1[i];
+        dihedralList[i].atomIndex2_ = dihedralAtoms2[i];
+        dihedralList[i].atomIndex3_ = dihedralAtoms3[i];
+        dihedralList[i].atomIndex4_ = dihedralAtoms4[i];
+        dihedralList[i].dihedralType_ = dihedralMDTypeIndices[i];
+    }
+
+    dihedralFFList = std::vector<CFunctPoint>(state->mdFFDihList_.size() * numPointsInForceProfiles);
+    for(int i=0; i<state->mdFFDihList_.size(); i++)
+    {
+        CMDFFDih* forceField = state->mdFFDihList_.get(i);
+        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        for(size_t j=0; j<plot.size(); j++)
+        {
+            dihedralFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
         }
     }
 }
 
-CVelVerlet::CVelVerlet()
+CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
 {
     P = 1.0 / Conv_press;
     p_eps = 1.0;
@@ -167,12 +252,22 @@ CVelVerlet::CVelVerlet()
     m_bCutF = false;
     tau = 1.0;
 
-    state_ = nullptr;
-}
+    std::vector<CDevAtom> atomList;
+    std::vector<CFunctPoint> nonBondFFMatrix;
+    std::vector<size_t> nonBondFFMatrixFFCount;
+    std::vector<CDevBond> bondList;
+    std::vector<CFunctPoint> bondFFList;
+    std::vector<CDevAngle> angleList;
+    std::vector<CFunctPoint> angleFFList;
+    std::vector<CDevDihedral> dihedralList;
+    std::vector<CFunctPoint> dihedralFFList;
 
-void CVelVerlet::init(CMolTwisterState* state)
-{
-    state_ = state;
+    bool bondsAcrossPBC = true;
+    prepareFFMatrices(state, stdOut, bondsAcrossPBC, atomList,
+                      nonBondFFMatrix, nonBondFFMatrixFFCount,
+                      bondList, bondFFList,
+                      angleList, angleFFList,
+                      dihedralList, dihedralFFList);
 }
 
 void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)

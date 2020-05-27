@@ -45,7 +45,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     int             iM = 4;
     std::string     szSystem;
     CMDLoop         MDLoop;
-    CSimulationBox  SimBox;
+    CSimulationBox  SimBox(state_, stdOut_);
 
     SimBox.bNPTEnsemble = true;
     COut::SetOutputFile(fopen("out.txt", "w"));

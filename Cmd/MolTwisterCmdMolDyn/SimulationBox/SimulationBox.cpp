@@ -2,7 +2,7 @@
 #include "../Integrators/Constants.h"
 #include <math.h>
 
-CSimulationBox::CSimulationBox()
+CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut) : VelVerlet(state, stdOut)
 {
     N = 100;
     Lmax = 40.0;         // [Å]
