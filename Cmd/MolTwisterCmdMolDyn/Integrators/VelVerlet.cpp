@@ -6,16 +6,38 @@
 #include <functional>
 #include "../../Tools/MolTwisterStateTools.h"
 
+// :TODO: Move all the below class definitions, and their implementations, into its own *.h/*.cu module(s) once they become CUDA compatible
+template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; } // :TODO: Do I need this one?
+
+size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
+{
+    return columnCount*(rowCount*(maxNumFFPerAtomicSet*pointIndex + ffIndex) + rowIndex) + columnIndex;
+}
+
+size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount)
+{
+    return columnCount*rowIndex + columnIndex;
+}
+
+size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles)
+{
+    return listIndex*numPointsInForceProfiles + pointIndex;
+}
+
 class CDevAtom
 {
 public:
-    CDevAtom() { typeIndex_ = -1; r_[0] = r_[1] = r_[2] = 0.0f; p_[0] = p_[1] = p_[2] = 0.0f; }
+    CDevAtom() { typeIndex_ = -1; }
 
 public:
+    int index_;
     float m_;
-    float r_[3];
-    float p_[3];
+    C3DVector r_;
+    C3DVector p_;
     int typeIndex_;
+    C3DVector F_;
+    C3DVector Fpi_;
+    // :TODO: Neighboorlist
 };
 
 class CDevBond
@@ -65,29 +87,47 @@ public:
     float y_;
 };
 
-template<class T> T* raw_pointer_cast(T* ptr) { return ptr; } // :TODO: Do I need this one?
-
-size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
+class CDevForceFieldMatrices
 {
-    return columnCount*(rowCount*(maxNumFFPerAtomicSet*pointIndex + ffIndex) + rowIndex) + columnIndex;
+public:
+    CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut);
+
+private:
+    void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
+                           std::vector<CDevAtom>& atomList,
+                           std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
+                           std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
+                           std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
+                           std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList);
+
+public:
+    std::vector<CDevAtom> atomList_;
+    std::vector<CFunctPoint> nonBondFFMatrix_;
+    std::vector<size_t> nonBondFFMatrixFFCount_;
+    std::vector<CDevBond> bondList_;
+    std::vector<CFunctPoint> bondFFList_;
+    std::vector<CDevAngle> angleList_;
+    std::vector<CFunctPoint> angleFFList_;
+    std::vector<CDevDihedral> dihedralList_;
+    std::vector<CFunctPoint> dihedralFFList_;
+};
+
+CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut)
+{
+    bool bondsAcrossPBC = true;
+    prepareFFMatrices(state, stdOut, bondsAcrossPBC, atomList_,
+                      nonBondFFMatrix_, nonBondFFMatrixFFCount_,
+                      bondList_, bondFFList_,
+                      angleList_, angleFFList_,
+                      dihedralList_, dihedralFFList_);
 }
 
-size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount)
-{
-    return columnCount*rowIndex + columnIndex;
-}
-
-size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles)
-{
-    return listIndex*numPointsInForceProfiles + pointIndex;
-}
-
-void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
-                       std::vector<CDevAtom>& atomList,
-                       std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
-                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
-                       std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
-                       std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList)
+void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
+                                      std::vector<CDevAtom>& atomList,
+                                      std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
+                                      std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
+                                      std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
+                                      std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList)
 {
     const float rCutoff = 10.0f;
     const int maxNumFFPerAtomicSet = 5;
@@ -99,10 +139,11 @@ void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPB
     for(size_t i=0; i<numAtoms; i++)
     {
         if(state->atoms_[i]->r_.size() == 0) continue;
-        atomList[i].r_[0] = state->atoms_[i]->r_[0].x_;
-        atomList[i].r_[1] = state->atoms_[i]->r_[0].y_;
-        atomList[i].r_[2] = state->atoms_[i]->r_[0].z_;
+        atomList[i].r_.x_ = state->atoms_[i]->r_[0].x_;
+        atomList[i].r_.y_ = state->atoms_[i]->r_[0].y_;
+        atomList[i].r_.z_ = state->atoms_[i]->r_[0].z_;
         atomList[i].m_ = state->atoms_[i]->m_;
+        atomList[i].index_ = (int)i;
     }
 
     // Assign atom-type indices to each atom in the atom list
@@ -241,6 +282,138 @@ void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPB
     }
 }
 
+class CFunctorCalcForce
+{
+public:
+    CFunctorCalcForce(int Natoms, int Nbonds, int dim, float Lx, float Ly, float Lz, float cutF);
+
+public:
+    void setForceFieldMatrices(const CDevForceFieldMatrices& ffMatrices);
+    void operator()(CDevAtom& atom);
+
+private:
+    C3DVector calcForceNonBonded(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
+    C3DVector calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
+//    C3DVector calcForceAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j const int& k, const int& i);
+
+private:
+    int Natoms_;
+    int Nbonds_;
+    int dim_;
+    float Lx_;
+    float Ly_;
+    float Lz_;
+    float cutF_;
+    CDevAtom* atomList_;
+    CFunctPoint* nonBondFFMatrix_;
+    size_t* nonBondFFMatrixFFCount_;
+    CDevBond* bondList_;
+    CFunctPoint* bondFFList_;
+    CDevAngle* angleList_;
+    CFunctPoint* angleFFList_;
+    CDevDihedral* dihedralList_;
+    CFunctPoint* dihedralFFList_;
+};
+
+CFunctorCalcForce::CFunctorCalcForce(int Natoms, int Nbonds, int dim, float Lx, float Ly, float Lz, float cutF)
+{
+    Natoms_ = Natoms;
+    Nbonds_ = Nbonds;
+    dim_ = dim;
+    Lx_ = Lx;
+    Ly_ = Ly;
+    Lz_ = Lz;
+    cutF_ = cutF;
+}
+
+void CFunctorCalcForce::setForceFieldMatrices(const CDevForceFieldMatrices& ffMatrices)
+{
+    atomList_ = raw_pointer_cast(&ffMatrices.atomList_[0]);
+    nonBondFFMatrix_ = raw_pointer_cast(&ffMatrices.nonBondFFMatrix_[0]);
+    nonBondFFMatrixFFCount_ = raw_pointer_cast(&ffMatrices.nonBondFFMatrixFFCount_[0]);
+    bondList_ = raw_pointer_cast(&ffMatrices.bondList_[0]);
+    bondFFList_ = raw_pointer_cast(&ffMatrices.bondFFList_[0]);
+    angleList_ = raw_pointer_cast(&ffMatrices.angleList_[0]);
+    angleFFList_ = raw_pointer_cast(&ffMatrices.angleFFList_[0]);
+    dihedralList_ = raw_pointer_cast(&ffMatrices.dihedralList_[0]);
+    dihedralFFList_ = raw_pointer_cast(&ffMatrices.dihedralFFList_[0]);
+}
+
+void CFunctorCalcForce::operator()(CDevAtom& atom)
+{
+    C3DVector F;
+    C3DVector PBCx = C3DVector( Lx_, 0.0,   0.0 );
+    C3DVector PBCy = C3DVector( 0.0,  Ly_,  0.0 );
+    C3DVector PBCz = C3DVector( 0.0,  0.0,  Lz_ );
+
+    // Clear forces from primary image (pi = primary image)
+    atom.Fpi_ = C3DVector(0.0, 0.0, 0.0);
+
+    // Add non-bonded forces to particle, as well as
+    // non-bonded forces from first PBC images
+    // :TODO: Later this will be a loop over the neighbor list only!!!
+    int k = atom.index_;
+    for(int i=0; i<Natoms_; i++)
+    {
+        C3DVector r_k = atomList_[k].r_;
+        C3DVector r_i = atomList_[i].r_;
+
+        atom.Fpi_+= calcForceNonBonded(r_k, r_i, k, i);
+
+        F+= calcForceNonBonded(r_k, r_i + PBCx, k, i);
+        F+= calcForceNonBonded(r_k, r_i - PBCx, k, i);
+
+        if(dim_ < 2) continue;
+        F+= calcForceNonBonded(r_k, r_i + PBCy, k, i);
+        F+= calcForceNonBonded(r_k, r_i - PBCy, k, i);
+
+        if(dim_ < 3) continue;
+        F+= calcForceNonBonded(r_k, r_i + PBCz, k, i);
+        F+= calcForceNonBonded(r_k, r_i - PBCz, k, i);
+    }
+    F+= atom.Fpi_;
+
+    // Add forces from harmonic bonds on particle k
+    for(int j=0; j<Nbonds_; j++)
+    {
+        int iBondTo = -1;
+        if((int)bondList_[j].atomIndex1_ == k)
+        {
+            iBondTo = (int)bondList_[j].atomIndex2_;
+        }
+        if((int)bondList_[j].atomIndex2_ == k)
+        {
+            iBondTo = (int)bondList_[j].atomIndex1_;
+        }
+        if(bondList_[j].bondType_ != -1)
+        {
+            C3DVector r_k = atomList_[k].r_;
+            C3DVector r_i = atomList_[iBondTo].r_;
+
+            atom.Fpi_+= calcForceBond(r_k, r_i, bondList_[j].bondType_);
+        }
+    }
+    F+= atom.Fpi_;
+
+//    if(fabs(F.x_) > cutF_) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
+//    if(fabs(F.y_) > cutF_) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
+//    if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
+//    StoreMaxF(F);
+//    PrintDebugInfoAtCutForces(k, N, Lx, Ly, Lz, aParticles);
+
+    atom.F_ = F;
+}
+
+C3DVector CFunctorCalcForce::calcForceNonBonded(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i)
+{
+    return C3DVector();
+}
+
+C3DVector CFunctorCalcForce::calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
+{
+    return C3DVector();
+}
+
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
 {
     P = 1.0 / Conv_press;
@@ -252,22 +425,12 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     m_bCutF = false;
     tau = 1.0;
 
-    std::vector<CDevAtom> atomList;
-    std::vector<CFunctPoint> nonBondFFMatrix;
-    std::vector<size_t> nonBondFFMatrixFFCount;
-    std::vector<CDevBond> bondList;
-    std::vector<CFunctPoint> bondFFList;
-    std::vector<CDevAngle> angleList;
-    std::vector<CFunctPoint> angleFFList;
-    std::vector<CDevDihedral> dihedralList;
-    std::vector<CFunctPoint> dihedralFFList;
+    devVelVerlet_ = new CDevForceFieldMatrices(state, stdOut);
+}
 
-    bool bondsAcrossPBC = true;
-    prepareFFMatrices(state, stdOut, bondsAcrossPBC, atomList,
-                      nonBondFFMatrix, nonBondFFMatrixFFCount,
-                      bondList, bondFFList,
-                      angleList, angleFFList,
-                      dihedralList, dihedralFFList);
+CVelVerlet::~CVelVerlet()
+{
+    if(devVelVerlet_) delete devVelVerlet_;
 }
 
 void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)
@@ -287,6 +450,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
     
     else
     {
+        // Fpi = Force periodic image!!!
         // :TODO: run thrust::transform() on each particle (instead of below for loop), where its functor calculates the forces for each particle.
         // The result vector from transform should be aF[k] for all k. To do this, we need to upload some information to the GPU via the transform
         // call. Hence, this information must be included with all particles in the list (the functor will only see a single particle). This therefore
@@ -315,7 +479,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
     }
 }
 
-void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, std::vector<C3DVector>& aF)
+void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector>& aF)
 {
     double u_eps = p_eps / W;
     double alpha = (1.0 + 1.0/double(N));
@@ -330,7 +494,7 @@ void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, 
     }
 }
 
-void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, std::vector<C3DVector>&)
+void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector>&)
 {
     double u_eps = p_eps / W;
     double parm = u_eps*dt / 2.0;
@@ -412,7 +576,7 @@ C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double
     return F;
 }
 
-double CVelVerlet::G_eps(int N, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF)
+double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<C3DVector> &aF)
 {
     double V = V0 * exp(3.0 * eps);
     
@@ -430,7 +594,7 @@ double CVelVerlet::G_eps(int N, std::vector<CParticle3D>& aParticles, std::vecto
 
 void CVelVerlet::SetRandMom(double tau)
 {
-    double          a = 2.0 / double(RAND_MAX);
+    double a = 2.0 / double(RAND_MAX);
     
     p_eps = (a*double(rand()) - 1.0) * (W / tau);
     if(p_eps == 0.0) p_eps = (W / tau);
@@ -443,7 +607,7 @@ double CVelVerlet::GetV(double Lmax, bool bNPT)
     return V0 * exp(3.0 * eps);
 }
 
-void CVelVerlet::StoreMaxF(C3DVector& F)
+void CVelVerlet::StoreMaxF(const C3DVector& F)
 {
     double fAbs = F.norm();
     

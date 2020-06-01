@@ -66,10 +66,10 @@ HOSTDEV_CALLABLE int toIndex(int row, int column, int columnCount)
     return columnCount*row + column;
 }
 
-class TransfStep
+class CTransfStep
 {
 public:
-    HOSTDEV_CALLABLE TransfStep(CInfo_cuda* info2DMatrix, int rows, int columns)
+    HOSTDEV_CALLABLE CTransfStep(CInfo_cuda* info2DMatrix, int rows, int columns)
     {
         rowsinfo2DMatrix_ = rows;
         columnsinfo2DMatrix_ = columns;
@@ -160,8 +160,8 @@ void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
     thrust::device_vector<CParticle3D_cuda> kernelAtomList;
     kernelAtomList = hostAtomList;
 
-    // Run a transformation on each particle, on the device (in parallel), defined by the functor, TransfStep
-    TransfStep func(kernelInfo2DMatrixPtr, SIZE_M, SIZE_N);
+    // Run a transformation on each particle, on the device (in parallel), defined by the functor, CTransfStep
+    CTransfStep func(kernelInfo2DMatrixPtr, SIZE_M, SIZE_N);
     thrust::device_vector<CParticle3D_cuda> kernelOutput(ARRAY_SIZE);
     thrust::transform(kernelAtomList.begin(), kernelAtomList.end(), kernelOutput.begin(), func);
 
