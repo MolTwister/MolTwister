@@ -87,6 +87,27 @@ public:
     float y_;
 };
 
+class CLastError
+{
+public:
+    enum EErrorCode { errNone = 0 };
+    enum EWarningCode { warnNone = 0, warnForcesWereCut };
+
+public:
+    CLastError() { reset(); }
+
+public:
+    void reset()
+    {
+        lastErrorCode_ = errNone;
+        lastWarningCode_ = warnNone;
+    }
+
+public:
+    unsigned char lastErrorCode_;
+    unsigned char lastWarningCode_;
+};
+
 class CDevForceFieldMatrices
 {
 public:
@@ -98,7 +119,8 @@ private:
                            std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
                            std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
                            std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
-                           std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList);
+                           std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList) const;
+    void prepareLastErrorList(CMolTwisterState* state, std::vector<CLastError>& lastErrorList) const;
 
 public:
     std::vector<CDevAtom> atomList_;
@@ -110,6 +132,7 @@ public:
     std::vector<CFunctPoint> angleFFList_;
     std::vector<CDevDihedral> dihedralList_;
     std::vector<CFunctPoint> dihedralFFList_;
+    std::vector<CLastError> lastErrorList_;
 };
 
 CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut)
@@ -120,6 +143,13 @@ CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* st
                       bondList_, bondFFList_,
                       angleList_, angleFFList_,
                       dihedralList_, dihedralFFList_);
+    prepareLastErrorList(state, lastErrorList_);
+}
+
+void CDevForceFieldMatrices::prepareLastErrorList(CMolTwisterState* state, std::vector<CLastError>& lastErrorList) const
+{
+    size_t numAtoms = state->atoms_.size();
+    lastErrorList = std::vector<CLastError>(numAtoms);
 }
 
 void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
@@ -127,7 +157,7 @@ void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* st
                                       std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
                                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
                                       std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
-                                      std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList)
+                                      std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList) const
 {
     const float rCutoff = 10.0f;
     const int maxNumFFPerAtomicSet = 5;
@@ -313,6 +343,7 @@ private:
     CFunctPoint* angleFFList_;
     CDevDihedral* dihedralList_;
     CFunctPoint* dihedralFFList_;
+    CLastError* lastErrorList_;
 };
 
 CFunctorCalcForce::CFunctorCalcForce(int Natoms, int Nbonds, int dim, float Lx, float Ly, float Lz, float cutF)
@@ -337,6 +368,7 @@ void CFunctorCalcForce::setForceFieldMatrices(const CDevForceFieldMatrices& ffMa
     angleFFList_ = raw_pointer_cast(&ffMatrices.angleFFList_[0]);
     dihedralList_ = raw_pointer_cast(&ffMatrices.dihedralList_[0]);
     dihedralFFList_ = raw_pointer_cast(&ffMatrices.dihedralFFList_[0]);
+    lastErrorList_ = raw_pointer_cast(&ffMatrices.lastErrorList_[0]);
 }
 
 void CFunctorCalcForce::operator()(CDevAtom& atom)
@@ -353,6 +385,7 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
     // non-bonded forces from first PBC images
     // :TODO: Later this will be a loop over the neighbor list only!!!
     int k = atom.index_;
+    lastErrorList_[k].reset();
     for(int i=0; i<Natoms_; i++)
     {
         C3DVector r_k = atomList_[k].r_;
@@ -395,11 +428,9 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
     }
     F+= atom.Fpi_;
 
-//    if(fabs(F.x_) > cutF_) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
-//    if(fabs(F.y_) > cutF_) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
-//    if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; m_bCutF = true; }
-//    StoreMaxF(F);
-//    PrintDebugInfoAtCutForces(k, N, Lx, Ly, Lz, aParticles);
+    if(fabs(F.x_) > cutF_) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * cutF_; lastErrorList_[k].lastWarningCode_ = CLastError::warnForcesWereCut; }
+    if(fabs(F.y_) > cutF_) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * cutF_; lastErrorList_[k].lastWarningCode_ = CLastError::warnForcesWereCut; }
+    if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; lastErrorList_[k].lastWarningCode_ = CLastError::warnForcesWereCut; }
 
     atom.F_ = F;
 }
