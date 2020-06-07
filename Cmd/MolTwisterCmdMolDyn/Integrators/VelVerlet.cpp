@@ -6,6 +6,8 @@
 #include <functional>
 #include "../../Tools/MolTwisterStateTools.h"
 
+#define MAX_FF_PER_ATOMIC_SET 5
+
 // :TODO: Move all the below class definitions, and their implementations, into its own *.h/*.cu module(s) once they become CUDA compatible
 template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; } // :TODO: Do I need this one?
 
@@ -111,10 +113,10 @@ public:
 class CDevForceFieldMatrices
 {
 public:
-    CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut);
+    CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff);
 
 private:
-    void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
+    void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
                            std::vector<CDevAtom>& atomList,
                            std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
                            std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
@@ -135,10 +137,10 @@ public:
     std::vector<CLastError> lastErrorList_;
 };
 
-CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut)
+CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff)
 {
     bool bondsAcrossPBC = true;
-    prepareFFMatrices(state, stdOut, bondsAcrossPBC, atomList_,
+    prepareFFMatrices(state, stdOut, rCutoff, bondsAcrossPBC, atomList_,
                       nonBondFFMatrix_, nonBondFFMatrixFFCount_,
                       bondList_, bondFFList_,
                       angleList_, angleFFList_,
@@ -152,15 +154,14 @@ void CDevForceFieldMatrices::prepareLastErrorList(CMolTwisterState* state, std::
     lastErrorList = std::vector<CLastError>(numAtoms);
 }
 
-void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, bool bondsAcrossPBC,
+void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
                                       std::vector<CDevAtom>& atomList,
                                       std::vector<CFunctPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
                                       std::vector<CDevBond>& bondList, std::vector<CFunctPoint>& bondFFList,
                                       std::vector<CDevAngle>& angleList, std::vector<CFunctPoint>& angleFFList,
                                       std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList) const
 {
-    const float rCutoff = 10.0f;
-    const int maxNumFFPerAtomicSet = 5;
+    const int maxNumFFPerAtomicSet = MAX_FF_PER_ATOMIC_SET;
     const int numPointsInForceProfiles = 100;
 
     // Generate atom list for GPU and set initial positions
@@ -274,7 +275,7 @@ void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* st
     for(int i=0; i<state->mdFFAngleList_.size(); i++)
     {
         CMDFFAngle* forceField = state->mdFFAngleList_.get(i);
-        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             angleFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
@@ -304,7 +305,7 @@ void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* st
     for(int i=0; i<state->mdFFDihList_.size(); i++)
     {
         CMDFFDih* forceField = state->mdFFDihList_.get(i);
-        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        std::vector<CFunctPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             dihedralFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
@@ -315,18 +316,20 @@ void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* st
 class CFunctorCalcForce
 {
 public:
-    CFunctorCalcForce(int Natoms, int Nbonds, int dim, float Lx, float Ly, float Lz, float cutF);
+    CFunctorCalcForce(int Natoms, int Nbonds, int Natomtypes, int dim, float Lx, float Ly, float Lz, float cutF);
 
 public:
     void setForceFieldMatrices(const CDevForceFieldMatrices& ffMatrices);
     void operator()(CDevAtom& atom);
 
 private:
-    C3DVector calcForceNonBonded(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
+    C3DVector calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
+    C3DVector calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
     C3DVector calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
 //    C3DVector calcForceAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j const int& k, const int& i);
 
 private:
+    int Natomtypes_;
     int Natoms_;
     int Nbonds_;
     int dim_;
@@ -346,8 +349,9 @@ private:
     CLastError* lastErrorList_;
 };
 
-CFunctorCalcForce::CFunctorCalcForce(int Natoms, int Nbonds, int dim, float Lx, float Ly, float Lz, float cutF)
+CFunctorCalcForce::CFunctorCalcForce(int Natoms, int Nbonds, int Natomtypes, int dim, float Lx, float Ly, float Lz, float cutF)
 {
+    Natomtypes_ = Natomtypes;
     Natoms_ = Natoms;
     Nbonds_ = Nbonds;
     dim_ = dim;
@@ -384,6 +388,7 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
     // :TODO: Later this will be a loop over the neighbor list only!!!
+    // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
     int k = atom.index_;
     lastErrorList_[k].reset();
     for(int i=0; i<Natoms_; i++)
@@ -391,18 +396,18 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
         C3DVector r_k = atomList_[k].r_;
         C3DVector r_i = atomList_[i].r_;
 
-        atom.Fpi_+= calcForceNonBonded(r_k, r_i, k, i);
+        atom.Fpi_+= calcForceNonBondedOn_r_k(r_k, r_i, k, i);
 
-        F+= calcForceNonBonded(r_k, r_i + PBCx, k, i);
-        F+= calcForceNonBonded(r_k, r_i - PBCx, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
 
         if(dim_ < 2) continue;
-        F+= calcForceNonBonded(r_k, r_i + PBCy, k, i);
-        F+= calcForceNonBonded(r_k, r_i - PBCy, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCy, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCy, k, i);
 
         if(dim_ < 3) continue;
-        F+= calcForceNonBonded(r_k, r_i + PBCz, k, i);
-        F+= calcForceNonBonded(r_k, r_i - PBCz, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);
     }
     F+= atom.Fpi_;
 
@@ -435,8 +440,36 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
     atom.F_ = F;
 }
 
-C3DVector CFunctorCalcForce::calcForceNonBonded(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i)
+C3DVector CFunctorCalcForce::calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const
 {
+    C3DVector   r12 = r2 - r1;
+    double      R = r12.norm();
+    double      RInv = (R == 0.0) ? 1.0 / 1E-10 : 1.0 / R;
+
+    // Return coeffs that correspond to calculating force on r2 (i.e., dr/dx_2, etc.)
+    return (r12 * RInv);
+}
+
+C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i)
+{
+    // We know that
+    // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
+    // We have (-dU/dr) stored in table form from nonBondFFMatrix_,
+    // we just need to retrieve the one stored for (k, i) and interpolate
+    // it for r = | r_k - r_i |. We use linear interpolation.
+    float fSum = 0.0f;
+    size_t ffCount = nonBondFFMatrixFFCount_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, Natomtypes_)];
+    for(int ffIndex=0; ffIndex<(int)ffCount; ffIndex++)
+    {
+        float interpVal = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, j, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+        fSum+= ...;
+    }
+
+    // Now that we have (-dU/dr) at r, we find the analytic calculation
+    // of dr/dx_k, dr/dy_k and dr/dz_k, where r = sqrt((r_x_k - r_x_i)^2
+    // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
+    // forces on r_k.
+    C3DVector c = calcNonBondForceCoeffs12(r_i, r_k);
     return C3DVector();
 }
 
@@ -456,7 +489,8 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     m_bCutF = false;
     tau = 1.0;
 
-    devVelVerlet_ = new CDevForceFieldMatrices(state, stdOut);
+    const float rCutoff = 10.0f;
+    devVelVerlet_ = new CDevForceFieldMatrices(state, stdOut, rCutoff);
 }
 
 CVelVerlet::~CVelVerlet()
