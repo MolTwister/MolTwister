@@ -98,9 +98,10 @@ std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DForceProfile(float rS
     C3DVector r1(0.0f, 0.0f, 0.0f);
     C3DVector r2(0.0f, 0.0f, 0.0f);
     C3DVector f1, f2;
-    float rDelta = (rEnd - rStart) / float(points);
-    for(float r=rStart; r<=rEnd; r+= rDelta)
+    float rDelta = (rEnd - rStart) / float(points-1);
+    for(int i=0; i<points; i++)
     {
+        float r = rStart + float(i)*rDelta;
         r2.x_ = r;
         calcForces(r1, r2, f1, f2);
         C3DVector c = calcNonBondForceCoeffs12(r1, r2);
@@ -119,9 +120,10 @@ std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DPotentialProfile(floa
 
     C3DVector r1(0.0f, 0.0f, 0.0f);
     C3DVector r2(0.0f, 0.0f, 0.0f);
-    float rDelta = (rEnd - rStart) / float(points);
-    for(float r=rStart; r<=rEnd; r+= rDelta)
+    float rDelta = (rEnd - rStart) / float(points-1);
+    for(int i=0; i<points; i++)
     {
+        float r = rStart + float(i)*rDelta;
         r2.x_ = r;
         float E = (float)calcPotential(r1, r2);
 

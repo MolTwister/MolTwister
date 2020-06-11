@@ -7,6 +7,7 @@
 #include "../../Tools/MolTwisterStateTools.h"
 
 #define MAX_FF_PER_ATOMIC_SET 5
+#define NUM_POINTS_IN_PROFILES 100
 
 // :TODO: Move all the below class definitions, and their implementations, into its own *.h/*.cu module(s) once they become CUDA compatible
 template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; } // :TODO: Do I need this one?
@@ -162,7 +163,7 @@ void CDevForceFieldMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* st
                                       std::vector<CDevDihedral>& dihedralList, std::vector<CFunctPoint>& dihedralFFList) const
 {
     const int maxNumFFPerAtomicSet = MAX_FF_PER_ATOMIC_SET;
-    const int numPointsInForceProfiles = 100;
+    const int numPointsInForceProfiles = NUM_POINTS_IN_PROFILES;
 
     // Generate atom list for GPU and set initial positions
     size_t numAtoms = state->atoms_.size();
@@ -457,12 +458,29 @@ C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, cons
     // We have (-dU/dr) stored in table form from nonBondFFMatrix_,
     // we just need to retrieve the one stored for (k, i) and interpolate
     // it for r = | r_k - r_i |. We use linear interpolation.
-    float fSum = 0.0f;
+    float mdU_dr_Sum = 0.0f;
     size_t ffCount = nonBondFFMatrixFFCount_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, Natomtypes_)];
     for(int ffIndex=0; ffIndex<(int)ffCount; ffIndex++)
     {
-        float interpVal = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, j, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-        fSum+= ...;
+        // Use number of points in plot to get first and last value, thus obtaining r_min and r_max, which
+        // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
+        CFunctPoint p_first = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, 0, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+        CFunctPoint p_last = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, NUM_POINTS_IN_PROFILES-1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+        float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
+        float r = (r_k - r_i).norm();
+        int idx = int((r - p_first.x_) / delta);
+
+        // Interpolate the function value between i and (i+1)
+        if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
+        {
+            CFunctPoint p1 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+            CFunctPoint p2 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx+1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+            float denom = p1.x_ - p2.x_;
+            if(denom == 0.0f) denom = 3.0f*FLT_MIN;
+            float a = (p1.y_ - p2.y_) / denom;
+            float b = p1.y_ - a*p1.x_;
+            mdU_dr_Sum+= (a*r + b);
+        }
     }
 
     // Now that we have (-dU/dr) at r, we find the analytic calculation
@@ -470,7 +488,7 @@ C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, cons
     // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
     // forces on r_k.
     C3DVector c = calcNonBondForceCoeffs12(r_i, r_k);
-    return C3DVector();
+    return c*mdU_dr_Sum;
 }
 
 C3DVector CFunctorCalcForce::calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
