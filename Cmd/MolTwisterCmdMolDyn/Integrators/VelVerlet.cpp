@@ -325,8 +325,9 @@ public:
 
 private:
     C3DVector calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
+    C3DVector calcBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
     C3DVector calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
-    C3DVector calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
+    C3DVector calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
 //    C3DVector calcForceAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j const int& k, const int& i);
 
 private:
@@ -429,7 +430,7 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
             C3DVector r_k = atomList_[k].r_;
             C3DVector r_i = atomList_[iBondTo].r_;
 
-            atom.Fpi_+= calcForceBond(r_k, r_i, bondList_[j].bondType_);
+            atom.Fpi_+= calcForceBondOn_r_k(r_k, r_i, bondList_[j].bondType_);
         }
     }
     F+= atom.Fpi_;
@@ -442,6 +443,16 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
 }
 
 C3DVector CFunctorCalcForce::calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const
+{
+    C3DVector   r12 = r2 - r1;
+    double      R = r12.norm();
+    double      RInv = (R == 0.0) ? 1.0 / 1E-10 : 1.0 / R;
+
+    // Return coeffs that correspond to calculating force on r2 (i.e., dr/dx_2, etc.)
+    return (r12 * RInv);
+}
+
+C3DVector CFunctorCalcForce::calcBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const
 {
     C3DVector   r12 = r2 - r1;
     double      R = r12.norm();
@@ -491,9 +502,43 @@ C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, cons
     return c*mdU_dr_Sum;
 }
 
-C3DVector CFunctorCalcForce::calcForceBond(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
+C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
 {
-    return C3DVector();
+    // size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles
+
+    // We know that
+    // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
+    // We have (-dU/dr) stored in table form from bondFFList_,
+    // we just need to retrieve the one stored for (k, i) and interpolate
+    // it for r = | r_k - r_i |. We use linear interpolation.
+
+    // Use number of points in plot to get first and last value, thus obtaining r_min and r_max, which
+    // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
+    CFunctPoint p_first = bondFFList_[toIndexBonded(bondType, 0,NUM_POINTS_IN_PROFILES)];
+    CFunctPoint p_last = bondFFList_[toIndexBonded(bondType, NUM_POINTS_IN_PROFILES-1,NUM_POINTS_IN_PROFILES)];
+    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
+    float r = (r_k - r_i).norm();
+    int idx = int((r - p_first.x_) / delta);
+
+    // Interpolate the function value between i and (i+1)
+    float mdU_dr = 0.0f;
+    if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
+    {
+        CFunctPoint p1 = bondFFList_[toIndexBonded(bondType, idx,NUM_POINTS_IN_PROFILES)];
+        CFunctPoint p2 = bondFFList_[toIndexBonded(bondType, idx+1,NUM_POINTS_IN_PROFILES)];
+        float denom = p1.x_ - p2.x_;
+        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
+        float a = (p1.y_ - p2.y_) / denom;
+        float b = p1.y_ - a*p1.x_;
+        mdU_dr+= (a*r + b);
+    }
+
+    // Now that we have (-dU/dr) at r, we find the analytic calculation
+    // of dr/dx_k, dr/dy_k and dr/dz_k, where r = sqrt((r_x_k - r_x_i)^2
+    // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
+    // forces on r_k.
+    C3DVector c = calcBondForceCoeffs12(r_i, r_k);
+    return c*mdU_dr;
 }
 
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
