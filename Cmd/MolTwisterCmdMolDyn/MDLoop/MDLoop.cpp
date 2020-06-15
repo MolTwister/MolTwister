@@ -76,36 +76,35 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     const int           iEquilibSteps = 1000;
     vector<int>         aMomentumDistr[4];
     vector<int>         aVolumeDistr;
-    vector<C3DVector>   aF, aFpi;
+    vector<CDevForces>  F;
     
     
     srand((unsigned int)time(NULL));
     
     ResizeDistrArrays(aMomentumDistr, aVolumeDistr, iNumPDistrBins, 4);
-    CalcInitialForces(SimBox, aF, aFpi);
+    CalcInitialForces(SimBox, F);
     PrintHeading(SimBox);
     
     for(int t=0; t<iNStep; t++)
     {
         SimBox.NHPPropagator(FctP);
         SimBox.NHTPropagator(FctT);
-        SimBox.VelVerPropagator(aF, aFpi);
+        SimBox.VelVerPropagator(F);
         SimBox.NHTPropagator(FctT);
         SimBox.NHPPropagator(FctP);
         SimBox.PBCWrap();
         NegMomHalfWay(t, iNStep, SimBox);
 
-        UpdateOutput(t, iEquilibSteps, iOutputEvery, SimBox, aFpi, aMomentumDistr, aVolumeDistr);
+        UpdateOutput(t, iEquilibSteps, iOutputEvery, SimBox, F, aMomentumDistr, aVolumeDistr);
     }
     
     FinalizeOutput(SimBox, aMomentumDistr, aVolumeDistr);
 }
 
-void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, vector<C3DVector>& aF, vector<C3DVector>& aFpi)
+void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, vector<CDevForces>& F)
 {
-    aF.resize(SimBox.N);
-    aFpi.resize(SimBox.N);
-    for(int k=0; k<SimBox.N; k++) aF[k] = SimBox.CalcParticleForce(k, aFpi[k]);
+    F.resize(SimBox.N);
+    for(int k=0; k<SimBox.N; k++) F[k].F_ = SimBox.CalcParticleForce(k, F[k].Fpi_);
 }
 
 void CMDLoop::NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox)
@@ -233,7 +232,7 @@ void CMDLoop::StoreVolumeDistribution(string szFileName, vector<int>& aVolumeDis
 }
 
 void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox,
-                           vector<C3DVector>& aF, vector<int>* aMomentumDistr, vector<int>& aVolumeDistr)
+                           const vector<CDevForces>& F, vector<int>* aMomentumDistr, vector<int>& aVolumeDistr)
 {
     // Perform calculations on MD trajectories and output data
     if(t > iEquilibSteps)
@@ -254,7 +253,7 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
     {
         AppendToXYZFile(SimBox.aParticles, t);
         COut::Printf("\t%-15i%-15g%-15g%-20g%-20g\r\n", t, SimBox.CalcTemp() * Conv_T,
-               SimBox.CalcPress(aF) * Conv_press, SimBox.CalcV(), SimBox.VelVerlet.GetMaxF());
+               SimBox.CalcPress(F) * Conv_press, SimBox.CalcV(), SimBox.VelVerlet.GetMaxF());
         SimBox.VelVerlet.PrintCutMsgAndReset();
     }
 }

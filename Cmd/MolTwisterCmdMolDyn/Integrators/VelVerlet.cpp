@@ -123,6 +123,7 @@ public:
     int getNumAtoms() const { return Natoms_; }
     int getNumBonds() const { return Nbonds_; }
     int getNumAtomTypes() const { return NatomTypes_; }
+    void updateAtomList(const std::vector<CParticle3D>& atomList);
 
 private:
     void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
@@ -152,10 +153,13 @@ private:
     int Natoms_;
     int Nbonds_;
     int NatomTypes_;
+    CMolTwisterState* state_;
 };
 
 CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff)
 {
+    state_ = state;
+
     bool bondsAcrossPBC = true;
     prepareFFMatrices(state, stdOut, rCutoff, bondsAcrossPBC, atomList_,
                       nonBondFFMatrix_, nonBondFFMatrixFFCount_,
@@ -164,6 +168,22 @@ CDevForceFieldMatrices::CDevForceFieldMatrices(CMolTwisterState* state, FILE* st
                       dihedralList_, dihedralFFList_,
                       Natoms_, NatomTypes_, Nbonds_);
     prepareLastErrorList(state, lastErrorList_);
+}
+
+void CDevForceFieldMatrices::updateAtomList(const std::vector<CParticle3D>& atomList)
+{
+    // :TODO: Make hostAtomList into thrust::host_vector<>()
+    std::vector<CDevAtom> hostAtomList = atomList_;
+    if(atomList.size() != hostAtomList.size()) return;
+
+    size_t numAtoms = atomList.size();
+    for(size_t i=0; i<numAtoms; i++)
+    {
+        hostAtomList[i].r_ = atomList[i].x;
+        hostAtomList[i].p_ = atomList[i].p;
+    }
+
+    atomList_ = hostAtomList;
 }
 
 void CDevForceFieldMatrices::prepareLastErrorList(CMolTwisterState* state, std::vector<CLastError>& lastErrorList) const
@@ -346,7 +366,7 @@ public:
 
 public:
     void setForceFieldMatrices(const CDevForceFieldMatrices& ffMatrices);
-    void operator()(CDevAtom& atom);
+    CDevForces operator()(CDevAtom& atom);
 
 private:
     C3DVector calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
@@ -403,7 +423,7 @@ void CFunctorCalcForce::setForceFieldMatrices(const CDevForceFieldMatrices& ffMa
     Nbonds_ = ffMatrices.getNumBonds();
 }
 
-void CFunctorCalcForce::operator()(CDevAtom& atom)
+CDevForces CFunctorCalcForce::operator()(CDevAtom& atom)
 {
     C3DVector F;
     C3DVector PBCx = C3DVector( Lx_, 0.0,   0.0 );
@@ -466,6 +486,7 @@ void CFunctorCalcForce::operator()(CDevAtom& atom)
     if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; lastErrorList_[k].lastWarningCode_ = CLastError::warnForcesWereCut; }
 
     atom.F_ = F;
+    return CDevForces(atom.F_, atom.Fpi_);
 }
 
 C3DVector CFunctorCalcForce::calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const
@@ -587,56 +608,41 @@ CVelVerlet::~CVelVerlet()
     if(devVelVerlet_) delete devVelVerlet_;
 }
 
-void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT)
+void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<CDevForces>& F, bool bNPT)
 {
     if(!bNPT)
     {
+        // :TODO: Here for NVE, we need to also use the transform alg. Perhaps incorporate the bNPT check inside the existing functor?
         double dt_2 = dt / 2.0;
         for(int k=0; k<N; k++)
         {
             double m_k = aParticles[k].m;
-            aParticles[k].p+= aF[k]*dt_2;
+            aParticles[k].p+= F[k].F_*dt_2;
             aParticles[k].x+= aParticles[k].p*(dt / m_k);
-            aF[k] = CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, aFpi[k]);
-            aParticles[k].p+= aF[k]*dt_2;
+            F[k].F_ = CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, F[k].Fpi_);
+            aParticles[k].p+= F[k].F_*dt_2;
         }
     }
     
     else
     {
-        // Fpi = Force periodic image!!!
-        // :TODO: run thrust::transform() on each particle (instead of below for loop), where its functor calculates the forces for each particle.
-        // The result vector from transform should be aF[k] for all k. To do this, we need to upload some information to the GPU via the transform
-        // call. Hence, this information must be included with all particles in the list (the functor will only see a single particle). This therefore
-        // includes the following items:
-        // * k
-        // * N
-        // * dim
-        // * Lm, Lm, Lm
-        // * Fcut
-        // * Array of force profiles
-        // * Matrix of non-bonded force assignments
-        // * Vector of bonded force assignments
-        // * Vector of angular force assignments
-        // * Vector of dihedral force assignments
-        // NOTE! To save space, try to make a common struct, preloaded to the GPU, which thus should be added as members to the functor passed to thrust::transform(). The paricles will each contain
-        // * Array of particles (m, r, p, array of neighbour indices)
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, aFpi));  // Step 3.1
-        Prop_p(N, dt, aParticles, aF);                      // Step 3.2
-        Prop_r(N, dt, aParticles, aF);                      // Step 3.3
-        eps+= (dt * p_eps / W);                             // Step 3.4
+        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.1
+        Prop_p(N, dt, aParticles, F);                    // Step 3.2
+        Prop_r(N, dt, aParticles, F);                    // Step 3.3
+        eps+= (dt * p_eps / W);                          // Step 3.4
         double Lm = pow(GetV(Lmax, true), 1.0/3.0);
-//        CFunctorCalcForce calcForce(dim, Lm, Lm, Lm, Fcut);
-//        calcForce.setForceFieldMatrices(*devVelVerlet_);
-//        std::transform(aParticles.begin(), aParticles.end(), calcForce);
-        for(int k=0; k<N; k++)
-            aF[k] = CalcParticleForce(k, N, dim, Lm, Lm, Lm, aParticles, aFpi[k]);
-        Prop_p(N, dt, aParticles, aF);                      // Step 3.5
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, aFpi));  // Step 3.6
+
+        devVelVerlet_->updateAtomList(aParticles);
+        CFunctorCalcForce calcForce(dim, Lm, Lm, Lm, Fcut);
+        calcForce.setForceFieldMatrices(*devVelVerlet_);
+        std::transform(devVelVerlet_->atomList_.begin(), devVelVerlet_->atomList_.end(), F.begin(), calcForce);
+
+        Prop_p(N, dt, aParticles, F);                    // Step 3.5
+        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
     }
 }
 
-void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector>& aF)
+void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F)
 {
     double u_eps = p_eps / W;
     double alpha = (1.0 + 1.0/double(N));
@@ -644,21 +650,19 @@ void CVelVerlet::Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, 
     double coeff = CMt::Exp(-parm);
     double coeff2 = coeff*coeff;
     double coeff3 = CMt::SinhXoverX(parm); // sinh(parm) / parm;
-    // :TODO: This can be parallelized using thrust::transform(), where the same array as for Propegator() is used as input (thus, avoiding unecessary uploads)
     for(int k=0; k<N; k++)
     {
-        aParticles[k].p = aParticles[k].p*coeff2 + aF[k]*((dt/2.0)*coeff*coeff3);
+        aParticles[k].p = aParticles[k].p*coeff2 + F[k].F_*((dt/2.0)*coeff*coeff3);
     }
 }
 
-void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector>&)
+void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>&)
 {
     double u_eps = p_eps / W;
     double parm = u_eps*dt / 2.0;
     double coeff = CMt::Exp(parm);
     double coeff2 = coeff*coeff;
     double coeff3 = CMt::SinhXoverX(parm) * coeff;
-    // :TODO: This can be parallelized using thrust::transform(), where the same array as for Propegator() is used as input (thus, avoiding unecessary uploads)
     for(int k=0; k<N; k++)
     {
         C3DVector u_k = aParticles[k].p * (1.0 / aParticles[k].m);
@@ -733,7 +737,7 @@ C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double
     return F;
 }
 
-double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<C3DVector> &aF)
+double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F)
 {
     double V = V0 * exp(3.0 * eps);
     
@@ -743,7 +747,7 @@ double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, cons
     {
         double p2 = aParticles[k].p * aParticles[k].p;
         sum_p+= (p2 / aParticles[k].m);
-        sum_f+= (aF[k] * aParticles[k].x);
+        sum_f+= (F[k].Fpi_ * aParticles[k].x);
     }
 
     return (1.0 + 1.0 / double(N))*sum_p + sum_f - 3.0*P*V;
@@ -757,7 +761,7 @@ void CVelVerlet::SetRandMom(double tau)
     if(p_eps == 0.0) p_eps = (W / tau);
 }
 
-double CVelVerlet::GetV(double Lmax, bool bNPT)
+double CVelVerlet::GetV(double Lmax, bool bNPT) const
 {
     if(!bNPT) return Lmax*Lmax*Lmax;
     

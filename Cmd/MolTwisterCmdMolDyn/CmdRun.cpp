@@ -49,7 +49,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
 
     SimBox.bNPTEnsemble = true;
     COut::SetOutputFile(fopen("out.txt", "w"));
-    SimBox.InitSystem(CSimulationBox::sysLJCH4NormDens, iM);
+    SimBox.InitSystem(iM);
     MDLoop.RunSimulation(SimBox, iNStep, iOutputEvery);
     COut::CloseOutputFile();
 

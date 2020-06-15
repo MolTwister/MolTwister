@@ -41,7 +41,7 @@ public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
     
 private:
-    void CalcInitialForces(CSimulationBox& SimBox, std::vector<C3DVector>& aF, std::vector<C3DVector>& aFpi);
+    void CalcInitialForces(CSimulationBox& SimBox, vector<CDevForces>& F);
     void NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox);
     void PrintHeading(CSimulationBox& SimBox);
     void AppendToXYZFile(vector<CParticle3D>& aParticles, int t);
@@ -50,7 +50,7 @@ private:
     void AppendToVolumeDistribution(double V, vector<int>& aVolumeDistr, double dMaxV);
     void StoreMomentumDistribution(std::string szFileName, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void StoreVolumeDistribution(std::string szFileName, std::vector<int>& aVolumeDistr, double dMaxV);
-    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, std::vector<C3DVector>& aF, vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
+    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const vector<CDevForces>& F, vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     void FinalizeOutput(CSimulationBox& SimBox, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     
 private:

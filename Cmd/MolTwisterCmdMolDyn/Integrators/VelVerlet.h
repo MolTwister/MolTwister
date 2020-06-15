@@ -7,6 +7,17 @@
 #include "../ForceFields/ForceFields.h"
 #include "../../../MolTwisterState.h"
 
+class CDevForces
+{
+public:
+    CDevForces() {}
+    CDevForces(const C3DVector& F, const C3DVector& Fpi) { F_ = F; Fpi_ = Fpi; }
+
+public:
+    C3DVector F_;
+    C3DVector Fpi_;
+};
+
 class CDevForceFieldMatrices;
 class CVelVerlet
 {
@@ -15,17 +26,17 @@ public:
     virtual ~CVelVerlet();
 
 public:
-    void Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<C3DVector> &aF, std::vector<C3DVector> &aFpi, bool bNPT=false);
+    void Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<CDevForces>& F, bool bNPT=false);
     C3DVector CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi);
     void SetRandMom(double tau);
-    double GetV(double Lmax, bool bNPT=false);
+    double GetV(double Lmax, bool bNPT=false) const;
     double GetMaxF() { return m_dLastFMax; }
     void PrintCutMsgAndReset();
 
 private:
-    double G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<C3DVector> &aF);
-    void Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector>& aF);
-    void Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<C3DVector> &aF);
+    double G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
+    void Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
+    void Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
     void StoreMaxF(const C3DVector& F);
     void PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles);
 

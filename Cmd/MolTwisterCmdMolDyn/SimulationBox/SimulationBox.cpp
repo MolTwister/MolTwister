@@ -4,6 +4,8 @@
 
 CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut) : VelVerlet(state, stdOut)
 {
+    state_ = state;
+
     N = 100;
     Lmax = 40.0;         // [Å]
     dt = 1.0 / Conv_t;   // [fs]
@@ -12,7 +14,7 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut) : VelVerle
     bNPTEnsemble = false;
     ResizeArrays();
 }
-
+/*
 void CSimulationBox::Init1DHarmBond()
 {
     ////////////////////////////////////////
@@ -159,18 +161,54 @@ void CSimulationBox::InitFreeParticles1D()
     SetRandMom(0, N);
     NH_T.SetRandNHMom();
 }
-
-void CSimulationBox::InitSystem(ESystem System, int iM)
+*/
+void CSimulationBox::InitSystem(int iM)
 {
     NH_T.M = iM;
     NH_P.M = iM;
-    
+    /*
     if(System == sys1DHarmBond) Init1DHarmBond();
     else if(System == sys1DExtHarmOsc) Init1DExtHarmOsc();
     else if(System == sys3DExtHarmOsc) Init3DExtHarmOsc();
-    else if(System == sysLJCH4HighDens) InitLJCH4(35.0/*77.7kg/m^3*/);
-    else if(System == sysLJCH4NormDens) InitLJCH4(172.0/*0.65kg/m^3*/);
-    else if(System == sys1DFree) InitFreeParticles1D();
+    else if(System == sysLJCH4HighDens) InitLJCH4(35.0); // 77.7kg/m^3
+    else if(System == sysLJCH4NormDens) InitLJCH4(172.0); // 0.65kg/m^3
+    else if(System == sys1DFree) InitFreeParticles1D();*/
+
+    ////////////////////////////////////////
+    // OPLS-UA LJ CH4 gas in cubic system
+    // sigma=3.730 Å, epsilon=1.2301 kJ/mol
+    ////////////////////////////////////////
+
+    // Configure MD parameters
+    // :TODO: Need to set
+    //          * correct box size from state (and not just cubic)
+    //          * temperature from settings
+    //          * Pressure from settings
+    //          * NH-parameters from settings
+    const double dBoxLen = 35.0;
+
+    NH_T.n = NH_P.n = 4;
+    N = (int)state_->atoms_.size();
+    NH_T.T = NH_P.T = 298.0 / Conv_T;
+    dt = 0.1 / Conv_t;
+    double tauP = 5000.0*dt;
+    NH_T.tau = 20.0*dt;
+    NH_P.tau = tauP;
+    Lmax = dBoxLen;
+    dim = dim3D;
+    ResizeArrays();
+    NH_T.SetRandNHPos();
+    NH_P.SetRandNHPos();
+    SetRandMom(0, N);
+    NH_T.SetRandNHMom();
+    NH_P.SetRandNHMom();
+
+    VelVerlet.W = NH_P.T*tauP*tauP;
+    VelVerlet.SetRandMom(tauP);
+    VelVerlet.P = 10.0 / Conv_press;
+    VelVerlet.V0 = Lmax*Lmax*Lmax;
+
+    copyPosFromState();
 }
 
 void CSimulationBox::ResizeArrays()
@@ -182,12 +220,13 @@ void CSimulationBox::ResizeArrays()
     VelVerlet.aFNonBonded.resize(N);
     for(int k=0; k<N; k++) VelVerlet.aFNonBonded[k].resize(N);
 }
-
+/*
 void CSimulationBox::SetMasses(double m, int iFirst, int iTo)
 {
     for(int k=iFirst; k<iTo; k++) aParticles[k].m = m;
 }
-
+*/
+/*
 void CSimulationBox::SetRandPos(int iFirst, int iTo)
 {
     double a = 2.0 / double(RAND_MAX);
@@ -203,7 +242,18 @@ void CSimulationBox::SetRandPos(int iFirst, int iTo)
         if(dim < 2) aParticles[k].x.y_ = 0.0;
     }
 }
+*/
+void CSimulationBox::copyPosFromState()
+{
+    for(int i=0; i<N; i++)
+    {
+        if(state_->atoms_[i]->r_.size() == 0) continue;
+        aParticles[i].m = state_->atoms_[i]->m_;
+        aParticles[i].x = state_->atoms_[i]->r_[0];
+    }
+}
 
+/*
 void CSimulationBox::Set3DLatticePos(int iSize)
 {
     int     iIndex = 0;
@@ -225,7 +275,7 @@ void CSimulationBox::Set3DLatticePos(int iSize)
         }
     }
 }
-
+*/
 void CSimulationBox::SetRandMom(int iFirst, int iTo)
 {
     double          a = 2.0 / double(RAND_MAX);
@@ -299,7 +349,7 @@ double CSimulationBox::CalcTemp()
     return (T / (dim*double(N)));
 }
 
-double CSimulationBox::CalcPress(vector<C3DVector>& aF)
+double CSimulationBox::CalcPress(const vector<CDevForces>& F) const
 {
     double  V = VelVerlet.GetV(Lmax, bNPTEnsemble);
     double  sum = 0.0;
@@ -307,7 +357,7 @@ double CSimulationBox::CalcPress(vector<C3DVector>& aF)
     for(int k=0; k<N; k++)
     {
         double p2 = (aParticles[k].p*aParticles[k].p) / aParticles[k].m;
-        double f = aF[k]*aParticles[k].x;
+        double f = F[k].Fpi_*aParticles[k].x;
         sum+= (p2 + f);
     }
     
