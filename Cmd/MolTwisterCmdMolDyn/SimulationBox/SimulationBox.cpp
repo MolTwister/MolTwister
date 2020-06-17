@@ -216,9 +216,9 @@ void CSimulationBox::ResizeArrays()
     NH_T.PrepareArrays(N, dim);
     NH_P.PrepareArrays(1, 1);
     aParticles.resize(N);
-    VelVerlet.aFExternal.resize(N);
-    VelVerlet.aFNonBonded.resize(N);
-    for(int k=0; k<N; k++) VelVerlet.aFNonBonded[k].resize(N);
+//    VelVerlet.aFExternal.resize(N);
+//    VelVerlet.aFNonBonded.resize(N);
+//    for(int k=0; k<N; k++) VelVerlet.aFNonBonded[k].resize(N);
 }
 /*
 void CSimulationBox::SetMasses(double m, int iFirst, int iTo)

@@ -31,8 +31,8 @@ public:
         { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
     void VelVerPropagator(std::vector<CDevForces>& F)
         { VelVerlet.Propagator(N, dim, dt, Lmax, aParticles, F, bNPTEnsemble); }
-    C3DVector CalcParticleForce(int k, C3DVector& Fpi)
-        { return VelVerlet.CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, Fpi); }
+    std::vector<CDevForces> CalcParticleForces()
+        { return VelVerlet.CalcParticleForces(N, dim, Lmax, Lmax, Lmax, aParticles); }
     
 private:
     void ResizeArrays();

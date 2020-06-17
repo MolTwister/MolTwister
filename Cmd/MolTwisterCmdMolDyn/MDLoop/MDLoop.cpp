@@ -103,8 +103,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
 
 void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, vector<CDevForces>& F)
 {
-    F.resize(SimBox.N);
-    for(int k=0; k<SimBox.N; k++) F[k].F_ = SimBox.CalcParticleForce(k, F[k].Fpi_);
+    F = SimBox.CalcParticleForces();
 }
 
 void CMDLoop::NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox)
@@ -252,9 +251,8 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
     if((t % iOutputEvery) == 0)
     {
         AppendToXYZFile(SimBox.aParticles, t);
-        COut::Printf("\t%-15i%-15g%-15g%-20g%-20g\r\n", t, SimBox.CalcTemp() * Conv_T,
-               SimBox.CalcPress(F) * Conv_press, SimBox.CalcV(), SimBox.VelVerlet.GetMaxF());
-        SimBox.VelVerlet.PrintCutMsgAndReset();
+        COut::Printf("\t%-15i%-15g%-15g%-20g\r\n", t, SimBox.CalcTemp() * Conv_T,
+               SimBox.CalcPress(F) * Conv_press, SimBox.CalcV());
     }
 }
 

@@ -11,7 +11,7 @@
 #define NUM_POINTS_IN_PROFILES 100
 
 // :TODO: Move all the below class definitions, and their implementations, into its own *.h/*.cu module(s) once they become CUDA compatible
-template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; } // :TODO: Do I need this one?
+template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; }
 
 size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)
 {
@@ -529,6 +529,7 @@ C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, cons
         int idx = int((r - p_first.x_) / delta);
 
         // Interpolate the function value between i and (i+1)
+        // :TODO: We should not include forced beteen same atoms (i.e., if r_k=r_i).
         if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
         {
             CFunctPoint p1 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
@@ -594,9 +595,7 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     p_eps = 1.0;
     eps = 0.0;
     W = 1.0;
-    m_dLastFMax = 0.0;
     Fcut = 1000.0;
-    m_bCutF = false;
     tau = 1.0;
 
     const float rCutoff = 10.0f;
@@ -619,7 +618,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
             double m_k = aParticles[k].m;
             aParticles[k].p+= F[k].F_*dt_2;
             aParticles[k].x+= aParticles[k].p*(dt / m_k);
-            F[k].F_ = CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, F[k].Fpi_);
+//            F[k].F_ = CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, F[k].Fpi_);
             aParticles[k].p+= F[k].F_*dt_2;
         }
     }
@@ -670,6 +669,19 @@ void CVelVerlet::Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, 
     }
 }
 
+std::vector<CDevForces> CVelVerlet::CalcParticleForces(int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles)
+{
+    std::vector<CDevForces> F(N);
+
+    devVelVerlet_->updateAtomList(aParticles);
+    CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
+    calcForce.setForceFieldMatrices(*devVelVerlet_);
+    std::transform(devVelVerlet_->atomList_.begin(), devVelVerlet_->atomList_.end(), F.begin(), calcForce);
+
+    return F;
+}
+
+/*
 C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi)
 {
     C3DVector F;
@@ -736,7 +748,7 @@ C3DVector CVelVerlet::CalcParticleForce(int k, int N, int dim, double Lx, double
     
     return F;
 }
-
+*/
 double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F)
 {
     double V = V0 * exp(3.0 * eps);
@@ -767,26 +779,15 @@ double CVelVerlet::GetV(double Lmax, bool bNPT) const
     
     return V0 * exp(3.0 * eps);
 }
-
+/*
 void CVelVerlet::StoreMaxF(const C3DVector& F)
 {
     double fAbs = F.norm();
     
     if(fAbs > m_dLastFMax) m_dLastFMax = fAbs;
 }
-
-void CVelVerlet::PrintCutMsgAndReset()
-{
-    if(m_bCutF)
-    {
-        COut::Printf("\t****************************************\r\n");
-        COut::Printf("\t* Warning! Forces were cut!!!          *\r\n");
-        COut::Printf("\t****************************************\r\n");
-        m_dLastFMax = 0.0;
-        m_bCutF = false;
-    }
-}
-
+*/
+/*
 void CVelVerlet::PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles)
 {
     C3DVector F;
@@ -865,4 +866,4 @@ void CVelVerlet::PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, d
         exit(0);
     }
 }
-
+*/

@@ -27,18 +27,16 @@ public:
 
 public:
     void Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<CDevForces>& F, bool bNPT=false);
-    C3DVector CalcParticleForce(int k, int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles, C3DVector& Fpi);
+    std::vector<CDevForces> CalcParticleForces(int N, int dim, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles);
     void SetRandMom(double tau);
     double GetV(double Lmax, bool bNPT=false) const;
-    double GetMaxF() { return m_dLastFMax; }
-    void PrintCutMsgAndReset();
 
 private:
     double G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
     void Prop_p(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
     void Prop_r(int N, double dt, std::vector<CParticle3D>& aParticles, const std::vector<CDevForces>& F);
-    void StoreMaxF(const C3DVector& F);
-    void PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles);
+//    void StoreMaxF(const C3DVector& F);
+//    void PrintDebugInfoAtCutForces(int k, int N, double Lx, double Ly, double Lz, std::vector<CParticle3D>& aParticles);
 
 public:
     double Fcut;
@@ -48,12 +46,10 @@ public:
     double p_eps;
     double eps;
     double tau;
-    std::vector<std::vector<CForceNonBonded>> aFNonBonded;  // Matrix of non-bonded forces between particles
-    std::vector<CForceExternal> aFExternal;                 // External forces assigned to each particle
-    std::vector<CForceHarmBond> aFHarmBond;                 // Harmonic bonds between particles
+//    std::vector<std::vector<CForceNonBonded>> aFNonBonded;  // Matrix of non-bonded forces between particles
+//    std::vector<CForceExternal> aFExternal;                 // External forces assigned to each particle
+//    std::vector<CForceHarmBond> aFHarmBond;                 // Harmonic bonds between particles
 
 private:
-    double m_dLastFMax;
-    bool m_bCutF;
     CDevForceFieldMatrices* devVelVerlet_;
 };
