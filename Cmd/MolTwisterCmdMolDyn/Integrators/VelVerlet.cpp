@@ -84,7 +84,7 @@ class CFunctPoint
 {
 public:
     CFunctPoint() { x_ = y_ = 0.0f; }
-    CFunctPoint(float x, float y) { x_ = x; y = y_; }
+    CFunctPoint(float x, float y) { x_ = x; y_ = y; }
 
 public:
     float x_;
@@ -511,43 +511,135 @@ C3DVector CFunctorCalcForce::calcBondForceCoeffs12(const C3DVector& r1, const C3
 
 C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i)
 {
-    // We know that
-    // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
-    // We have (-dU/dr) stored in table form from nonBondFFMatrix_,
-    // we just need to retrieve the one stored for (k, i) and interpolate
-    // it for r = | r_k - r_i |. We use linear interpolation.
-    float mdU_dr_Sum = 0.0f;
-    size_t ffCount = nonBondFFMatrixFFCount_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, Natomtypes_)];
-    for(int ffIndex=0; ffIndex<(int)ffCount; ffIndex++)
+    C3DVector ret, cmp, cmp2;
     {
-        // Use number of points in plot to get first and last value, thus obtaining r_min and r_max, which
-        // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
-        CFunctPoint p_first = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, 0, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-        CFunctPoint p_last = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, NUM_POINTS_IN_PROFILES-1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-        float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
+        // We know that
+        // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
+        // We have (-dU/dr) stored in table form from nonBondFFMatrix_,
+        // we just need to retrieve the one stored for (k, i) and interpolate
+        // it for r = | r_k - r_i |. We use linear interpolation. If r < 1E-3,
+        // we assume that atom i and k are the same in the same image. This,
+        // should not yield a contribution to the forces on atom k.
         float r = (r_k - r_i).norm();
-        int idx = int((r - p_first.x_) / delta);
+        if(r < 1E-3f) return C3DVector(0.0f, 0.0f, 0.0f);
 
-        // Interpolate the function value between i and (i+1)
-        // :TODO: We should not include forced beteen same atoms (i.e., if r_k=r_i).
-        if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
+        float mdU_dr_Sum = 0.0f;
+        size_t ffCount = nonBondFFMatrixFFCount_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, Natomtypes_)];
+        for(int ffIndex=0; ffIndex<(int)ffCount; ffIndex++)
         {
-            CFunctPoint p1 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-            CFunctPoint p2 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx+1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-            float denom = p1.x_ - p2.x_;
-            if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-            float a = (p1.y_ - p2.y_) / denom;
-            float b = p1.y_ - a*p1.x_;
-            mdU_dr_Sum+= (a*r + b);
+            // Use number of points in plot to get first and last value, thus obtaining r_min and r_max, which
+            // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
+            CFunctPoint p_first = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, 0, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+            CFunctPoint p_last = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, NUM_POINTS_IN_PROFILES-1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+            float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
+            int idx = int((r - p_first.x_) / delta);
+
+            // Interpolate the function value between i and (i+1)
+            // :TODO: We should not include forced beteen same atoms (i.e., if r_k=r_i).
+            if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
+            {
+                CFunctPoint p1 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+                CFunctPoint p2 = nonBondFFMatrix_[toIndexNonBond(atomList_[k].typeIndex_, atomList_[i].typeIndex_, ffIndex, idx+1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
+                float denom = p1.x_ - p2.x_;
+                if(denom == 0.0f) denom = 3.0f*FLT_MIN;
+                float a = (p1.y_ - p2.y_) / denom;
+                float b = p1.y_ - a*p1.x_;
+                mdU_dr_Sum+= (a*r + b);
+            }
+        }
+
+        // Now that we have (-dU/dr) at r, we find the analytic calculation
+        // of dr/dx_k, dr/dy_k and dr/dz_k, where r = sqrt((r_x_k - r_x_i)^2
+        // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
+        // forces on r_k.
+        C3DVector c = calcNonBondForceCoeffs12(r_i, r_k);
+        ret = c*mdU_dr_Sum;
+    }
+
+    {
+        double epsilon = 1.2301;
+        double sigma = 3.730;
+        double sigma2 = sigma * sigma;
+        double sigma3 = sigma2 * sigma;
+        double m_sigma6 = sigma3 * sigma3;
+        double m_sigma12 = m_sigma6 * m_sigma6;
+        double m_epsilon = epsilon;
+        C3DVector r_vec_ji = r_i - r_k;
+        double r_ji = r_vec_ji.norm();
+        double r_inv_ji = (r_ji == 0.0) ? 1.0 / 1.0E-3 : 1.0 / r_ji;
+        double r_inv_ji2 = r_inv_ji * r_inv_ji;
+        double r_inv_ji3 = r_inv_ji2 * r_inv_ji;
+        double r_inv_ji6 = r_inv_ji3 * r_inv_ji3;
+        double r_inv_ji12 = r_inv_ji6 * r_inv_ji6;
+        double c = -4.0*m_epsilon*r_inv_ji
+            * (12.0*m_sigma12*r_inv_ji12 - 6.0*m_sigma6*r_inv_ji6);
+
+        double csec = -r_inv_ji;
+        C3DVector forceCoeff = r_vec_ji * csec;
+
+        cmp = forceCoeff * c;
+        C3DVector csec2 = calcNonBondForceCoeffs12(r_i, r_k);
+        csec2 = calcNonBondForceCoeffs12(r_i, r_k);
+    }
+
+    {
+        double epsilon = 1.2301;
+        double sigma = 3.730;
+        double alpha = 1.0;
+        C3DVector   r12 = r_i - r_k;
+        double      R = r12.norm();
+        double      RInv = (R == 0.0) ? 1.0 / 1E-10 : 1.0 / R;
+        double      RInv2 = RInv*RInv;
+        double      RInv6 = RInv2*RInv2*RInv2;
+        double      RInv12 = RInv6*RInv6;
+        double      sigma2 = sigma*sigma;
+        double      sigma6 = sigma2*sigma2*sigma2;
+        double      sigma12 = sigma6*sigma6;
+        double      RInv_dUdr_neg = 4.0*epsilon*RInv2 * (12.0*sigma12*RInv12 - 6.0*alpha*sigma6*RInv6);
+        cmp2 = r12*RInv_dUdr_neg;
+    }
+
+    {
+        printf("Plot graph\r\n\r\n");
+        float rEnd = 3.0f;
+        float rStart = 0.1f;
+        int points = 100;
+        C3DVector r1(0.0f, 0.0f, 0.0f);
+        C3DVector r2(0.0f, 0.0f, 0.0f);
+        C3DVector f1, f2;
+        float rDelta = (rEnd - rStart) / float(points-1);
+        for(int i=0; i<points; i++)
+        {
+            float r = rStart + float(i)*rDelta;
+            r2.x_ = r;
+
+            double epsilon = 1.2301;
+            double sigma = 3.730;
+            double sigma2 = sigma * sigma;
+            double sigma3 = sigma2 * sigma;
+            double m_sigma6 = sigma3 * sigma3;
+            double m_sigma12 = m_sigma6 * m_sigma6;
+            double m_epsilon = epsilon;
+            C3DVector r_vec_ji = r1 - r2;
+            double r_ji = r_vec_ji.norm();
+            double r_inv_ji = (r_ji == 0.0) ? 1.0 / 1.0E-3 : 1.0 / r_ji;
+            double r_inv_ji2 = r_inv_ji * r_inv_ji;
+            double r_inv_ji3 = r_inv_ji2 * r_inv_ji;
+            double r_inv_ji6 = r_inv_ji3 * r_inv_ji3;
+            double r_inv_ji12 = r_inv_ji6 * r_inv_ji6;
+            double c = -4.0*m_epsilon*r_inv_ji
+                * (12.0*m_sigma12*r_inv_ji12 - 6.0*m_sigma6*r_inv_ji6);
+
+            double csec = -r_inv_ji;
+            C3DVector forceCoeff = r_vec_ji * csec;
+
+            C3DVector FF = forceCoeff * c;
+
+            printf("%.4f; %.8f; %.8f; %.8f; %.8f; %.8f; %.8f; %.8f\r\n", r, c, forceCoeff.x_, forceCoeff.y_, forceCoeff.z_, FF.x_, FF.y_, FF.z_);
         }
     }
 
-    // Now that we have (-dU/dr) at r, we find the analytic calculation
-    // of dr/dx_k, dr/dy_k and dr/dz_k, where r = sqrt((r_x_k - r_x_i)^2
-    // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
-    // forces on r_k.
-    C3DVector c = calcNonBondForceCoeffs12(r_i, r_k);
-    return c*mdU_dr_Sum;
+    return ret;
 }
 
 C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)

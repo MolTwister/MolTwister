@@ -21,7 +21,7 @@ public:
     virtual bool isPotentialCalcAvailable() const { return true; }
     virtual double calcPotential(C3DVector r1, C3DVector r2) const;
     virtual void calcForces(C3DVector r1, C3DVector r2, C3DVector& f1, C3DVector& f2) const;
-    virtual std::vector<std::string> getCmdHelpLines() { return { "<Lennard-Jones sigma> <Lennard-Jones epsilon> [alpha <Lennard-Jones alpha>]" }; }
+    virtual std::vector<std::string> getCmdHelpLines() { return { "<Lennard-Jones epsilon> <Lennard-Jones sigma> [alpha <Lennard-Jones alpha>]" }; }
 
     double getSigma() const { return sigma_; }
     double getEpsilon() const { return epsilon_; }
