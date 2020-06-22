@@ -3,7 +3,6 @@
 
 #include "../../../Utilities/3DVector.h"
 #include "../Integrators/Particle3D.h"
-#include "../ForceFields/ForceFields.h"
 #include "../Integrators/NHChain.h"
 #include "../Integrators/VelVerlet.h"
 #include "../../../MolTwisterState.h"
@@ -11,8 +10,6 @@
 class CSimulationBox
 {
 public:
-/*    enum ESystem { sys1DHarmBond = 1, sys1DExtHarmOsc = 2, sys3DExtHarmOsc = 3,
-        sysLJCH4HighDens = 4, sysLJCH4NormDens = 5, sys1DFree = 6 };*/
     enum EDim { dim1D = 1, dim2D = 2, dim3D = 3 };
 
 public:
@@ -22,30 +19,22 @@ public:
     void InitSystem(int iM);
     void PBCWrap();
     double CalcTemp();
-    double CalcPress(const vector<CDevForces>& F) const;
+    double CalcPress(const vector<CMDForces>& F) const;
     double CalcV() { return VelVerlet.GetV(Lmax, bNPTEnsemble); }
 
     void NHTPropagator(CFct& Fct)
         { NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
         { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
-    void VelVerPropagator(std::vector<CDevForces>& F)
+    void VelVerPropagator(std::vector<CMDForces>& F)
         { VelVerlet.Propagator(N, dim, dt, Lmax, aParticles, F, bNPTEnsemble); }
-    std::vector<CDevForces> CalcParticleForces()
+    std::vector<CMDForces> CalcParticleForces()
         { return VelVerlet.CalcParticleForces(N, dim, Lmax, Lmax, Lmax, aParticles); }
     
 private:
     void ResizeArrays();
 
-//    void Init1DHarmBond();
-//    void Init1DExtHarmOsc();
-//    void Init3DExtHarmOsc();
-//    void InitLJCH4(double dBoxLen);
-//    void InitFreeParticles1D();
-//    void SetMasses(double m, int iFirst, int iTo);
-//    void SetRandPos(int iFirst, int iTo);
     void copyPosFromState();
-//    void Set3DLatticePos(int iSize);
     void SetRandMom(int iFirst, int iTo);
     void PBCAdd(double& pos, double L, double Lm);
 

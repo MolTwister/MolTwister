@@ -15,7 +15,7 @@ else()
     add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(MolTwister CMAKE_CXX_STANDARD 14)
 
 find_package(PythonLibs REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -354,8 +354,11 @@ if(${INCLUDE_CUDA_COMMANDS})
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.cpp
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.cpp
-        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/ForceFields.h
-        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/ForceFields.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDForces.h
         )
 endif()
 

@@ -40,7 +40,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
 
     size_t arg = 0;
 
-    int             iNStep = 50000;
+    int             iNStep = 1000000;
     int             iOutputEvery = 400;
     int             iM = 4;
     std::string     szSystem;

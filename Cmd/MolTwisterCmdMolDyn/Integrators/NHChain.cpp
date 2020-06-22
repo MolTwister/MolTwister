@@ -30,12 +30,12 @@ void CNHChain::Propagator(int N, int dim, double dt, CFct& f)
 {
     double  beta = 1.0 / T;
     double  coeff;
-    double  pEtaCutoff = 10.0;
+    double  pEtaCutoff = 15.0;
     
     
     if((M > 0) && (p_eta[0] > pEtaCutoff))
     {
-        printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g...\r\n", p_eta[0], pEtaCutoff);
+        printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g)...\r\n", p_eta[0], pEtaCutoff);
         p_eta[0] = 10.0;
     }
     

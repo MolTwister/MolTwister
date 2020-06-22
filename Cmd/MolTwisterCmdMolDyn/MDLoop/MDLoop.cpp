@@ -76,7 +76,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     const int           iEquilibSteps = 1000;
     vector<int>         aMomentumDistr[4];
     vector<int>         aVolumeDistr;
-    vector<CDevForces>  F;
+    vector<CMDForces>  F;
     
     
     srand((unsigned int)time(NULL));
@@ -101,7 +101,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     FinalizeOutput(SimBox, aMomentumDistr, aVolumeDistr);
 }
 
-void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, vector<CDevForces>& F)
+void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, vector<CMDForces>& F)
 {
     F = SimBox.CalcParticleForces();
 }
@@ -231,7 +231,7 @@ void CMDLoop::StoreVolumeDistribution(string szFileName, vector<int>& aVolumeDis
 }
 
 void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox,
-                           const vector<CDevForces>& F, vector<int>* aMomentumDistr, vector<int>& aVolumeDistr)
+                           const vector<CMDForces>& F, vector<int>* aMomentumDistr, vector<int>& aVolumeDistr)
 {
     // Perform calculations on MD trajectories and output data
     if(t > iEquilibSteps)
