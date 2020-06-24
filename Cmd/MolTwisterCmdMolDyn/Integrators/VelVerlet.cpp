@@ -4,6 +4,17 @@
 #include <math.h>
 #include <algorithm>
 #include "../ForceFields/FunctorCalcForce.h"
+#include "../Common/AlgorithmDefs.h"
+
+// :TODO: Strategy:
+// 1) Create my own transform, host_vector, device_vector and similar
+// 2) Two versions are created: one for cpu and one that mirrors the gpu versions
+// 3) If compiled as CPP the cpu versions are used. If as CU the gpu versions are used
+// 4) Rewrite everything as if on gpu, but run on cpu
+// 5) Set up mdgpu namespace if __CUDA__, else mdcpu. Do this for entire MD framework
+// 6) Use configure to move entire MD framework to CU files to be compiled by CUDA
+// 7) Set up new command for CUDA version
+// 8) Consider later to create a transform that is multihreadded (without C++17)
 
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
 {
@@ -15,30 +26,37 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     tau = 1.0;
 
     const float rCutoff = 10.0f;
-    devVelVerlet_ = new CMDFFMatrices(state, stdOut, rCutoff);
+    mdFFMatrices_ = new CMDFFMatrices(state, stdOut, rCutoff);
 }
 
 CVelVerlet::~CVelVerlet()
 {
-    if(devVelVerlet_) delete devVelVerlet_;
+    if(mdFFMatrices_) delete mdFFMatrices_;
 }
 
 void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<CParticle3D>& aParticles, std::vector<CMDForces>& F, bool bNPT)
 {
     if(!bNPT)
     {
-        // :TODO: Here for NVT, we need to also use the transform alg. Perhaps incorporate the bNPT check inside the existing functor?
         double dt_2 = dt / 2.0;
         for(int k=0; k<N; k++)
         {
             double m_k = aParticles[k].m;
             aParticles[k].p+= F[k].F_*dt_2;
             aParticles[k].x+= aParticles[k].p*(dt / m_k);
-//            F[k].F_ = CalcParticleForce(k, N, dim, Lmax, Lmax, Lmax, aParticles, F[k].Fpi_);
+        }
+
+        mdFFMatrices_->updateAtomList(aParticles);
+        CFunctorCalcForce calcForce(dim, Lmax, Lmax, Lmax, Fcut);
+        calcForce.setForceFieldMatrices(*mdFFMatrices_);
+        mttransform(mdFFMatrices_->atomList_.begin(), mdFFMatrices_->atomList_.end(), F.begin(), calcForce);
+
+        for(int k=0; k<N; k++)
+        {
             aParticles[k].p+= F[k].F_*dt_2;
         }
     }
-    
+
     else
     {
         p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.1
@@ -47,10 +65,10 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
         eps+= (dt * p_eps / W);                          // Step 3.4
         double Lm = pow(GetV(Lmax, true), 1.0/3.0);
 
-        devVelVerlet_->updateAtomList(aParticles);
+        mdFFMatrices_->updateAtomList(aParticles);
         CFunctorCalcForce calcForce(dim, Lm, Lm, Lm, Fcut);
-        calcForce.setForceFieldMatrices(*devVelVerlet_);
-        std::transform(devVelVerlet_->atomList_.begin(), devVelVerlet_->atomList_.end(), F.begin(), calcForce);
+        calcForce.setForceFieldMatrices(*mdFFMatrices_);
+        mttransform(mdFFMatrices_->atomList_.begin(), mdFFMatrices_->atomList_.end(), F.begin(), calcForce);
 
         Prop_p(N, dt, aParticles, F);                    // Step 3.5
         p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
@@ -89,10 +107,10 @@ std::vector<CMDForces> CVelVerlet::CalcParticleForces(int N, int dim, double Lx,
 {
     std::vector<CMDForces> F(N);
 
-    devVelVerlet_->updateAtomList(aParticles);
+    mdFFMatrices_->updateAtomList(aParticles);
     CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
-    calcForce.setForceFieldMatrices(*devVelVerlet_);
-    std::transform(devVelVerlet_->atomList_.begin(), devVelVerlet_->atomList_.end(), F.begin(), calcForce);
+    calcForce.setForceFieldMatrices(*mdFFMatrices_);
+    mttransform(mdFFMatrices_->atomList_.begin(), mdFFMatrices_->atomList_.end(), F.begin(), calcForce);
 
     return F;
 }
@@ -100,7 +118,7 @@ std::vector<CMDForces> CVelVerlet::CalcParticleForces(int N, int dim, double Lx,
 double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, const std::vector<CMDForces>& F)
 {
     double V = V0 * exp(3.0 * eps);
-    
+
     double sum_p = 0.0;
     double sum_f = 0.0;
     for(int k=0; k<N; k++)
@@ -116,7 +134,7 @@ double CVelVerlet::G_eps(int N, const std::vector<CParticle3D>& aParticles, cons
 void CVelVerlet::SetRandMom(double tau)
 {
     double a = 2.0 / double(RAND_MAX);
-    
+
     p_eps = (a*double(rand()) - 1.0) * (W / tau);
     if(p_eps == 0.0) p_eps = (W / tau);
 }
@@ -124,6 +142,6 @@ void CVelVerlet::SetRandMom(double tau)
 double CVelVerlet::GetV(double Lmax, bool bNPT) const
 {
     if(!bNPT) return Lmax*Lmax*Lmax;
-    
+
     return V0 * exp(3.0 * eps);
 }

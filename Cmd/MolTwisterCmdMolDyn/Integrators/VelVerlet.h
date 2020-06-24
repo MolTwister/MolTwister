@@ -34,5 +34,5 @@ public:
     double tau;
 
 private:
-    CMDFFMatrices* devVelVerlet_;
+    CMDFFMatrices* mdFFMatrices_;
 };

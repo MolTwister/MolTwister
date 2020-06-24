@@ -24,10 +24,7 @@
 #include "Cmd/MolTwisterCmdDcd.h"
 #include "Cmd/MolTwisterCmdPython.h"
 #include "Cmd/MolTwisterCmdLoad.h"
-
-#if INCLUDE_CUDA_COMMANDS == 1
 #include "Cmd/MolTwisterCmdMolDyn.h"
-#endif
 
 void CMolTwisterCommandPool::generateCmdList(CMolTwisterState* mtState, std::vector<std::shared_ptr<CCmd>>& cmdList)
 {
@@ -55,12 +52,7 @@ void CMolTwisterCommandPool::generateCmdList(CMolTwisterState* mtState, std::vec
     cmdList.emplace_back(std::make_shared<CCmdMmol>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdDcd>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdPython>(mtState));
-
-    #if INCLUDE_CUDA_COMMANDS == 1
-    {
-        cmdList.emplace_back(std::make_shared<CCmdMolDyn>(mtState));
-    }
-    #endif
+    cmdList.emplace_back(std::make_shared<CCmdMolDyn>(mtState));
 
     for(size_t i=0; i<cmdList.size(); i++) cmdList[i]->init();
 }
