@@ -1,8 +1,7 @@
 #include "FunctorCalcForce.h"
 #include <float.h>
 #include <math.h>
-
-template<class T> T* raw_pointer_cast(const T* ptr) { return (T*)ptr; }
+#include "../Common/AlgorithmDefs.h"
 
 CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF)
 {
@@ -13,24 +12,26 @@ CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, floa
     cutF_ = cutF;
 }
 
+// :TODO: All the below pointers must be on device
 void CFunctorCalcForce::setForceFieldMatrices(const CMDFFMatrices& ffMatrices)
 {
-    atomList_ = raw_pointer_cast(&ffMatrices.atomList_[0]);
-    nonBondFFMatrix_ = raw_pointer_cast(&ffMatrices.nonBondFFMatrix_[0]);
-    nonBondFFMatrixFFCount_ = raw_pointer_cast(&ffMatrices.nonBondFFMatrixFFCount_[0]);
-    bondList_ = raw_pointer_cast(&ffMatrices.bondList_[0]);
-    bondFFList_ = raw_pointer_cast(&ffMatrices.bondFFList_[0]);
-    angleList_ = raw_pointer_cast(&ffMatrices.angleList_[0]);
-    angleFFList_ = raw_pointer_cast(&ffMatrices.angleFFList_[0]);
-    dihedralList_ = raw_pointer_cast(&ffMatrices.dihedralList_[0]);
-    dihedralFFList_ = raw_pointer_cast(&ffMatrices.dihedralFFList_[0]);
-    lastErrorList_ = raw_pointer_cast(&ffMatrices.lastErrorList_[0]);
+    atomList_ = mtraw_pointer_cast(&ffMatrices.atomList_[0]);
+    nonBondFFMatrix_ = mtraw_pointer_cast(&ffMatrices.nonBondFFMatrix_[0]);
+    nonBondFFMatrixFFCount_ = mtraw_pointer_cast(&ffMatrices.nonBondFFMatrixFFCount_[0]);
+    bondList_ = mtraw_pointer_cast(&ffMatrices.bondList_[0]);
+    bondFFList_ = mtraw_pointer_cast(&ffMatrices.bondFFList_[0]);
+    angleList_ = mtraw_pointer_cast(&ffMatrices.angleList_[0]);
+    angleFFList_ = mtraw_pointer_cast(&ffMatrices.angleFFList_[0]);
+    dihedralList_ = mtraw_pointer_cast(&ffMatrices.dihedralList_[0]);
+    dihedralFFList_ = mtraw_pointer_cast(&ffMatrices.dihedralFFList_[0]);
+    lastErrorList_ = mtraw_pointer_cast(&ffMatrices.lastErrorList_[0]);
 
     Natoms_ = ffMatrices.getNumAtoms();
     Natomtypes_ = ffMatrices.getNumAtomTypes();
     Nbonds_ = ffMatrices.getNumBonds();
 }
 
+// :TODO: This rund on device and operates on device pointers only
 CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
 {
     C3DVector F;

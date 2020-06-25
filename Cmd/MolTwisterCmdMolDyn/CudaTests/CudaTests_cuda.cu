@@ -1,9 +1,6 @@
-#include <cuda.h>
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include "../../../CudaDefinitions.h"
 #include "../../../Cmd/Tools/CudaDeviceList.h"
 #include "../../../Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h"
+#include "../Common/AlgorithmDefs.h"
 #include "CudaTests_cuda.h"
 
 #define ARRAY_SIZE 10
@@ -128,7 +125,7 @@ void CCudaTest_cuda::addBIntoA(int* A, int* B)
 void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
 {
     // Create some common information, organized into a MxN array, to be shared inside the thrust::transform() call
-    thrust::host_vector<CInfo_cuda> hostInfo2DMatrix(SIZE_M * SIZE_N);
+    mthost_vector<CInfo_cuda> hostInfo2DMatrix(SIZE_M * SIZE_N);
     int info1 = 2;
     float info2 = 3.5;
     for(size_t r=0; r<SIZE_M; r++)
@@ -142,11 +139,11 @@ void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
     }
 
     // Upload common information to device and create a pointer that can be used on the host
-    thrust::device_vector<CInfo_cuda> kernelInfo2DMatrix = hostInfo2DMatrix;
-    CInfo_cuda* kernelInfo2DMatrixPtr = thrust::raw_pointer_cast(&kernelInfo2DMatrix[0]);
+    mtdevice_vector<CInfo_cuda> kernelInfo2DMatrix = hostInfo2DMatrix;
+    CInfo_cuda* kernelInfo2DMatrixPtr = mtraw_pointer_cast(&kernelInfo2DMatrix[0]);
 
     // Create a vector of particles on the host and set the particle values
-    thrust::host_vector<CParticle3D_cuda> hostAtomList(ARRAY_SIZE);
+    mthost_vector<CParticle3D_cuda> hostAtomList(ARRAY_SIZE);
 
     for(size_t i=0; i<hostAtomList.size(); i++)
     {
@@ -157,16 +154,16 @@ void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
     }
 
     // Create a corresponding vector on the device and copy the host content to the device
-    thrust::device_vector<CParticle3D_cuda> kernelAtomList;
+    mtdevice_vector<CParticle3D_cuda> kernelAtomList;
     kernelAtomList = hostAtomList;
 
     // Run a transformation on each particle, on the device (in parallel), defined by the functor, CTransfStep
     CTransfStep func(kernelInfo2DMatrixPtr, SIZE_M, SIZE_N);
-    thrust::device_vector<CParticle3D_cuda> kernelOutput(ARRAY_SIZE);
-    thrust::transform(kernelAtomList.begin(), kernelAtomList.end(), kernelOutput.begin(), func);
+    mtdevice_vector<CParticle3D_cuda> kernelOutput(ARRAY_SIZE);
+    mttransform(kernelAtomList.begin(), kernelAtomList.end(), kernelOutput.begin(), func);
 
     // Create a host vector for the result and copy the device content result to it
-    thrust::host_vector<CParticle3D_cuda> hostOutput;
+    mthost_vector<CParticle3D_cuda> hostOutput;
     hostOutput = kernelOutput;
 
     // Print the results
@@ -183,6 +180,9 @@ void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
                 hostOutput[i].p_[0], hostOutput[i].p_[1], hostOutput[i].p_[2],
                 hostOutput[i].info_.getInfo1(), hostOutput[i].info_.getInfo2());
     }
+
+    printf("\r\n");
+    mtcheck_env();
 }
 
 int CCudaTest_cuda::getArraySize()

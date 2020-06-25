@@ -46,10 +46,14 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, std::vector<
             aParticles[k].x+= aParticles[k].p*(dt / m_k);
         }
 
+        // :TODO: mdFFMatrices must contain only device vectors => updateAtomList() copies from host to device
         mdFFMatrices_->updateAtomList(aParticles);
         CFunctorCalcForce calcForce(dim, Lmax, Lmax, Lmax, Fcut);
         calcForce.setForceFieldMatrices(*mdFFMatrices_);
+        // :TODO: Need to make sure we have an existing devicevector to fill up with F (e.g., created in constructor)
+        // :TODO: atomList comes from mdFFMatrices and is therefore on device. This is correct!
         mttransform(mdFFMatrices_->atomList_.begin(), mdFFMatrices_->atomList_.end(), F.begin(), calcForce);
+        // :TODO: Copy from device to F
 
         for(int k=0; k<N; k++)
         {

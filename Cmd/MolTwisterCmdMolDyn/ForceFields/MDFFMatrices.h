@@ -1,6 +1,7 @@
 #pragma once
 #include "../Integrators/Particle3D.h"
 #include "../../Tools/MolTwisterStateTools.h"
+#include "../Common/AlgorithmDefs.h"
 
 #define MAX_FF_PER_ATOMIC_SET 5
 #define NUM_POINTS_IN_PROFILES 100
@@ -11,7 +12,7 @@ public:
     class CAtom
     {
     public:
-        CAtom() { typeIndex_ = -1; }
+        HOSTDEV_CALLABLE CAtom() { typeIndex_ = -1; }
 
     public:
         int index_;
@@ -27,7 +28,7 @@ public:
     class CBond
     {
     public:
-        CBond() { atomIndex1_ = atomIndex2_ = 0; bondType_ = -1; }
+        HOSTDEV_CALLABLE CBond() { atomIndex1_ = atomIndex2_ = 0; bondType_ = -1; }
 
     public:
         size_t atomIndex1_;
@@ -38,7 +39,7 @@ public:
     class CAngle
     {
     public:
-        CAngle() { atomIndex1_ = atomIndex2_ = atomIndex3_ = 0; angleType_ = -1; }
+        HOSTDEV_CALLABLE CAngle() { atomIndex1_ = atomIndex2_ = atomIndex3_ = 0; angleType_ = -1; }
 
     public:
         size_t atomIndex1_;
@@ -50,7 +51,7 @@ public:
     class CDihedral
     {
     public:
-        CDihedral() { atomIndex1_ = atomIndex2_ = atomIndex3_ = atomIndex4_ = 0; dihedralType_ = -1; }
+        HOSTDEV_CALLABLE CDihedral() { atomIndex1_ = atomIndex2_ = atomIndex3_ = atomIndex4_ = 0; dihedralType_ = -1; }
 
     public:
         size_t atomIndex1_;
@@ -63,8 +64,8 @@ public:
     class CPoint
     {
     public:
-        CPoint() { x_ = y_ = 0.0f; }
-        CPoint(float x, float y) { x_ = x; y_ = y; }
+        HOSTDEV_CALLABLE CPoint() { x_ = y_ = 0.0f; }
+        HOSTDEV_CALLABLE CPoint(float x, float y) { x_ = x; y_ = y; }
 
     public:
         float x_;
@@ -78,10 +79,10 @@ public:
         enum EWarningCode { warnNone = 0, warnForcesWereCut };
 
     public:
-        CLastError() { reset(); }
+        HOSTDEV_CALLABLE CLastError() { reset(); }
 
     public:
-        void reset()
+        HOSTDEV_CALLABLE void reset()
         {
             lastErrorCode_ = errNone;
             lastWarningCode_ = warnNone;
@@ -99,35 +100,35 @@ public:
     int getNumAtoms() const { return Natoms_; }
     int getNumBonds() const { return Nbonds_; }
     int getNumAtomTypes() const { return NatomTypes_; }
-    void updateAtomList(const std::vector<CParticle3D>& atomList);
+    void updateAtomList(const mthost_vector<CParticle3D>& atomList);
 
-    static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet);
-    static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount);
-    static size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles);
+    HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet);
+    HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount);
+    HOSTDEV_CALLABLE static size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles);
 
 private:
     void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
-                           std::vector<CAtom>& atomList,
-                           std::vector<CPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
-                           std::vector<CBond>& bondList, std::vector<CPoint>& bondFFList,
-                           std::vector<CAngle>& angleList, std::vector<CPoint>& angleFFList,
-                           std::vector<CDihedral>& dihedralList, std::vector<CPoint>& dihedralFFList,
+                           mtdevice_vector<CAtom>& atomList,
+                           mtdevice_vector<CPoint>& nonBondFFMatrix, mtdevice_vector<size_t>& nonBondFFMatrixFFCount,
+                           mtdevice_vector<CBond>& bondList, mtdevice_vector<CPoint>& bondFFList,
+                           mtdevice_vector<CAngle>& angleList, mtdevice_vector<CPoint>& angleFFList,
+                           mtdevice_vector<CDihedral>& dihedralList, mtdevice_vector<CPoint>& dihedralFFList,
                            int& Natoms,
                            int& NatomTypes,
                            int& Nbonds) const;
-    void prepareLastErrorList(CMolTwisterState* state, std::vector<CLastError>& lastErrorList) const;
+    void prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& lastErrorList) const;
 
 public:
-    std::vector<CAtom> atomList_;
-    std::vector<CPoint> nonBondFFMatrix_;
-    std::vector<size_t> nonBondFFMatrixFFCount_;
-    std::vector<CBond> bondList_;
-    std::vector<CPoint> bondFFList_;
-    std::vector<CAngle> angleList_;
-    std::vector<CPoint> angleFFList_;
-    std::vector<CDihedral> dihedralList_;
-    std::vector<CPoint> dihedralFFList_;
-    std::vector<CLastError> lastErrorList_;
+    mtdevice_vector<CAtom> atomList_;
+    mtdevice_vector<CPoint> nonBondFFMatrix_;
+    mtdevice_vector<size_t> nonBondFFMatrixFFCount_;
+    mtdevice_vector<CBond> bondList_;
+    mtdevice_vector<CPoint> bondFFList_;
+    mtdevice_vector<CAngle> angleList_;
+    mtdevice_vector<CPoint> angleFFList_;
+    mtdevice_vector<CDihedral> dihedralList_;
+    mtdevice_vector<CPoint> dihedralFFList_;
+    mtdevice_vector<CLastError> lastErrorList_;
 
 private:
     int Natoms_;

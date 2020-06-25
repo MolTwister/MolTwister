@@ -15,10 +15,9 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
     prepareLastErrorList(state, lastErrorList_);
 }
 
-void CMDFFMatrices::updateAtomList(const std::vector<CParticle3D>& atomList)
+void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
 {
-    // :TODO: Make hostAtomList into thrust::host_vector<>()
-    std::vector<CAtom> hostAtomList = atomList_;
+    mthost_vector<CAtom> hostAtomList = atomList_;
     if(atomList.size() != hostAtomList.size()) return;
 
     size_t numAtoms = atomList.size();
@@ -37,12 +36,13 @@ void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, std::vector<CL
     lastErrorList = std::vector<CLastError>(numAtoms);
 }
 
+// :TODO: Let this one return only to devicevectors...
 void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
-                                      std::vector<CAtom>& atomList,
-                                      std::vector<CPoint>& nonBondFFMatrix, std::vector<size_t>& nonBondFFMatrixFFCount,
-                                      std::vector<CBond>& bondList, std::vector<CPoint>& bondFFList,
-                                      std::vector<CAngle>& angleList, std::vector<CPoint>& angleFFList,
-                                      std::vector<CDihedral>& dihedralList, std::vector<CPoint>& dihedralFFList,
+                                      mtdevice_vector<CAtom>& atomList,
+                                      mtdevice_vector<CPoint>& nonBondFFMatrix, mtdevice_vector<size_t>& nonBondFFMatrixFFCount,
+                                      mtdevice_vector<CBond>& bondList, mtdevice_vector<CPoint>& bondFFList,
+                                      mtdevice_vector<CAngle>& angleList, mtdevice_vector<CPoint>& angleFFList,
+                                      mtdevice_vector<CDihedral>& dihedralList, mtdevice_vector<CPoint>& dihedralFFList,
                                       int& Natoms,
                                       int& NatomTypes,
                                       int& Nbonds) const
