@@ -22,7 +22,7 @@ public:
     void InitSystem(int iM);
     void PBCWrap();
     double CalcTemp();
-    double CalcPress(const std::vector<CMDForces>& F) const;
+    double CalcPress(const mthost_vector<CMDForces>& F) const;
     double CalcV() { return VelVerlet.GetV(Lmax, bNPTEnsemble); }
 
     void NHTPropagator(CFct& Fct)

@@ -72,13 +72,13 @@ CMDLoop::CMDLoop()
 
 void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery)
 {
-    CFctT                   FctT(&SimBox);
-    CFctP                   FctP(&SimBox.VelVerlet);
-    const int               iNumPDistrBins = 150;
-    const int               iEquilibSteps = 1000;
-    std::vector<int>        aMomentumDistr[4];
-    std::vector<int>        aVolumeDistr;
-    std::vector<CMDForces>  F;
+    CFctT                     FctT(&SimBox);
+    CFctP                     FctP(&SimBox.VelVerlet);
+    const int                 iNumPDistrBins = 150;
+    const int                 iEquilibSteps = 1000;
+    std::vector<int>          aMomentumDistr[4];
+    std::vector<int>          aVolumeDistr;
+    mthost_vector<CMDForces>  F;
     
     
     srand((unsigned int)time(NULL));
@@ -103,7 +103,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     FinalizeOutput(SimBox, aMomentumDistr, aVolumeDistr);
 }
 
-void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, std::vector<CMDForces>& F)
+void CMDLoop::CalcInitialForces(CSimulationBox& SimBox, mthost_vector<CMDForces>& F)
 {
     F = SimBox.CalcParticleForces();
 }
@@ -137,10 +137,9 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t%-15s%-15s%-15s%-20s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]", "Fmax[internal]");
 }
 
-void CMDLoop::AppendToXYZFile(std::vector<CParticle3D>& aParticles, int t)
+void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t)
 {
-    FILE*           pFile = fopen("gas.xyz", "a+");
-    
+    FILE* pFile = fopen("gas.xyz", "a+");
     
     if(!pFile) return;
     
@@ -233,7 +232,7 @@ void CMDLoop::StoreVolumeDistribution(std::string szFileName, std::vector<int>& 
 }
 
 void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox,
-                           const std::vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr)
+                           const mthost_vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr)
 {
     // Perform calculations on MD trajectories and output data
     if(t > iEquilibSteps)

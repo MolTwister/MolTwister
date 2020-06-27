@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <cstdarg>
 
+BEGIN_CUDA_COMPATIBLE()
+
 FILE* COut::m_pOutFile = NULL;
 
 void COut::Printf(const char* format, ...)
@@ -25,3 +27,5 @@ void COut::SetOutputFile(FILE* pOutFile)
     if(!pOutFile) printf("Warning! Could not open output file!\r\n");
     m_pOutFile = pOutFile;
 }
+
+END_CUDA_COMPATIBLE()

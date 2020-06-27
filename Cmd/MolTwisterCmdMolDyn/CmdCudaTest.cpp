@@ -1,6 +1,6 @@
 #include "CmdCudaTest.h"
 #include "../../Utilities/ASCIIUtility.h"
-#include "CudaTests/CudaTests_cuda.h"
+#include "CudaTests/CudaTests.h"
 
 std::string CCmdCudaTest::getCmd()
 {

@@ -362,6 +362,29 @@ if(${INCLUDE_CUDA_COMMANDS})
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.cpp
         )
 
+    message(STATUS "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    file(GLOB CPP_FILES ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
+    foreach(file ${CPP_FILES})
+        message(STATUS ${file})
+        file(READ ${file} FILE_CONTENTS)
+        string(FIND "${FILE_CONTENTS}" "BEGIN_CUDA_COMPATIBLE()" IS_CUDA_COMPATIBLE)
+        if(NOT ${IS_CUDA_COMPATIBLE} EQUAL -1)
+            string(REPLACE ".cpp" "_auto_cuda.cu" CUDA_FILE_NAME "${file}")
+            message(STATUS "Found BEGIN_CUDA_COMPATIBLE() macro. Hence, the " ${CUDA_FILE_NAME} " file will be created")
+            configure_file(${file} ${CUDA_FILE_NAME})
+        endif()
+    endforeach(file ${CPP_FILES})
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.cpp ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties.cpp ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Harm.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Harm_auto_cuda.cu)
+#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.cpp ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState_auto_cuda.cu)
+
     configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu)
     configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect_auto_cuda.cu)
     configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce_auto_cuda.cu)
@@ -376,6 +399,25 @@ if(${INCLUDE_CUDA_COMMANDS})
 endif()
 
 set(MT_CUDALIB_SOURCE_FILES
+#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
+#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.h
+#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools.h
+#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.h
+#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties.h
+#    ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle.h
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList.h
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2.h
+#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2_auto_cuda.cu
+#    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.h
+#    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState_auto_cuda.cu
+
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu

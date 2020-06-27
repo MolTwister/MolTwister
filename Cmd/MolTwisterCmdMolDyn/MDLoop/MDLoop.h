@@ -42,16 +42,16 @@ public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
     
 private:
-    void CalcInitialForces(CSimulationBox& SimBox, std::vector<CMDForces>& F);
+    void CalcInitialForces(CSimulationBox& SimBox, mthost_vector<CMDForces>& F);
     void NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox);
     void PrintHeading(CSimulationBox& SimBox);
-    void AppendToXYZFile(std::vector<CParticle3D>& aParticles, int t);
+    void AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t);
     void ResizeDistrArrays(std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr, int iSize, int iNArrays);
     void AppendToMomentumDistribution(CSimulationBox& SimBox, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void AppendToVolumeDistribution(double V, std::vector<int>& aVolumeDistr, double dMaxV);
     void StoreMomentumDistribution(std::string szFileName, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void StoreVolumeDistribution(std::string szFileName, std::vector<int>& aVolumeDistr, double dMaxV);
-    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const std::vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
+    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const mthost_vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     void FinalizeOutput(CSimulationBox& SimBox, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     
 private:
