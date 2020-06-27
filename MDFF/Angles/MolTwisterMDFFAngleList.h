@@ -5,6 +5,8 @@
 #include "MolTwisterMDFFAngle_Harm.h"
 #include "MolTwisterMDFFAngle_Class2.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFAngleList : public CMDFFList<CMDFFAngle>
 {
 public:
@@ -26,3 +28,5 @@ private:
     std::vector<std::shared_ptr<CMDFFAngle>> angles_;
     std::vector<std::shared_ptr<CMDFFAngle>> registeredForceFieldTypes_;
 };
+
+END_CUDA_COMPATIBLE()

@@ -3,6 +3,8 @@
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 std::pair<bool, size_t> CMDFFNonBonded_LJ::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;
@@ -120,3 +122,5 @@ void CMDFFNonBonded_LJ::calcForces(C3DVector r1, C3DVector r2, C3DVector& f1, C3
     f2 = F;
     f1 = F*(-1.0);
 }
+
+END_CUDA_COMPATIBLE()

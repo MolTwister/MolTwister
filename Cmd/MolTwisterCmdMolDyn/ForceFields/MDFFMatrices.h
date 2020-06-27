@@ -1,10 +1,12 @@
 #pragma once
 #include "../Integrators/Particle3D.h"
 #include "../../Tools/MolTwisterStateTools.h"
-#include "../Common/AlgorithmDefs.h"
+#include "../../../Utilities/CUDAGeneralizations.h"
 
 #define MAX_FF_PER_ATOMIC_SET 5
 #define NUM_POINTS_IN_PROFILES 100
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMDFFMatrices
 {
@@ -108,27 +110,27 @@ public:
 
 private:
     void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
-                           mtdevice_vector<CAtom>& atomList,
-                           mtdevice_vector<CPoint>& nonBondFFMatrix, mtdevice_vector<size_t>& nonBondFFMatrixFFCount,
-                           mtdevice_vector<CBond>& bondList, mtdevice_vector<CPoint>& bondFFList,
-                           mtdevice_vector<CAngle>& angleList, mtdevice_vector<CPoint>& angleFFList,
-                           mtdevice_vector<CDihedral>& dihedralList, mtdevice_vector<CPoint>& dihedralFFList,
+                           mtdevice_vector<CAtom>& devAtomList,
+                           mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
+                           mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
+                           mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
+                           mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
                            int& Natoms,
                            int& NatomTypes,
                            int& Nbonds) const;
-    void prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& lastErrorList) const;
+    void prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const;
 
 public:
-    mtdevice_vector<CAtom> atomList_;
-    mtdevice_vector<CPoint> nonBondFFMatrix_;
-    mtdevice_vector<size_t> nonBondFFMatrixFFCount_;
-    mtdevice_vector<CBond> bondList_;
-    mtdevice_vector<CPoint> bondFFList_;
-    mtdevice_vector<CAngle> angleList_;
-    mtdevice_vector<CPoint> angleFFList_;
-    mtdevice_vector<CDihedral> dihedralList_;
-    mtdevice_vector<CPoint> dihedralFFList_;
-    mtdevice_vector<CLastError> lastErrorList_;
+    mtdevice_vector<CAtom> devAtomList_;
+    mtdevice_vector<CPoint> devNonBondFFMatrix_;
+    mtdevice_vector<size_t> devNonBondFFMatrixFFCount_;
+    mtdevice_vector<CBond> devBondList_;
+    mtdevice_vector<CPoint> devBondFFList_;
+    mtdevice_vector<CAngle> devAngleList_;
+    mtdevice_vector<CPoint> devAngleFFList_;
+    mtdevice_vector<CDihedral> devDihedralList_;
+    mtdevice_vector<CPoint> devDihedralFFList_;
+    mtdevice_vector<CLastError> devLastErrorList_;
 
 private:
     int Natoms_;
@@ -136,3 +138,5 @@ private:
     int NatomTypes_;
     CMolTwisterState* state_;
 };
+
+END_CUDA_COMPATIBLE()

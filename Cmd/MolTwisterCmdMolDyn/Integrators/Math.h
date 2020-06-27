@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "../../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
+
 class CMt
 {
 public:
@@ -11,3 +15,5 @@ public:
 private:
     static double a[6];
 };
+
+END_CUDA_COMPATIBLE()

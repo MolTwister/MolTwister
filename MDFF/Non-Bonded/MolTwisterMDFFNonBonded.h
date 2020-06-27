@@ -6,6 +6,9 @@
 #include <vector>
 #include <memory>
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Note
@@ -51,3 +54,5 @@ protected:
     std::string atomNamesToBond_[2];
     std::string comments_;
 };
+
+END_CUDA_COMPATIBLE()

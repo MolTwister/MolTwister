@@ -1,6 +1,8 @@
 #pragma once
 #include "MolTwisterMDFFDih.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFDih_Harm : public CMDFFDih
 {
 public:
@@ -32,3 +34,5 @@ private:
     int D_;
     int N_;
 };
+
+END_CUDA_COMPATIBLE()

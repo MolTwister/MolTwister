@@ -1,5 +1,7 @@
 #include "MolTwisterMDFFNonBondedList.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CMDFFNonBondedList::CMDFFNonBondedList()
 {
     registeredForceFieldTypes_.emplace_back(std::make_shared<CMDFFNonBonded_LJ>());
@@ -45,3 +47,5 @@ std::shared_ptr<std::vector<int>> CMDFFNonBondedList::indexFromNames(std::string
 
     return indices;
 }
+
+END_CUDA_COMPATIBLE()

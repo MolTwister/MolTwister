@@ -2,9 +2,12 @@
 #include "ToolsBase.h"
 #include "../../Utilities/3DRect.h"
 #include "../../Utilities/3DVector.h"
+#include "../../Utilities/CUDAGeneralizations.h"
 #include <vector>
 #include <string>
 #include <tuple>
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMolTwisterStateTools : public CToolsBase
 {
@@ -50,3 +53,5 @@ public:
     double measureCoulombPotential(C3DVector at, const std::vector<std::shared_ptr<CAtom>>* atoms, int frame) const;
     double measureCoulombPotential(C3DVector at, int frame=-1) const;
 };
+
+END_CUDA_COMPATIBLE()

@@ -1,7 +1,7 @@
 #include "../../../Cmd/Tools/CudaDeviceList.h"
 #include "../../../Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h"
-#include "../Common/AlgorithmDefs.h"
-#include "CudaTests_cuda.h"
+#include "../../../Utilities/CUDAGeneralizations.h"
+#include "CudaTests.h"
 
 #define ARRAY_SIZE 10
 #define SIZE_M 5
@@ -96,7 +96,7 @@ private:
     int columnsinfo2DMatrix_;
 };
 
-void CCudaTest_cuda::addBIntoA(int* A, int* B)
+void CCudaTest::addBIntoA(int* A, int* B)
 {
     std::pair<long, long> NBlocks = CCudaDeviceList().CalcNumGPUBlocks1D(ARRAY_SIZE);
 
@@ -122,7 +122,7 @@ void CCudaTest_cuda::addBIntoA(int* A, int* B)
     cudaFree(devB);
 }
 
-void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
+void CCudaTest::testModifyAtomList(FILE* stdOut)
 {
     // Create some common information, organized into a MxN array, to be shared inside the thrust::transform() call
     mthost_vector<CInfo_cuda> hostInfo2DMatrix(SIZE_M * SIZE_N);
@@ -185,7 +185,7 @@ void CCudaTest_cuda::testModifyAtomList(FILE* stdOut)
     mtcheck_env();
 }
 
-int CCudaTest_cuda::getArraySize()
+int CCudaTest::getArraySize()
 {
     return ARRAY_SIZE;
 }

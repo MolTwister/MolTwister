@@ -3,6 +3,7 @@
 #include <climits>
 #include "MolTwisterState.h"
 
+BEGIN_CUDA_COMPATIBLE()
 
 CMolTwisterState::CMolTwisterState()
 {
@@ -469,3 +470,5 @@ int CMolTwisterState::getAtomIndex(const CAtom* atom) const
     
     return -1;
 }
+
+END_CUDA_COMPATIBLE()

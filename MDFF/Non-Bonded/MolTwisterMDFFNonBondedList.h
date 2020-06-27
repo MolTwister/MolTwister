@@ -7,6 +7,8 @@
 #include "MolTwisterMDFFNonBonded_Buck.h"
 #include "MolTwisterMDFFNonBonded_LJBuck.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFNonBondedList : public CMDFFList<CMDFFNonBonded>
 {
 public:
@@ -28,3 +30,5 @@ private:
     std::vector<std::shared_ptr<CMDFFNonBonded>> nonBonded_;
     std::vector<std::shared_ptr<CMDFFNonBonded>> registeredForceFieldTypes_;
 };
+
+END_CUDA_COMPATIBLE()

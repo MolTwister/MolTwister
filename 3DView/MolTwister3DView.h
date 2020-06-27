@@ -1,11 +1,14 @@
 #pragma once
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
+#include "Utilities/CUDAGeneralizations.h"
 #include "DefaultAtomicProperties.h"
 #include "ExpLookup.h"
 #include "MolTwisterAtom.h"
 #include "MolTwisterGLObject.h"
 #include <memory>
+
+BEGIN_CUDA_COMPATIBLE()
 
 class C3DView
 {
@@ -141,3 +144,5 @@ private:
     static int numAtomsBeforeNoDraw_;
     static bool fogEnabled_;
 };
+
+END_CUDA_COMPATIBLE()

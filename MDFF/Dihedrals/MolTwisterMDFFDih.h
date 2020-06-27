@@ -6,6 +6,9 @@
 #include <vector>
 #include <memory>
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMDFFDih
 {
@@ -54,3 +57,5 @@ private:
     EDetCrit bondDetectionCriteria_;
     double detCritR0_;
 };
+
+END_CUDA_COMPATIBLE()

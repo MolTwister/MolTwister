@@ -1,8 +1,9 @@
 #pragma once
 #include <stdio.h>
 #include <vector>
+#include "../../../Utilities/CUDAGeneralizations.h"
 
-using namespace std;
+BEGIN_CUDA_COMPATIBLE()
 
 class CFct
 {
@@ -10,7 +11,7 @@ public:
     CFct() {}
     
 public:
-    virtual double G(int j, vector<double>& p_eta, vector<double>& Q, double beta) = 0;
+    virtual double G(int j, std::vector<double>& p_eta, std::vector<double>& Q, double beta) = 0;
     virtual void ScaleMomentum(double coeff) = 0;
 };
 
@@ -33,11 +34,13 @@ public:
     int n;                                          // RESPA steps in Nose-Hoover part
     int M;                                          // Nose-Hoover chain length
     double tau;                                     // Thermostat relaxation time in reduced units
-    vector<double> eta;                             // Nose-Hoover position coordinates
-    vector<double> p_eta;                           // Nose-Hoover momentum
-    vector<double> Q;                               // Nose-Hoover Q for each chain entry
+    std::vector<double> eta;                        // Nose-Hoover position coordinates
+    std::vector<double> p_eta;                      // Nose-Hoover momentum
+    std::vector<double> Q;                          // Nose-Hoover Q for each chain entry
     
 private:
     int n_sy;
     double w[3];
 };
+
+END_CUDA_COMPATIBLE()

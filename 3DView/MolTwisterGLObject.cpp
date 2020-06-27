@@ -1,6 +1,8 @@
 #include <iostream>
 #include "MolTwisterGLObject.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CGLObjectLine::CGLObjectLine(C3DVector p1, C3DVector p2, float r, float g, float b) : CGLObject()
 { 
     type_ = objLine;
@@ -24,3 +26,5 @@ CGLObjectLine::CGLObjectLine(const CGLObject& src) : CGLObject()
         *this = *p;
     }
 }
+
+END_CUDA_COMPATIBLE()

@@ -4,6 +4,8 @@
 #include "MolecularTools.h"
 #include <float.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 std::shared_ptr<std::vector<int>> CMolTwisterStateTools::getAtomsWithin(double x, double y, double z, double r, C3DRect pbc, const std::vector<CCellListEntry> &atomCellList, int numPBCBisections) const
 {
     int cellIndex, numAtoms;
@@ -1416,3 +1418,5 @@ double CMolTwisterStateTools::measureCoulombPotential(C3DVector at, int frame) c
 
     return measureCoulombPotential(at, &state_->atoms_, frame);
 }
+
+END_CUDA_COMPATIBLE()

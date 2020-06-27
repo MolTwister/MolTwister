@@ -1,7 +1,8 @@
-#ifndef ThesisMDTests_Printf_h
-#define ThesisMDTests_Printf_h
-
+#pragma once
 #include <stdio.h>
+#include "../../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class COut
 {
@@ -14,4 +15,4 @@ private:
     static FILE* m_pOutFile;
 };
 
-#endif
+END_CUDA_COMPATIBLE()

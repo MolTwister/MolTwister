@@ -5,6 +5,8 @@
 #include "MolTwisterMDFFDih_Fourier4t.h"
 #include "MolTwisterMDFFDih_Harm.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFDihList : public CMDFFList<CMDFFDih>
 {
 public:
@@ -26,3 +28,5 @@ private:
     std::vector<std::shared_ptr<CMDFFDih>> dihedrals_;
     std::vector<std::shared_ptr<CMDFFDih>> registeredForceFieldTypes_;
 };
+
+END_CUDA_COMPATIBLE()

@@ -2,6 +2,8 @@
 #include "Utilities/ASCIIUtility.h"
 #include <float.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 void CMDFFBond::parse(std::vector<std::string> arguments)
 {
     size_t nextArg = onParse(arguments);
@@ -138,3 +140,5 @@ C3DVector CMDFFBond::calcBondForceCoeffs12(C3DVector r1, C3DVector r2) const
 
     return (r12 * RInv);
 }
+
+END_CUDA_COMPATIBLE()

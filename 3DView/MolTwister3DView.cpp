@@ -11,6 +11,8 @@
 #include "Cmd/Tools/MolTwisterStateTools.h"
 #include "MolTwister3DView.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 int C3DView::updateRequested_ = 0;
 int C3DView::fullscreenRequested_ = 0;
 bool C3DView::requestQuit_ = false;
@@ -1311,3 +1313,5 @@ void C3DView::pickAtoms(int x, int y)
     // Redisplay with changes
     glutPostRedisplay();
 }
+
+END_CUDA_COMPATIBLE()

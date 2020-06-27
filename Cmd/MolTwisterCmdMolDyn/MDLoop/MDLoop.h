@@ -1,10 +1,11 @@
-#ifndef __ThesisMDTests__MDLoop__
-#define __ThesisMDTests__MDLoop__
-
-#include "../SimulationBox/SimulationBox.h"
-#include "../Integrators/VelVerlet.h"
+#pragma once
 #include <string>
 #include <vector>
+#include "../SimulationBox/SimulationBox.h"
+#include "../Integrators/VelVerlet.h"
+#include "../../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CFctT : public CFct
 {
@@ -41,20 +42,20 @@ public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
     
 private:
-    void CalcInitialForces(CSimulationBox& SimBox, vector<CMDForces>& F);
+    void CalcInitialForces(CSimulationBox& SimBox, std::vector<CMDForces>& F);
     void NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox);
     void PrintHeading(CSimulationBox& SimBox);
-    void AppendToXYZFile(vector<CParticle3D>& aParticles, int t);
-    void ResizeDistrArrays(vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr, int iSize, int iNArrays);
+    void AppendToXYZFile(std::vector<CParticle3D>& aParticles, int t);
+    void ResizeDistrArrays(std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr, int iSize, int iNArrays);
     void AppendToMomentumDistribution(CSimulationBox& SimBox, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
-    void AppendToVolumeDistribution(double V, vector<int>& aVolumeDistr, double dMaxV);
+    void AppendToVolumeDistribution(double V, std::vector<int>& aVolumeDistr, double dMaxV);
     void StoreMomentumDistribution(std::string szFileName, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void StoreVolumeDistribution(std::string szFileName, std::vector<int>& aVolumeDistr, double dMaxV);
-    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const vector<CMDForces>& F, vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
+    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const std::vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     void FinalizeOutput(CSimulationBox& SimBox, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     
 private:
     double m_dMaxP;
 };
 
-#endif
+END_CUDA_COMPATIBLE()

@@ -1,6 +1,8 @@
 #pragma once
 #include "MolTwisterMDFFBond.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFBond_LJC : public CMDFFBond
 {
 public:
@@ -27,3 +29,5 @@ private:
     double sigma_;
     double scale_;
 };
+
+END_CUDA_COMPATIBLE()

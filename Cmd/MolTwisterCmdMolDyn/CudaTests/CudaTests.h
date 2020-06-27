@@ -1,6 +1,7 @@
 #pragma once
+#include <stdio.h>
 
-class CCudaTest_cuda
+class CCudaTest
 {
 public:
     static void addBIntoA(int* A, int* B);

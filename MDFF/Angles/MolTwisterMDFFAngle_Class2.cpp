@@ -2,6 +2,8 @@
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 size_t CMDFFAngle_Class2::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;
@@ -228,3 +230,5 @@ void CMDFFAngle_Class2::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3D
     calcForcesMix(r1, r2, r3, Eba_.N1_, Eba_.N2_, Eba_.r1_, Eba_.r2_, Ea_.theta0_, F1, F2, F3);
     f1+= F1; f2+= F2; f3+= F3;
 }
+
+END_CUDA_COMPATIBLE()

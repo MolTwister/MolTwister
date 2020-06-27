@@ -1,11 +1,12 @@
-#ifndef __ThesisMDTests__Particle3D__
-#define __ThesisMDTests__Particle3D__
-
+#pragma once
 #include "../../../Utilities/3DVector.h"
+#include "../../../Utilities/CUDAGeneralizations.h"
 #include <vector>
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CParticle3D
 {
@@ -18,5 +19,4 @@ public:
     C3DVector p;
 };
 
-
-#endif
+END_CUDA_COMPATIBLE()

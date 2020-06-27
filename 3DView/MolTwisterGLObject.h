@@ -1,5 +1,8 @@
 #pragma once
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CGLObject
 {
@@ -28,3 +31,5 @@ public:
     C3DVector p2_;
     float color_[3];
 };
+
+END_CUDA_COMPATIBLE()

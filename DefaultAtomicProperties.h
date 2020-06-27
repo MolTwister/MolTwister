@@ -3,6 +3,9 @@
 #include <string.h>
 #include <string>
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CDefaultAtomicProperties
 {
@@ -37,3 +40,5 @@ private:
 private:
     std::vector<CAtomicProperty> atomicProperties_;
 };
+
+END_CUDA_COMPATIBLE()

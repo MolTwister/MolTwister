@@ -13,8 +13,11 @@
 #include "MDFF/Bonds/MolTwisterMDFFBondList.h"
 #include "MDFF/Angles/MolTwisterMDFFAngleList.h"
 #include "MDFF/Dihedrals/MolTwisterMDFFDihList.h"
+#include "Utilities/CUDAGeneralizations.h"
 
 #define MOLTWISTER_VER "1.4.0"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMolTwisterState
 {
@@ -69,3 +72,5 @@ public:
     C3DView* view3D_;
     int currentFrame_;
 };
+
+END_CUDA_COMPATIBLE()

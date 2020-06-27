@@ -12,6 +12,9 @@
 
     #define mtcheck_env() printf("\tRunning as CU code...\r\n");
 
+    #define BEGIN_CUDA_COMPATIBLE() namespace mtdev {
+    #define END_CUDA_COMPATIBLE() }
+
     #define HOSTDEV_CALLABLE __host__ __device__
     #define HOST_CALLABLE __host__
     #define DEV_CALLABLE __device__
@@ -26,6 +29,9 @@
     template<class T> T* mtraw_pointer_cast(const T* ptr) { return (T*)ptr; }
 
     #define mtcheck_env() printf("\tRunning as CPP code...\r\n");
+
+    #define BEGIN_CUDA_COMPATIBLE()
+    #define END_CUDA_COMPATIBLE()
 
     #define HOSTDEV_CALLABLE
     #define HOST_CALLABLE

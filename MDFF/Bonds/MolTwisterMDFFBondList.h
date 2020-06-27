@@ -6,6 +6,8 @@
 #include "MolTwisterMDFFBond_Morse.h"
 #include "MolTwisterMDFFBond_LJC.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFBondList : public CMDFFList<CMDFFBond>
 {
 public:
@@ -27,3 +29,5 @@ private:
     std::vector<std::shared_ptr<CMDFFBond>> bonds_;
     std::vector<std::shared_ptr<CMDFFBond>> registeredForceFieldTypes_;
 };
+
+END_CUDA_COMPATIBLE()

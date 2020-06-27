@@ -47,6 +47,7 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.cpp
 
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.h
@@ -327,7 +328,6 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.cpp
 
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Common/AlgorithmDefs.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.h
@@ -362,16 +362,47 @@ if(${INCLUDE_CUDA_COMMANDS})
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.cpp
         )
 
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.h ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.h)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf_auto_cuda.cu)
+    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox_auto_cuda.cu)
 endif()
 
 set(MT_CUDALIB_SOURCE_FILES
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Common/AlgorithmDefs.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests_cuda.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.h
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.h
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDForces.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox_auto_cuda.cu
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.cu
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.cu
     )

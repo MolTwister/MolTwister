@@ -1,5 +1,8 @@
 #pragma once
 #include "MolTwisterState.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CToolsBase
 {
@@ -11,3 +14,5 @@ protected:
     CMolTwisterState* state_;
     FILE* stdOut_;
 };
+
+END_CUDA_COMPATIBLE()

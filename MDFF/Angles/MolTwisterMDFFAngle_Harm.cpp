@@ -4,6 +4,8 @@
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 size_t CMDFFAngle_Harm::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;
@@ -88,3 +90,5 @@ void CMDFFAngle_Harm::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3DVe
     f2 = dTheta_dr2*dU_dTheta;
     f1 = dTheta_dr1*dU_dTheta;
 }
+
+END_CUDA_COMPATIBLE()

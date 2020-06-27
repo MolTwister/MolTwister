@@ -1,6 +1,8 @@
 #pragma once
 #include "MolTwisterMDFFNonBonded.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFNonBonded_Buck : public CMDFFNonBonded
 {
 public:
@@ -32,3 +34,5 @@ private:
     double rho_;
     double C_;
 };
+
+END_CUDA_COMPATIBLE()

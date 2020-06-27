@@ -3,6 +3,8 @@
 #include <math.h>
 #include <float.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 void CMDFFAngle::parse(std::vector<std::string> arguments)
 {    
     size_t nextArg = onParse(arguments);
@@ -205,3 +207,5 @@ std::vector<std::pair<float, float>> CMDFFAngle::calc1DPotentialProfile(float th
 
     return profile;
 }
+
+END_CUDA_COMPATIBLE()

@@ -6,6 +6,9 @@
 #include "../Integrators/NHChain.h"
 #include "../Integrators/VelVerlet.h"
 #include "../../../MolTwisterState.h"
+#include "../../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CSimulationBox
 {
@@ -19,17 +22,17 @@ public:
     void InitSystem(int iM);
     void PBCWrap();
     double CalcTemp();
-    double CalcPress(const vector<CMDForces>& F) const;
+    double CalcPress(const std::vector<CMDForces>& F) const;
     double CalcV() { return VelVerlet.GetV(Lmax, bNPTEnsemble); }
 
     void NHTPropagator(CFct& Fct)
         { NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
         { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
-    void VelVerPropagator(std::vector<CMDForces>& F)
+    void VelVerPropagator(mthost_vector<CMDForces>& F)
         { VelVerlet.Propagator(N, dim, dt, Lmax, aParticles, F, bNPTEnsemble); }
-    std::vector<CMDForces> CalcParticleForces()
-        { return VelVerlet.CalcParticleForces(N, dim, Lmax, Lmax, Lmax, aParticles); }
+    mthost_vector<CMDForces> CalcParticleForces()
+        { return VelVerlet.CalcParticleForces(dim, Lmax, Lmax, Lmax, aParticles); }
     
 private:
     void ResizeArrays();
@@ -39,7 +42,7 @@ private:
     void PBCAdd(double& pos, double L, double Lm);
 
 public:
-    vector<CParticle3D> aParticles;                 // Particle positions, velocities, masses etc.
+    mthost_vector<CParticle3D> aParticles;          // Particle positions, velocities, masses etc.
     CNHChain NH_T;                                  // Nose-Hoover chain propagator temperature
     CNHChain NH_P;                                  // Nose-Hoover chain propagator pressure
     CVelVerlet VelVerlet;                           // Velocity verlet propagator
@@ -53,5 +56,7 @@ public:
 private:
     CMolTwisterState* state_;
 };
+
+END_CUDA_COMPATIBLE()
 
 #endif

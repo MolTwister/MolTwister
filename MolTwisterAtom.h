@@ -5,6 +5,9 @@
 #include <memory>
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CAtom
 {
@@ -92,3 +95,5 @@ private:
     bool isSelected_;
     std::vector<C1to4Conn> listOf1to4Connections_;
 };
+
+END_CUDA_COMPATIBLE()

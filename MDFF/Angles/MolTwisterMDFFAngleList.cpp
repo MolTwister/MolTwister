@@ -1,5 +1,7 @@
 #include "MolTwisterMDFFAngleList.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CMDFFAngleList::CMDFFAngleList()
 {
     registeredForceFieldTypes_.emplace_back(std::make_shared<CMDFFAngle_Harm>());
@@ -20,7 +22,7 @@ std::shared_ptr<std::vector<int>> CMDFFAngleList::indexFromNames(std::string aAt
 {
     auto indices = std::make_shared<std::vector<int>>();
 
-    for(int i=0; i<angles_.size(); i++)
+    for(int i=0; i<(int)angles_.size(); i++)
     {
         if(aAtom1 == angles_[i]->getAtomInBond(0))
         {
@@ -52,3 +54,5 @@ std::shared_ptr<std::vector<int>> CMDFFAngleList::indexFromNames(std::string aAt
 
     return indices;
 }
+
+END_CUDA_COMPATIBLE()

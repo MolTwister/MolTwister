@@ -1,5 +1,7 @@
 #include "MolTwisterMDFFDihList.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CMDFFDihList::CMDFFDihList()
 {
     registeredForceFieldTypes_.emplace_back(std::make_shared<CMDFFDih_Fourier4t>());
@@ -20,7 +22,7 @@ std::shared_ptr<std::vector<int>> CMDFFDihList::indexFromNames(std::string atom1
 {
     auto indices = std::make_shared<std::vector<int>>();
     
-    for(int i=0; i<dihedrals_.size(); i++)
+    for(int i=0; i<(int)dihedrals_.size(); i++)
     {
         if(atom1 == dihedrals_[i]->getAtomInBond(0))
         {
@@ -55,3 +57,5 @@ std::shared_ptr<std::vector<int>> CMDFFDihList::indexFromNames(std::string atom1
 
     return indices;
 }
+
+END_CUDA_COMPATIBLE()

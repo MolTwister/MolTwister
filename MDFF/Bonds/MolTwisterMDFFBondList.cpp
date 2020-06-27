@@ -1,5 +1,7 @@
 #include "MolTwisterMDFFBondList.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CMDFFBondList::CMDFFBondList()
 {
     registeredForceFieldTypes_.emplace_back(std::make_shared<CMDFFBond_Harm>());
@@ -21,7 +23,7 @@ std::shared_ptr<std::vector<int>> CMDFFBondList::indexFromNames(std::string atom
 {
     auto indices = std::make_shared<std::vector<int>>();
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         if(atom1 == bonds_[i]->getAtomInBond(0))
         {
@@ -44,3 +46,5 @@ std::shared_ptr<std::vector<int>> CMDFFBondList::indexFromNames(std::string atom
 
     return indices;
 }
+
+END_CUDA_COMPATIBLE()

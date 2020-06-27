@@ -1,6 +1,8 @@
 #pragma once
 #include "MolTwisterMDFFBond.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 class CMDFFBond_Morse : public CMDFFBond
 {
 public:
@@ -31,3 +33,5 @@ private:
     double alpha_;
     double r0_;
 };
+
+END_CUDA_COMPATIBLE()

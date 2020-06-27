@@ -3,6 +3,8 @@
 #include "Utilities/3DRect.h"
 #include "MolTwisterAtom.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 CAtom::CAtom()
 {
     atomIndex_ = -1;
@@ -71,7 +73,7 @@ int CAtom::addFrame()
 
 int CAtom::deleteFrame(int frame)
 {
-    if(frame < r_.size())
+    if(frame < (int)r_.size())
         r_.erase(r_.begin() + frame);
 
     return (int)r_.size();
@@ -86,7 +88,7 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms() const
 
     visitedAtoms.emplace_back(this);
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         index = bonds_[i]->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
         if(index > -1)
@@ -101,16 +103,16 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms() const
 void CAtom::searchForLeafAtomsConnToBond(int bondDest, std::vector<CAtom*>& leafAtoms) const
 {
     CAtom* bondDestPtr = nullptr;
-    if((bondDest >= 0) && (bondDest < bonds_.size()))
+    if((bondDest >= 0) && (bondDest < (int)bonds_.size()))
         bondDestPtr = getBondDest(bondDest);
 
     leafAtoms.clear();
 
     bool alreadyVisited;
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<leafAtoms.size(); j++)
+        for(int j=0; j<(int)leafAtoms.size(); j++)
         {
             if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
         }
@@ -136,10 +138,10 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms(std::vector<const CAtom*>& vis
         return -1;
     }
 
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<visitedAtoms.size(); j++)
+        for(int j=0; j<(int)visitedAtoms.size(); j++)
         {
             if(visitedAtoms[j] == bonds_[i]) alreadyVisited = true;
         }
@@ -164,10 +166,10 @@ void CAtom::searchForLeafAtomsConnToBond(const CAtom* bondAt1, const CAtom* bond
 {
     bool alreadyVisited;
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<leafAtoms.size(); j++)
+        for(int j=0; j<(int)leafAtoms.size(); j++)
         {
             if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
         }
@@ -195,7 +197,7 @@ int CAtom::deleteBondTo(CAtom* atom)
     if(bonds_.size() < 1) return -1;
     
     // Find element index to erase
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         if(bonds_[i] == atom)
         {
@@ -220,7 +222,7 @@ void CAtom::deleteAllBonds()
 
 int CAtom::getBondDestIndex(const CAtom* atom) const
 {
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         if(bonds_[i] == atom) return i;
     }
@@ -274,7 +276,7 @@ void CAtom::buildListOf1to4Connections()
     // make a note of the atomic pointer and how many bond lengths
     // from this atom it is located.
     listOf1to4Connections_.clear();
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         atom1Ptr = bonds_[i];
         if(!atom1Ptr) continue;
@@ -282,7 +284,7 @@ void CAtom::buildListOf1to4Connections()
         connect.numBondsAway_ = 1;
         listOf1to4Connections_.emplace_back(connect);
 
-        for(int j=0; j<atom1Ptr->bonds_.size(); j++)
+        for(int j=0; j<(int)atom1Ptr->bonds_.size(); j++)
         {
             atom2Ptr = atom1Ptr->bonds_[j];
             if(!atom2Ptr || (atom2Ptr == this) || (atom2Ptr == atom1Ptr)) continue;
@@ -290,7 +292,7 @@ void CAtom::buildListOf1to4Connections()
             connect.numBondsAway_ = 2;
             listOf1to4Connections_.emplace_back(connect);
 
-            for(int k=0; k<atom2Ptr->bonds_.size(); k++)
+            for(int k=0; k<(int)atom2Ptr->bonds_.size(); k++)
             {
                 atom3Ptr = atom2Ptr->bonds_[k];
                 if(!atom3Ptr || (atom3Ptr == this) || (atom3Ptr == atom1Ptr) || (atom3Ptr == atom2Ptr)) continue;
@@ -298,7 +300,7 @@ void CAtom::buildListOf1to4Connections()
                 connect.numBondsAway_ = 3;
                 listOf1to4Connections_.emplace_back(connect);
 
-                for(int l=0; l<atom3Ptr->bonds_.size(); l++)
+                for(int l=0; l<(int)atom3Ptr->bonds_.size(); l++)
                 {
                     atom4Ptr = atom3Ptr->bonds_[l];
                     if(!atom4Ptr || (atom4Ptr == this) || (atom4Ptr == atom1Ptr) || (atom4Ptr == atom2Ptr) || (atom4Ptr == atom3Ptr)) continue;
@@ -313,7 +315,7 @@ void CAtom::buildListOf1to4Connections()
 
 int CAtom::getBondSepTo(const CAtom* atom) const
 {
-    for(int i=0; i<listOf1to4Connections_.size(); i++)
+    for(int i=0; i<(int)listOf1to4Connections_.size(); i++)
     {
         if(listOf1to4Connections_[i].atom_ == atom)
             return listOf1to4Connections_[i].numBondsAway_;
@@ -334,14 +336,14 @@ void CAtom::copy(const CAtom& src)
     ignoreBondFrom_ = src.ignoreBondFrom_;
 
     bonds_.clear();
-    for(int i=0; i<src.bonds_.size(); i++) bonds_.emplace_back(src.bonds_[i]);
+    for(int i=0; i<(int)src.bonds_.size(); i++) bonds_.emplace_back(src.bonds_[i]);
 
     atomIndex_ = src.atomIndex_;
     molIndex_ = src.molIndex_;
     isSelected_ = src.isSelected_;
 
     listOf1to4Connections_.clear();
-    for(int i=0; i<listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
+    for(int i=0; i<(int)listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
 }
 
 void CAtom::copyIntrinsicAtomProperties(const CAtom &src)
@@ -359,7 +361,7 @@ int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double
     double dist2, longestDist2 = 0.0;
     int indexLongestBond = -1;
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         dist2 = getDistanceTo2(bonds_[i], frame);
         if(dist2 > longestDist2)
@@ -394,7 +396,7 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsAtPBCBdry1, std::vecto
     
     visitedAtoms.insert(std::pair<CAtom*, int>(this, 0));
     atomsAtPBCBdry[indexCurrBdry]->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
         if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
@@ -419,7 +421,7 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsAtPBCBdry[], std::map<
     
     if(distFromCaller > distPBC_2) switchBdry(currBdry);
     atomsAtPBCBdry[currBdry]->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
         if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
@@ -437,7 +439,7 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsInMolecule, int frame)
     visitedAtoms.insert(std::pair<CAtom*, int>(this, 0));
     atomsInMolecule.emplace_back(this);
 
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         bonds_[i]->findAtomsInMolecule(&atomsInMolecule, visitedAtoms, frame);
     }
@@ -451,8 +453,10 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsInMolecule, std::map<C
     if(ret.second == false) return;
 
     atomsInMolecule->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         bonds_[i]->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
     }
 }
+
+END_CUDA_COMPATIBLE()

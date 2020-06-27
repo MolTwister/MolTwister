@@ -3,6 +3,8 @@
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
 
+BEGIN_CUDA_COMPATIBLE()
+
 size_t CMDFFDih_Harm::onParse(std::vector<std::string> arguments)
 {    
     size_t arg = 0;
@@ -90,3 +92,5 @@ void CMDFFDih_Harm::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3DVect
     f3 = dPhi_dr3*dU_dPhi;
     f4 = dPhi_dr4*dU_dPhi;
 }
+
+END_CUDA_COMPATIBLE()
