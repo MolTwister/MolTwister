@@ -3,6 +3,9 @@
 #include <vector>
 #include <string>
 #include <map>
+#include "../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMolecularSystemTools : public CToolsBase
 {
@@ -20,3 +23,5 @@ public:
 private:
     void getMoleculeConnectedToIndex(int index, const std::vector<std::vector<int>>& bondDestIndices, std::vector<int>& molecule, std::map<int, int>& visitationTracker) const;
 };
+
+END_CUDA_COMPATIBLE()

@@ -1,5 +1,8 @@
 #pragma once
 #include "3DVector.h"
+#include "CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class C3DBasis
 {
@@ -15,3 +18,5 @@ public:
     C3DVector v_;
     C3DVector w_;
 };
+
+END_CUDA_COMPATIBLE()

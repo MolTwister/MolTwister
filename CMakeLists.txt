@@ -1,5 +1,52 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
+# ************************************************************************************
+# Function declataions
+# ************************************************************************************
+function(generate_auto_cuda_files FOLDER_TO_SEARCH GENERATED_LIST_OF_CU_MODULES)
+    message(STATUS " ")
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    message(STATUS " Automatic generation of CUDA files from CPP files containing the BEGIN_CUDA_COMPATIBLE() macro")
+    message(STATUS " Base folder for recursive CPP file search: " ${FOLDER_TO_SEARCH})
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+
+    list(APPEND LIST_OF_CU_MODULES ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h)
+
+    file(GLOB_RECURSE CPP_FILES ${FOLDER_TO_SEARCH}/*.cpp)
+    foreach(file ${CPP_FILES})
+        message(STATUS ${file})
+        file(READ ${file} FILE_CONTENTS)
+        string(FIND "${FILE_CONTENTS}" "BEGIN_CUDA_COMPATIBLE()" IS_CUDA_COMPATIBLE)
+        if(NOT ${IS_CUDA_COMPATIBLE} EQUAL -1)
+            string(REPLACE ".cpp" "_auto_cuda.cu" CUDA_FILE_NAME "${file}")
+            string(REPLACE ".cpp" ".h" HEADER_FILE_NAME "${file}")
+            message(STATUS "Found BEGIN_CUDA_COMPATIBLE() macro. Hence, the " ${CUDA_FILE_NAME} " file will be created")
+            message(STATUS "CUDA module (" ${HEADER_FILE_NAME} ", " ${CUDA_FILE_NAME} ") will be added to the build list for NVCC")
+            configure_file(${file} ${CUDA_FILE_NAME} COPYONLY)
+            list(APPEND LIST_OF_CU_MODULES ${HEADER_FILE_NAME})
+            list(APPEND LIST_OF_CU_MODULES ${CUDA_FILE_NAME})
+        endif()
+    endforeach(file ${CPP_FILES})
+
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    SET(${GENERATED_LIST_OF_CU_MODULES} ${LIST_OF_CU_MODULES} PARENT_SCOPE)
+endfunction(create_cuda_files)
+
+function(display_list_contents LIST_HEADER LIST_TO_TRAVERS)
+    message(STATUS " ")
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    message(STATUS " " ${LIST_HEADER})
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    set(_LIST_TO_TRAVERS ${LIST_TO_TRAVERS} ${ARGN})
+    foreach(item ${_LIST_TO_TRAVERS})
+        message(STATUS ${item})
+    endforeach()
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+endfunction()
+
+# ************************************************************************************
+# CMake main body
+# ************************************************************************************
 option(CUDA_DBG_INFO "Include CUDA debug info" ON)
 option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" ON)
 
@@ -355,101 +402,26 @@ set(MT_SOURCE_FILES
     )
 
 if(${INCLUDE_CUDA_COMMANDS})
-    set(MT_SOURCE_FILES_REQUIRING_CUDA
+    set(MT_CPP_SOURCE_FILES_REQUIRING_CUDA
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.cpp
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.h
         ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.cpp
         )
 
-    message(STATUS "<<<<<<<<<<<<<<<<<<<<<<<<<<<<< TEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    file(GLOB CPP_FILES ${CMAKE_CURRENT_LIST_DIR}/*.cpp)
-    foreach(file ${CPP_FILES})
-        message(STATUS ${file})
-        file(READ ${file} FILE_CONTENTS)
-        string(FIND "${FILE_CONTENTS}" "BEGIN_CUDA_COMPATIBLE()" IS_CUDA_COMPATIBLE)
-        if(NOT ${IS_CUDA_COMPATIBLE} EQUAL -1)
-            string(REPLACE ".cpp" "_auto_cuda.cu" CUDA_FILE_NAME "${file}")
-            message(STATUS "Found BEGIN_CUDA_COMPATIBLE() macro. Hence, the " ${CUDA_FILE_NAME} " file will be created")
-            configure_file(${file} ${CUDA_FILE_NAME})
-        endif()
-    endforeach(file ${CPP_FILES})
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.cpp ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties.cpp ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Harm.cpp ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Harm_auto_cuda.cu)
-#    configure_file(${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.cpp ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState_auto_cuda.cu)
+    generate_auto_cuda_files(${CMAKE_CURRENT_LIST_DIR} AUTO_GENERATED_LIST_OF_CU_MODULES)
+    set(MANUALLY_GENERATED_LIST_OF_CU_MODULES
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.cu
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.cu
+        )
 
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.cpp ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf_auto_cuda.cu)
-    configure_file(${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.cpp ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox_auto_cuda.cu)
+    set(MT_CUDALIB_SOURCE_FILES ${MANUALLY_GENERATED_LIST_OF_CU_MODULES} ${AUTO_GENERATED_LIST_OF_CU_MODULES})
+    display_list_contents("Modules that will be added to the NVCC CUDA build" ${MT_CUDALIB_SOURCE_FILES})
 endif()
 
-set(MT_CUDALIB_SOURCE_FILES
-#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
-#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.h
-#    ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools.h
-#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterStateTools_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.h
-#    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties.h
-#    ${CMAKE_CURRENT_LIST_DIR}/DefaultAtomicProperties_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle.h
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList.h
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngleList_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2.h
-#    ${CMAKE_CURRENT_LIST_DIR}/MDFF/Angles/MolTwisterMDFFAngle_Class2_auto_cuda.cu
-#    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.h
-#    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState_auto_cuda.cu
-
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.h
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.h
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDForces.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox_auto_cuda.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.cu
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.h
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.cu
-    )
-
-add_executable(MolTwister ${MT_SOURCE_FILES} ${MT_SOURCE_FILES_REQUIRING_CUDA})
+add_executable(MolTwister ${MT_SOURCE_FILES} ${MT_CPP_SOURCE_FILES_REQUIRING_CUDA})
 
 if(${INCLUDE_CUDA_COMMANDS})
     if(${CUDA_DBG_INFO})

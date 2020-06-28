@@ -3,6 +3,9 @@
 #include "../../MolTwisterAtom.h"
 #include "../../Utilities/3DRect.h"
 #include "../../Utilities/3DBasis.h"
+#include "../../Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMolecularTools : public CToolsBase
 {
@@ -20,3 +23,5 @@ public:
     static void modAngleTo(const CAtom* atom1, const CAtom* atom2, CAtom* atom3, double angle, int frame);
     static void modDihedralTo(const CAtom* atom1, const CAtom* atom2, const CAtom* atom3, CAtom* atom4, double angle, int frame);
 };
+
+END_CUDA_COMPATIBLE()

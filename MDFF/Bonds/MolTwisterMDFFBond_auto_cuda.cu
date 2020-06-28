@@ -1,22 +1,19 @@
-#include "MolTwisterMDFFNonBonded.h"
+#include "MolTwisterMDFFBond.h"
 #include "Utilities/ASCIIUtility.h"
 #include <float.h>
 
 BEGIN_CUDA_COMPATIBLE()
 
-bool CMDFFNonBonded::parse(std::vector<std::string> arguments)
+void CMDFFBond::parse(std::vector<std::string> arguments)
 {
-    std::pair<bool, size_t> nextArg = onParse(arguments);
-    if(!nextArg.first) return false;
-    comments_ = CASCIIUtility::argsToString(arguments, nextArg.second);
-
-    return true;
+    size_t nextArg = onParse(arguments);
+    comments_ = CASCIIUtility::argsToString(arguments, nextArg);
 }
 
-bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector& f1, C3DVector& f2, double error, int maxIter) const
+bool CMDFFBond::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector& f1, C3DVector& f2, double error, int maxIter) const
 {
     C3DVector deltaX, deltaY, deltaZ;
-    C3DVector dU_dr, dU_dr_prev, Diff;
+    C3DVector dU_dr, dU_dr_prev, diff;
     double dU, err2 = error*error;
     bool foundReliableResult = true;
     int i;
@@ -31,17 +28,17 @@ bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector
     {
         dU = calcPotential(r1+deltaX, r2) - calcPotential(r1, r2);
         dU_dr.x_ = dU / deltaX.x_;
-
+        
         dU = calcPotential(r1+deltaY, r2) - calcPotential(r1, r2);
         dU_dr.y_ = dU / deltaY.y_;
-
+        
         dU = calcPotential(r1+deltaZ, r2) - calcPotential(r1, r2);
         dU_dr.z_ = dU / deltaZ.z_;
         
         f1 = dU_dr;
-        Diff = dU_dr - dU_dr_prev;
+        diff = dU_dr - dU_dr_prev;
         dU_dr_prev = dU_dr;
-        if(Diff.norm2() < err2)
+        if(diff.norm2() < err2)
             break;
         
         deltaX*= 0.5;
@@ -51,7 +48,7 @@ bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector
     
     f1*= -1.0;
     if(i >= maxIter) foundReliableResult = false;
-
+    
     
     // Calculate F2
     dU_dr_prev = C3DVector(DBL_MAX, DBL_MAX, DBL_MAX);
@@ -70,9 +67,9 @@ bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector
         dU_dr.z_ = dU / deltaZ.z_;
         
         f2 = dU_dr;
-        Diff = dU_dr - dU_dr_prev;
+        diff = dU_dr - dU_dr_prev;
         dU_dr_prev = dU_dr;
-        if(Diff.norm2() < err2)
+        if(diff.norm2() < err2)
             break;
         
         deltaX*= 0.5;
@@ -82,16 +79,16 @@ bool CMDFFNonBonded::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector
     
     f2*= -1.0;
     if(i >= maxIter) foundReliableResult = false;
-
+    
     
     return foundReliableResult;
 }
 
-std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DForceProfile(float rStart, float rEnd, int points) const
+std::vector<std::pair<float, float>> CMDFFBond::calc1DForceProfile(float rStart, float rEnd, int points) const
 {
     // We first note that for U=U(r), the force is F_2=-grad_2 U = -dU/dr * (dr/dx_2, dr/dy_2, dr/dz_2),
     // where r = sqrt((x_2 - x_1)^2 + (y_2 - y_1)^2 + (z_2 - z_1)^2). We which to calculate (-dU/dr). This,
-    // is done by calling calcForces() to obtain F_2.x and then calcNonBondForceCoeffs12() to obtain dr/dx_2.
+    // is done by calling calcForces() to obtain F_2.x and then calcBondForceCoeffs12() to obtain dr/dx_2.
     // Thus, (-dU/dr) = F_2.x / (dr/dx_2).
     std::vector<std::pair<float, float>> profile;
 
@@ -106,7 +103,7 @@ std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DForceProfile(float rS
         float r = rStart + float(i)*rDelta;
         r2.x_ = r;
         calcForces(r1, r2, f1, f2);
-        C3DVector c = calcNonBondForceCoeffs12(r1, r2);
+        C3DVector c = calcBondForceCoeffs12(r1, r2);
 
         profile.emplace_back(std::pair<float, float>(r, (c.x_ != 0.0f) ? f2.x_ / c.x_ : 0.0f));
     }
@@ -114,7 +111,7 @@ std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DForceProfile(float rS
     return profile;
 }
 
-std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DPotentialProfile(float rStart, float rEnd, int points) const
+std::vector<std::pair<float, float>> CMDFFBond::calc1DPotentialProfile(float rStart, float rEnd, int points) const
 {
     std::vector<std::pair<float, float>> profile;
 
@@ -135,7 +132,7 @@ std::vector<std::pair<float, float>> CMDFFNonBonded::calc1DPotentialProfile(floa
     return profile;
 }
 
-C3DVector CMDFFNonBonded::calcNonBondForceCoeffs12(C3DVector r1, C3DVector r2) const
+C3DVector CMDFFBond::calcBondForceCoeffs12(C3DVector r1, C3DVector r2) const
 {
     C3DVector   r12 = r2 - r1;
     double      R = r12.norm();
