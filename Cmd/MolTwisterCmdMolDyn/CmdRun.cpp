@@ -1,7 +1,13 @@
 #include "CmdRun.h"
 #include "../../Utilities/ASCIIUtility.h"
-#include "MDLoop/MDLoop.h"
-#include "MDLoop/Printf.h"
+#include "Simulator/MDSimulator.h"
+
+#if INCLUDE_CUDA_COMMANDS == 1
+namespace mtdev
+{
+    #include "Simulator/MDSimulator.h"
+}
+#endif
 
 std::string CCmdRun::getCmd()
 {
@@ -10,7 +16,7 @@ std::string CCmdRun::getCmd()
 
 std::vector<std::string> CCmdRun::getCmdLineKeywords()
 {
-    return { "run" };
+    return { "run", "cpu" };
 }
 
 std::vector<std::string> CCmdRun::getCmdHelpLines()
@@ -40,18 +46,60 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
 
     size_t arg = 0;
 
-    int             iNStep = 1000000;
-    int             iOutputEvery = 400;
-    int             iM = 4;
-    std::string     szSystem;
-    CMDLoop         MDLoop;
-    CSimulationBox  SimBox(state_, stdOut_);
+    // Determine if simulation should be executed on CPU or on GPU
+    std::string text = CASCIIUtility::getArg(arguments, arg++);
+    bool runOnGPU = false;
+    bool compiledForGPU = false;
+    #if INCLUDE_CUDA_COMMANDS == 1
+    {
+        compiledForGPU = true;
+    }
+    #endif
 
-    SimBox.bNPTEnsemble = true;
-    COut::SetOutputFile(fopen("out.txt", "w"));
-    SimBox.InitSystem(iM);
-    MDLoop.RunSimulation(SimBox, iNStep, iOutputEvery);
-    COut::CloseOutputFile();
+    if(text == "cpu" )
+    {
+        runOnGPU = false;
+        if(compiledForGPU)
+        {
+            fprintf(stdOut_, "\tMolTwister is compiled for GPU, but 'cpu' was explicitly specified. Hence, simulation will run on CPU!\r\n");
+        }
+        else
+        {
+            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU, but 'cpu' was explicitly specified. Hence, simulation will run on CPU!\r\n");
+        }
+    }
+    else
+    {
+        if(compiledForGPU)
+        {
+            fprintf(stdOut_, "\tMolTwister is compiled for GPU and will run simulation on GPU!\r\n");
+            runOnGPU = true;
+        }
+        else
+        {
+            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU and will therefore run simulation on CPU!\r\n");
+            runOnGPU = false;
+        }
+    }
+
+    // Run simulation
+    if(runOnGPU)
+    {
+        #if INCLUDE_CUDA_COMMANDS == 1
+        {
+            mtdev::CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (void*)state_, CMDSimulator::ensambleNPT);
+        }
+        #else
+        {
+            lastError_ = "\tMolTwister is NOT compiled for GPU, but the simulation attemptet to run on GPU!\r\n";
+            return lastError_;
+        }
+        #endif
+    }
+    else
+    {
+        CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (void*)state_, CMDSimulator::ensambleNPT);
+    }
 
 /*    CConditionalOnXYZ cond;
     std::string fromName, toName, text;

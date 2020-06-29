@@ -399,6 +399,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDForces.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.cpp
     )
 
 if(${INCLUDE_CUDA_COMMANDS})
@@ -436,7 +438,7 @@ if(${INCLUDE_CUDA_COMMANDS})
     endif()
 
     add_library(MolTwisterCudaLib STATIC ${MT_CUDALIB_SOURCE_FILES})
-    target_compile_features(MolTwisterCudaLib PUBLIC cxx_std_11)
+    target_compile_features(MolTwisterCudaLib PUBLIC cxx_std_14)
     set_target_properties(MolTwisterCudaLib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_property(TARGET MolTwister PROPERTY CUDA_SEPARABLE_COMPILATION ON)
     set(CUDA_MT_LIB MolTwisterCudaLib)

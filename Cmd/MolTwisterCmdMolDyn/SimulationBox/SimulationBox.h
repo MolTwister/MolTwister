@@ -1,6 +1,4 @@
-#ifndef __ThesisMDTests__SimulationBox__
-#define __ThesisMDTests__SimulationBox__
-
+#pragma once
 #include "../../../Utilities/3DVector.h"
 #include "../Integrators/Particle3D.h"
 #include "../Integrators/NHChain.h"
@@ -58,5 +56,3 @@ private:
 };
 
 END_CUDA_COMPATIBLE()
-
-#endif
