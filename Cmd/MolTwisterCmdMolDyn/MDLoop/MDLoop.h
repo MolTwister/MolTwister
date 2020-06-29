@@ -42,7 +42,7 @@ public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
     
 private:
-    void CalcInitialForces(CSimulationBox& SimBox, mthost_vector<CMDForces>& F);
+    void CalcInitialForces(CSimulationBox& SimBox, mthost_vector<CMDFFMatrices::CForces>& F);
     void NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox);
     void PrintHeading(CSimulationBox& SimBox);
     void AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t);
@@ -51,7 +51,7 @@ private:
     void AppendToVolumeDistribution(double V, std::vector<int>& aVolumeDistr, double dMaxV);
     void StoreMomentumDistribution(std::string szFileName, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void StoreVolumeDistribution(std::string szFileName, std::vector<int>& aVolumeDistr, double dMaxV);
-    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const mthost_vector<CMDForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
+    void UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox, const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     void FinalizeOutput(CSimulationBox& SimBox, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr);
     
 private:

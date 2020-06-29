@@ -1,6 +1,5 @@
 #pragma once
 #include "MDFFMatrices.h"
-#include "MDForces.h"
 #include "../../../Utilities/CUDAGeneralizations.h"
 
 BEGIN_CUDA_COMPATIBLE()
@@ -12,7 +11,7 @@ public:
 
 public:
     void setForceFieldMatrices(CMDFFMatrices& ffMatrices);
-    HOSTDEV_CALLABLE CMDForces operator()(CMDFFMatrices::CAtom& atom);
+    HOSTDEV_CALLABLE CMDFFMatrices::CForces operator()(CMDFFMatrices::CAtom& atom);
 
 private:
     HOSTDEV_CALLABLE C3DVector calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;

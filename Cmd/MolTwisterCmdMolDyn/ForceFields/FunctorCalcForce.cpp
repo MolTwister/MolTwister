@@ -31,7 +31,7 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     Nbonds_ = ffMatrices.getNumBonds();
 }
 
-HOSTDEV_CALLABLE CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
+HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
 {
     C3DVector F;
     C3DVector PBCx = C3DVector( Lx_, 0.0,   0.0 );
@@ -39,7 +39,7 @@ HOSTDEV_CALLABLE CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& a
     C3DVector PBCz = C3DVector( 0.0,  0.0,  Lz_ );
 
     // Clear forces from primary image (pi = primary image)
-    atom.Fpi_ = C3DVector(0.0, 0.0, 0.0);
+    C3DVector Fpi(0.0, 0.0, 0.0);
 
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
@@ -52,7 +52,7 @@ HOSTDEV_CALLABLE CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& a
     {
         C3DVector r_i = devAtomList_[i].r_;
 
-        atom.Fpi_+= calcForceNonBondedOn_r_k(r_k, r_i, k, i);
+        Fpi+= calcForceNonBondedOn_r_k(r_k, r_i, k, i);
 
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
@@ -65,7 +65,7 @@ HOSTDEV_CALLABLE CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& a
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);
     }
-    F+= atom.Fpi_;
+    F+= Fpi;
 
     // Add forces from harmonic bonds on particle k
     for(int j=0; j<Nbonds_; j++)
@@ -84,17 +84,16 @@ HOSTDEV_CALLABLE CMDForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& a
             C3DVector r_k = devAtomList_[k].r_;
             C3DVector r_i = devAtomList_[iBondTo].r_;
 
-            atom.Fpi_+= calcForceBondOn_r_k(r_k, r_i, devBondList_[j].bondType_);
+            Fpi+= calcForceBondOn_r_k(r_k, r_i, devBondList_[j].bondType_);
         }
     }
-    F+= atom.Fpi_;
+    F+= Fpi;
 
     if(fabs(F.x_) > cutF_) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
     if(fabs(F.y_) > cutF_) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
     if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
 
-    atom.F_ = F;
-    return CMDForces(atom.F_, atom.Fpi_);
+    return CMDFFMatrices::CForces(F, Fpi);
 }
 
 HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const

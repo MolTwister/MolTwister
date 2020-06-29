@@ -22,9 +22,18 @@ public:
         C3DVector r_;
         C3DVector p_;
         int typeIndex_;
+        // :TODO: Neighboorlist
+    };
+
+    class CForces
+    {
+    public:
+        HOSTDEV_CALLABLE CForces() {}
+        HOSTDEV_CALLABLE CForces(const C3DVector& F, const C3DVector& Fpi) { F_ = F; Fpi_ = Fpi; }
+
+    public:
         C3DVector F_;
         C3DVector Fpi_;
-        // :TODO: Neighboorlist
     };
 
     class CBond
@@ -110,7 +119,7 @@ public:
 
 private:
     void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
-                           mtdevice_vector<CAtom>& devAtomList,
+                           mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                            mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
                            mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                            mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
@@ -122,6 +131,7 @@ private:
 
 public:
     mtdevice_vector<CAtom> devAtomList_;
+    mtdevice_vector<CForces> devForcesList_;
     mtdevice_vector<CPoint> devNonBondFFMatrix_;
     mtdevice_vector<size_t> devNonBondFFMatrixFFCount_;
     mtdevice_vector<CBond> devBondList_;

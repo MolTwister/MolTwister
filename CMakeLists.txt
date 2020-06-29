@@ -398,7 +398,6 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDForces.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.cpp
     )

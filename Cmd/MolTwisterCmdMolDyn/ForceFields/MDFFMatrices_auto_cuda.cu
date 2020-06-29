@@ -8,7 +8,8 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
     state_ = state;
 
     bool bondsAcrossPBC = true;
-    prepareFFMatrices(state, stdOut, rCutoff, bondsAcrossPBC, devAtomList_,
+    prepareFFMatrices(state, stdOut, rCutoff, bondsAcrossPBC,
+                      devAtomList_, devForcesList_,
                       devNonBondFFMatrix_, devNonBondFFMatrixFFCount_,
                       devBondList_, devBondFFList_,
                       devAngleList_, devAngleFFList_,
@@ -42,7 +43,7 @@ void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vecto
 }
 
 void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
-                                      mtdevice_vector<CAtom>& devAtomList,
+                                      mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                                       mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
                                       mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                                       mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
@@ -58,6 +59,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     size_t numAtoms = state->atoms_.size();
     Natoms = (int)numAtoms;
     mthost_vector<CAtom> hostAtomList = mthost_vector<CAtom>(numAtoms);
+    mthost_vector<CForces> hostForcesList = mthost_vector<CForces>(numAtoms);
     for(size_t i=0; i<numAtoms; i++)
     {
         if(state->atoms_[i]->r_.size() == 0) continue;
@@ -207,6 +209,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
 
     // Upload results to device
     devAtomList = hostAtomList;
+    devForcesList = hostForcesList;
     devNonBondFFMatrix = hostNonBondFFMatrix;
     devNonBondFFMatrixFFCount = hostNonBondFFMatrixFFCount;
     devBondList = hostBondList;

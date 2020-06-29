@@ -351,7 +351,7 @@ double CSimulationBox::CalcTemp()
     return (T / (dim*double(N)));
 }
 
-double CSimulationBox::CalcPress(const mthost_vector<CMDForces>& F) const
+double CSimulationBox::CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const
 {
     double  V = VelVerlet.GetV(Lmax, bNPTEnsemble);
     double  sum = 0.0;

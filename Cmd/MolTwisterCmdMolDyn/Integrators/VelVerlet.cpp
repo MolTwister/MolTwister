@@ -25,7 +25,7 @@ CVelVerlet::~CVelVerlet()
     if(mdFFMatrices_) delete mdFFMatrices_;
 }
 
-void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDForces>& F, bool bNPT)
+void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, bool bNPT)
 {
     if(!bNPT)
     {
@@ -60,7 +60,7 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double Lmax, mthost_vecto
     }
 }
 
-void CVelVerlet::Prop_p(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDForces>& F)
+void CVelVerlet::Prop_p(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F)
 {
     double u_eps = p_eps / W;
     double alpha = (1.0 + 1.0/double(N));
@@ -74,7 +74,7 @@ void CVelVerlet::Prop_p(int N, double dt, mthost_vector<CParticle3D>& aParticles
     }
 }
 
-void CVelVerlet::Prop_r(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDForces>&)
+void CVelVerlet::Prop_r(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>&)
 {
     double u_eps = p_eps / W;
     double parm = u_eps*dt / 2.0;
@@ -88,15 +88,15 @@ void CVelVerlet::Prop_r(int N, double dt, mthost_vector<CParticle3D>& aParticles
     }
 }
 
-mthost_vector<CMDForces> CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles)
+mthost_vector<CMDFFMatrices::CForces> CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles)
 {
-    mthost_vector<CMDForces> F(aParticles.size());
+    mthost_vector<CMDFFMatrices::CForces> F(aParticles.size());
     CalcParticleForces(dim, Lx, Ly, Lz, aParticles, F);
 
     return F;
 }
 
-double CVelVerlet::G_eps(int N, const mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDForces>& F)
+double CVelVerlet::G_eps(int N, const mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F)
 {
     double V = V0 * exp(3.0 * eps);
 
@@ -127,14 +127,13 @@ double CVelVerlet::GetV(double Lmax, bool bNPT) const
     return V0 * exp(3.0 * eps);
 }
 
-void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDForces>& F)
+void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F)
 {
     mdFFMatrices_->updateAtomList(aParticles);
     CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
-    mtdevice_vector<CMDForces> devF(F.size());
-    mttransform(mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), devF.begin(), calcForce);
-    F = devF;
+    mttransform(mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
+    F = mdFFMatrices_->devForcesList_;
 }
 
 END_CUDA_COMPATIBLE()

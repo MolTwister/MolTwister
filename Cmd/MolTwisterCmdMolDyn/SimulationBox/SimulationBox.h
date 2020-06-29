@@ -20,16 +20,16 @@ public:
     void InitSystem(int iM);
     void PBCWrap();
     double CalcTemp();
-    double CalcPress(const mthost_vector<CMDForces>& F) const;
+    double CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;
     double CalcV() { return VelVerlet.GetV(Lmax, bNPTEnsemble); }
 
     void NHTPropagator(CFct& Fct)
         { NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
         { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
-    void VelVerPropagator(mthost_vector<CMDForces>& F)
+    void VelVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F)
         { VelVerlet.Propagator(N, dim, dt, Lmax, aParticles, F, bNPTEnsemble); }
-    mthost_vector<CMDForces> CalcParticleForces()
+    mthost_vector<CMDFFMatrices::CForces> CalcParticleForces()
         { return VelVerlet.CalcParticleForces(dim, Lmax, Lmax, Lmax, aParticles); }
     
 private:
