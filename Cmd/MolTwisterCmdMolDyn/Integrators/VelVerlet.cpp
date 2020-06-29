@@ -7,16 +7,6 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-// :TODO: Strategy:
-// 1) Create my own transform, host_vector, device_vector and similar
-// 2) Two versions are created: one for cpu and one that mirrors the gpu versions
-// 3) If compiled as CPP the cpu versions are used. If as CU the gpu versions are used
-// 4) Rewrite everything as if on gpu, but run on cpu
-// 5) Set up mdgpu namespace if __CUDA__, else mdcpu. Do this for entire MD framework
-// 6) Use configure to move entire MD framework to CU files to be compiled by CUDA
-// 7) Set up new command for CUDA version
-// 8) Consider later to create a transform that is multihreadded (without C++17)
-
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
 {
     P = 1.0 / Conv_press;
