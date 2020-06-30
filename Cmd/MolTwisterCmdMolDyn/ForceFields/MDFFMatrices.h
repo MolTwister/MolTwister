@@ -22,7 +22,95 @@ public:
         C3DVector r_;
         C3DVector p_;
         int typeIndex_;
-        // :TODO: Neighboorlist
+        C3DVector* devNeighList_;
+        int neighListSize_;
+        C3DVector* devNeighListShell_;
+        int neighListShellSize_;
+    };
+
+    class CCellList
+    {
+    public:
+        HOSTDEV_CALLABLE CCellList()
+        {
+            pbcWidthX_ = 0;
+            pbcWidthY_ = 0;
+            pbcWidthZ_ = 0;
+            pbcLowX_ = 0;
+            pbcLowY_ = 0;
+            pbcLowZ_ = 0;
+            cellCountX_ = 0;
+            cellCountY_ = 0;
+            cellCountZ_ = 0;
+            maxAtomsInCell_ = 0;
+            devCellListRaw_ = nullptr;
+            devCellListCountRaw_ = nullptr;
+        }
+
+    public:
+        void init(CMolTwisterState* state, float rCutoff, float dShell)
+        {
+            float R = rCutoff + dShell;
+            C3DRect pbc = state->view3D_->getPBC();
+            maxAtomsInCell_ = ceil(R*R*R);
+
+            pbcWidthX_ = pbc.getWidthX();
+            pbcWidthY_ = pbc.getWidthY();
+            pbcWidthZ_ = pbc.getWidthZ();
+
+            pbcLowX_ = pbc.rLow_.x_;
+            pbcLowY_ = pbc.rLow_.y_;
+            pbcLowZ_ = pbc.rLow_.z_;
+
+            cellCountX_ = floor(pbcWidthX_ / R);
+            cellCountY_ = floor(pbcWidthY_ / R);
+            cellCountZ_ = floor(pbcWidthZ_ / R);
+
+            int totNumCells = cellCountX_ * cellCountY_ * cellCountZ_;
+
+            devCellList_ = mtdevice_vector<int>(totNumCells * maxAtomsInCell_, -1);
+            devCellListCount_ = mtdevice_vector<int>(totNumCells, 0);
+            devAtomCellIndices_ = mtdevice_vector<int>(state->atoms_.size());
+
+            devCellListRaw_ = mtraw_pointer_cast(&devCellList_[0]);
+            devCellListCountRaw_ = mtraw_pointer_cast(&devCellListCount_[0]);
+        }
+
+        HOSTDEV_CALLABLE int getPBCWidthX() const { return pbcWidthX_; }
+        HOSTDEV_CALLABLE int getPBCWidthY() const { return pbcWidthY_; }
+        HOSTDEV_CALLABLE int getPBCWidthZ() const { return pbcWidthZ_; }
+
+        HOSTDEV_CALLABLE int getPBCLowX() const { return pbcLowX_; }
+        HOSTDEV_CALLABLE int getPBCLowY() const { return pbcLowY_; }
+        HOSTDEV_CALLABLE int getPBCLowZ() const { return pbcLowZ_; }
+
+        HOSTDEV_CALLABLE int getCellCountX() const { return cellCountX_; }
+        HOSTDEV_CALLABLE int getCellCountY() const { return cellCountY_; }
+        HOSTDEV_CALLABLE int getCellCountZ() const { return cellCountZ_; }
+
+        HOSTDEV_CALLABLE int getMaxAtomsInCell() const { return maxAtomsInCell_; }
+
+        HOSTDEV_CALLABLE int* getCellListRaw() { return devCellListRaw_; }
+        HOSTDEV_CALLABLE int* getCellListCountRaw() { return devCellListCountRaw_; }
+
+    public:
+        mtdevice_vector<int> devCellList_;
+        mtdevice_vector<int> devCellListCount_;
+        mtdevice_vector<int> devAtomCellIndices_;
+
+    private:
+        int pbcWidthX_;
+        int pbcWidthY_;
+        int pbcWidthZ_;
+        int pbcLowX_;
+        int pbcLowY_;
+        int pbcLowZ_;
+        int cellCountX_;
+        int cellCountY_;
+        int cellCountZ_;
+        int maxAtomsInCell_;
+        int* devCellListRaw_;
+        int* devCellListCountRaw_;
     };
 
     class CForces
@@ -105,25 +193,27 @@ public:
     };
 
 public:
-    CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff);
+    CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell);
 
 public:
     int getNumAtoms() const { return Natoms_; }
     int getNumBonds() const { return Nbonds_; }
     int getNumAtomTypes() const { return NatomTypes_; }
     void updateAtomList(const mthost_vector<CParticle3D>& atomList);
+    void genNeighList();
 
     HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet);
     HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount);
     HOSTDEV_CALLABLE static size_t toIndexBonded(size_t listIndex, size_t pointIndex, size_t numPointsInForceProfiles);
 
 private:
-    void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
+    void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,
                            mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                            mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
                            mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                            mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                            mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                           CCellList& cellList,
                            int& Natoms,
                            int& NatomTypes,
                            int& Nbonds) const;
@@ -141,8 +231,11 @@ public:
     mtdevice_vector<CDihedral> devDihedralList_;
     mtdevice_vector<CPoint> devDihedralFFList_;
     mtdevice_vector<CLastError> devLastErrorList_;
+    CCellList cellList_;
 
 private:
+    float rCutoff_;
+    float dShell_;
     int Natoms_;
     int Nbonds_;
     int NatomTypes_;

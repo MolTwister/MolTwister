@@ -17,7 +17,8 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     tau = 1.0;
 
     const float rCutoff = 10.0f;
-    mdFFMatrices_ = new CMDFFMatrices(state, stdOut, rCutoff);
+    const float dShell = 2.0f;
+    mdFFMatrices_ = new CMDFFMatrices(state, stdOut, rCutoff, dShell);
 }
 
 CVelVerlet::~CVelVerlet()
@@ -132,7 +133,7 @@ void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, co
     mdFFMatrices_->updateAtomList(aParticles);
     CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
-    mttransform(mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
+    mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     F = mdFFMatrices_->devForcesList_;
 }
 

@@ -19,6 +19,8 @@
     #define HOST_CALLABLE __host__
     #define DEV_CALLABLE __device__
     #define CUDA_GLOBAL __global__
+
+    #define EXEC_POLICY thrust::device,
 #else
     #include <algorithm>
     #include <vector>
@@ -37,4 +39,6 @@
     #define HOST_CALLABLE
     #define DEV_CALLABLE
     #define CUDA_GLOBAL
+
+    #define EXEC_POLICY
 #endif

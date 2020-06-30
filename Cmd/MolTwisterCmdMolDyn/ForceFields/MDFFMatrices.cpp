@@ -1,19 +1,33 @@
 #include "MDFFMatrices.h"
+#include "FunctorGenCellList.h"
 #include <functional>
 
 BEGIN_CUDA_COMPATIBLE()
 
-CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff)
+HOSTDEV_CALLABLE size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t i, int maxAtomsInCell, size_t Nx, size_t Ny)
+{
+    return size_t(i + maxAtomsInCell*(ix + Nx*(iy + iz*Ny)));
+}
+
+HOSTDEV_CALLABLE size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t Nx, size_t Ny)
+{
+    return ix + Nx*(iy + iz*Ny);
+}
+
+CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell)
 {
     state_ = state;
+    rCutoff_ = rCutoff;
+    dShell_ = dShell;
 
     bool bondsAcrossPBC = true;
-    prepareFFMatrices(state, stdOut, rCutoff, bondsAcrossPBC,
+    prepareFFMatrices(state, stdOut, rCutoff, dShell, bondsAcrossPBC,
                       devAtomList_, devForcesList_,
                       devNonBondFFMatrix_, devNonBondFFMatrixFFCount_,
                       devBondList_, devBondFFList_,
                       devAngleList_, devAngleFFList_,
                       devDihedralList_, devDihedralFFList_,
+                      cellList_,
                       Natoms_, NatomTypes_, Nbonds_);
     prepareLastErrorList(state, devLastErrorList_);
 }
@@ -34,6 +48,15 @@ void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
     devAtomList_ = hostAtomList;
 }
 
+void CMDFFMatrices::genNeighList()
+{
+    // Generate cell list
+    CFunctorGenCellList genCellList(cellList_);
+    mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), cellList_.devAtomCellIndices_.begin(), genCellList);
+
+    // Generate neighborlists
+}
+
 void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const
 {
     size_t numAtoms = state->atoms_.size();
@@ -42,12 +65,13 @@ void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vecto
     devLastErrorList = hostLastErrorList;
 }
 
-void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, bool bondsAcrossPBC,
+void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,
                                       mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                                       mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
                                       mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                                       mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                                       mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                                      CCellList& cellList,
                                       int& Natoms,
                                       int& NatomTypes,
                                       int& Nbonds) const
@@ -77,6 +101,9 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     {
         hostAtomList[i].typeIndex_ = CMolTwisterState::atomTypeToTypeIndex(atomTypes, state->atoms_[i]->getID());
     }
+
+    // Prepare cell list vectors and associated properties
+    cellList.init(state_, rCutoff, dShell);
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();
