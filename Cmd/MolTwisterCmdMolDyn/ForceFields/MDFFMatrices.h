@@ -24,57 +24,28 @@ public:
         int typeIndex_;
         C3DVector* devNeighList_;
         int neighListSize_;
-        C3DVector* devNeighListShell_;
-        int neighListShellSize_;
+    };
+
+    class CCellListIndex
+    {
+    public:
+        HOSTDEV_CALLABLE CCellListIndex() { ix_ = iy_ = iz_ = 0; }
+        HOSTDEV_CALLABLE CCellListIndex(int ix, int iy, int iz) { ix_ = ix; iy_ = iy; iz_ = iz; }
+
+    public:
+        int ix_;
+        int iy_;
+        int iz_;
     };
 
     class CCellList
     {
     public:
-        HOSTDEV_CALLABLE CCellList()
-        {
-            pbcWidthX_ = 0;
-            pbcWidthY_ = 0;
-            pbcWidthZ_ = 0;
-            pbcLowX_ = 0;
-            pbcLowY_ = 0;
-            pbcLowZ_ = 0;
-            cellCountX_ = 0;
-            cellCountY_ = 0;
-            cellCountZ_ = 0;
-            maxAtomsInCell_ = 0;
-            devCellListRaw_ = nullptr;
-            devCellListCountRaw_ = nullptr;
-        }
+        HOSTDEV_CALLABLE CCellList() { resetToDefaults(); }
 
     public:
-        void init(CMolTwisterState* state, float rCutoff, float dShell)
-        {
-            float R = rCutoff + dShell;
-            C3DRect pbc = state->view3D_->getPBC();
-            maxAtomsInCell_ = ceil(R*R*R);
-
-            pbcWidthX_ = pbc.getWidthX();
-            pbcWidthY_ = pbc.getWidthY();
-            pbcWidthZ_ = pbc.getWidthZ();
-
-            pbcLowX_ = pbc.rLow_.x_;
-            pbcLowY_ = pbc.rLow_.y_;
-            pbcLowZ_ = pbc.rLow_.z_;
-
-            cellCountX_ = floor(pbcWidthX_ / R);
-            cellCountY_ = floor(pbcWidthY_ / R);
-            cellCountZ_ = floor(pbcWidthZ_ / R);
-
-            int totNumCells = cellCountX_ * cellCountY_ * cellCountZ_;
-
-            devCellList_ = mtdevice_vector<int>(totNumCells * maxAtomsInCell_, -1);
-            devCellListCount_ = mtdevice_vector<int>(totNumCells, 0);
-            devAtomCellIndices_ = mtdevice_vector<int>(state->atoms_.size());
-
-            devCellListRaw_ = mtraw_pointer_cast(&devCellList_[0]);
-            devCellListCountRaw_ = mtraw_pointer_cast(&devCellListCount_[0]);
-        }
+        void init(CMolTwisterState* state, float rCutoff, float dShell);
+        void resetCellList();
 
         HOSTDEV_CALLABLE int getPBCWidthX() const { return pbcWidthX_; }
         HOSTDEV_CALLABLE int getPBCWidthY() const { return pbcWidthY_; }
@@ -90,13 +61,13 @@ public:
 
         HOSTDEV_CALLABLE int getMaxAtomsInCell() const { return maxAtomsInCell_; }
 
-        HOSTDEV_CALLABLE int* getCellListRaw() { return devCellListRaw_; }
-        HOSTDEV_CALLABLE int* getCellListCountRaw() { return devCellListCountRaw_; }
+    private:
+        HOSTDEV_CALLABLE void resetToDefaults();
 
     public:
         mtdevice_vector<int> devCellList_;
         mtdevice_vector<int> devCellListCount_;
-        mtdevice_vector<int> devAtomCellIndices_;
+        mtdevice_vector<CCellListIndex> devAtomCellIndices_;
 
     private:
         int pbcWidthX_;
@@ -109,8 +80,27 @@ public:
         int cellCountY_;
         int cellCountZ_;
         int maxAtomsInCell_;
-        int* devCellListRaw_;
-        int* devCellListCountRaw_;
+    };
+
+    class CNeighList
+    {
+    public:
+        HOSTDEV_CALLABLE CNeighList() { resetToDefaults(); }
+
+    public:
+        void init(CMolTwisterState* state, int maxNeighbors);
+        void resetNeighList();
+        HOSTDEV_CALLABLE int getMaxNeighbors() const { return maxNeighbours_; }
+
+    private:
+        HOSTDEV_CALLABLE void resetToDefaults();
+
+    public:
+        mtdevice_vector<int> devNeighList_;
+        mtdevice_vector<int> devNeighListCount_;
+
+    private:
+        int maxNeighbours_;
     };
 
     class CForces
@@ -213,7 +203,7 @@ private:
                            mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                            mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                            mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
-                           CCellList& cellList,
+                           CCellList& cellList, CNeighList& neighList,
                            int& Natoms,
                            int& NatomTypes,
                            int& Nbonds) const;
@@ -232,6 +222,7 @@ public:
     mtdevice_vector<CPoint> devDihedralFFList_;
     mtdevice_vector<CLastError> devLastErrorList_;
     CCellList cellList_;
+    CNeighList neighList_;
 
 private:
     float rCutoff_;

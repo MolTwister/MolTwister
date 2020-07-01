@@ -11,6 +11,17 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     Ly_ = Ly;
     Lz_ = Lz;
     cutF_ = cutF;
+
+    devAtomList_ = nullptr;
+    devNonBondFFMatrix_ = nullptr;
+    devNonBondFFMatrixFFCount_ = nullptr;
+    devBondList_ = nullptr;
+    devBondFFList_ = nullptr;
+    devAngleList_ = nullptr;
+    devAngleFFList_ = nullptr;
+    devDihedralList_ = nullptr;
+    devDihedralFFList_ = nullptr;
+    devLastErrorList_ = nullptr;
 }
 
 void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)

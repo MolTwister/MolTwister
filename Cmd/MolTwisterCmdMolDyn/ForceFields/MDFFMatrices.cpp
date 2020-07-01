@@ -1,17 +1,77 @@
 #include "MDFFMatrices.h"
 #include "FunctorGenCellList.h"
+#include "FunctorGenNeighList.h"
 #include <functional>
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOSTDEV_CALLABLE size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t i, int maxAtomsInCell, size_t Nx, size_t Ny)
+HOSTDEV_CALLABLE void CMDFFMatrices::CCellList::resetToDefaults()
 {
-    return size_t(i + maxAtomsInCell*(ix + Nx*(iy + iz*Ny)));
+    pbcWidthX_ = 0;
+    pbcWidthY_ = 0;
+    pbcWidthZ_ = 0;
+    pbcLowX_ = 0;
+    pbcLowY_ = 0;
+    pbcLowZ_ = 0;
+    cellCountX_ = 0;
+    cellCountY_ = 0;
+    cellCountZ_ = 0;
+    maxAtomsInCell_ = 0;
 }
 
-HOSTDEV_CALLABLE size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t Nx, size_t Ny)
+void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell)
 {
-    return ix + Nx*(iy + iz*Ny);
+    float R = rCutoff + dShell;
+    C3DRect pbc = state->view3D_->getPBC();
+    maxAtomsInCell_ = ceil(R*R*R);
+
+    pbcWidthX_ = pbc.getWidthX();
+    pbcWidthY_ = pbc.getWidthY();
+    pbcWidthZ_ = pbc.getWidthZ();
+
+    pbcLowX_ = pbc.rLow_.x_;
+    pbcLowY_ = pbc.rLow_.y_;
+    pbcLowZ_ = pbc.rLow_.z_;
+
+    cellCountX_ = floor(pbcWidthX_ / R);
+    cellCountY_ = floor(pbcWidthY_ / R);
+    cellCountZ_ = floor(pbcWidthZ_ / R);
+
+    int totNumCells = cellCountX_ * cellCountY_ * cellCountZ_;
+
+    devCellList_ = mtdevice_vector<int>(totNumCells * maxAtomsInCell_, -1);
+    devCellListCount_ = mtdevice_vector<int>(totNumCells, 0);
+    devAtomCellIndices_ = mtdevice_vector<CCellListIndex>(state->atoms_.size());
+}
+
+void CMDFFMatrices::CCellList::resetCellList()
+{
+    for(size_t i=0; i<devCellListCount_.size(); i++)
+    {
+        devCellListCount_[i] = 0;
+    }
+}
+
+HOSTDEV_CALLABLE void CMDFFMatrices::CNeighList::resetToDefaults()
+{
+    maxNeighbours_ = 0;
+}
+
+void CMDFFMatrices::CNeighList::init(CMolTwisterState* state, int maxNeighbors)
+{
+    maxNeighbours_ = maxNeighbors;
+
+    size_t numAtoms = state->atoms_.size();
+    devNeighList_ = mtdevice_vector<int>(numAtoms * (size_t)maxNeighbours_);
+    devNeighListCount_ = mtdevice_vector<int>(numAtoms);
+}
+
+void CMDFFMatrices::CNeighList::resetNeighList()
+{
+    for(size_t i=0; i<devNeighListCount_.size(); i++)
+    {
+        devNeighListCount_[i] = 0;
+    }
 }
 
 CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell)
@@ -27,7 +87,7 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
                       devBondList_, devBondFFList_,
                       devAngleList_, devAngleFFList_,
                       devDihedralList_, devDihedralFFList_,
-                      cellList_,
+                      cellList_, neighList_,
                       Natoms_, NatomTypes_, Nbonds_);
     prepareLastErrorList(state, devLastErrorList_);
 }
@@ -51,10 +111,16 @@ void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
 void CMDFFMatrices::genNeighList()
 {
     // Generate cell list
-    CFunctorGenCellList genCellList(cellList_);
+    cellList_.resetCellList();
+    CFunctorGenCellList genCellList;
+    genCellList.setForceFieldMatrices(*this);
     mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), cellList_.devAtomCellIndices_.begin(), genCellList);
 
     // Generate neighborlists
+    neighList_.resetNeighList();
+    CFunctorGenNeighList genNeighList;
+    genNeighList.setForceFieldMatrices(*this);
+    mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), neighList_.devNeighListCount_.begin(), genNeighList);
 }
 
 void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const
@@ -71,7 +137,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                                       mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                                       mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                                       mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
-                                      CCellList& cellList,
+                                      CCellList& cellList, CNeighList& neighList,
                                       int& Natoms,
                                       int& NatomTypes,
                                       int& Nbonds) const
@@ -104,6 +170,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
 
     // Prepare cell list vectors and associated properties
     cellList.init(state_, rCutoff, dShell);
+    neighList.init(state_, cellList.getMaxAtomsInCell());
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();

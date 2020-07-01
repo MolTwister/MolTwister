@@ -131,6 +131,7 @@ double CVelVerlet::GetV(double Lmax, bool bNPT) const
 void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F)
 {
     mdFFMatrices_->updateAtomList(aParticles);
+    mdFFMatrices_->genNeighList();
     CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);

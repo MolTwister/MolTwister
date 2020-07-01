@@ -2,27 +2,33 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOSTDEV_CALLABLE CFunctorGenCellList::CFunctorGenCellList(CMDFFMatrices::CCellList& cellList)
+HOSTDEV_CALLABLE CFunctorGenCellList::CFunctorGenCellList()
 {
-    devCellList_ = cellList.getCellListRaw();
-    devCellListCount_ = cellList.getCellListCountRaw();
-
-    cellCountX_ = cellList.getCellCountX();
-    cellCountY_ = cellList.getCellCountY();
-    cellCountZ_ = cellList.getCellCountZ();
-
-    pbcWidthX_ = cellList.getPBCWidthX();
-    pbcWidthY_ = cellList.getPBCWidthY();
-    pbcWidthZ_ = cellList.getPBCWidthZ();
-
-    pbcLowX_ = cellList.getPBCLowX();
-    pbcLowY_ = cellList.getPBCLowY();
-    pbcLowZ_ = cellList.getPBCLowZ();
-
-    maxAtomsInCell_ = cellList.getMaxAtomsInCell();
+    devCellList_ = nullptr;
+    devCellListCount_ = nullptr;
 }
 
-HOSTDEV_CALLABLE int CFunctorGenCellList::operator()(CMDFFMatrices::CAtom& atom)
+void CFunctorGenCellList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
+{
+    devCellList_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellList_[0]);
+    devCellListCount_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellListCount_[0]);
+
+    cellCountX_ = ffMatrices.cellList_. getCellCountX();
+    cellCountY_ = ffMatrices.cellList_.getCellCountY();
+    cellCountZ_ = ffMatrices.cellList_.getCellCountZ();
+
+    pbcWidthX_ = ffMatrices.cellList_.getPBCWidthX();
+    pbcWidthY_ = ffMatrices.cellList_.getPBCWidthY();
+    pbcWidthZ_ = ffMatrices.cellList_.getPBCWidthZ();
+
+    pbcLowX_ = ffMatrices.cellList_.getPBCLowX();
+    pbcLowY_ = ffMatrices.cellList_.getPBCLowY();
+    pbcLowZ_ = ffMatrices.cellList_.getPBCLowZ();
+
+    maxAtomsInCell_ = ffMatrices.cellList_.getMaxAtomsInCell();
+}
+
+HOSTDEV_CALLABLE CMDFFMatrices::CCellListIndex CFunctorGenCellList::operator()(CMDFFMatrices::CAtom& atom)
 {
     float wx = pbcWidthX_;
     float wy = pbcWidthY_;
@@ -37,19 +43,23 @@ HOSTDEV_CALLABLE int CFunctorGenCellList::operator()(CMDFFMatrices::CAtom& atom)
     int Nz = cellCountZ_;
 
     C3DVector r = atom.r_;
-    size_t ix = (size_t)floor((r.x_ - lx) * float(Nx) / wx);
-    size_t iy = (size_t)floor((r.y_ - ly) * float(Ny) / wy);
-    size_t iz = (size_t)floor((r.z_ - lz) * float(Nz) / wz);
+    int ix = floor((r.x_ - lx) * float(Nx) / wx);
+    int iy = floor((r.y_ - ly) * float(Ny) / wy);
+    int iz = floor((r.z_ - lz) * float(Nz) / wz);
 
-    size_t cellIndex = cellIndexToFlatIndex(ix, iy, iz, Nx, Ny);
-    size_t currentCount = devCellListCount_[cellIndex];
-    if(int(currentCount) < maxAtomsInCell_)
+    ix = (ix < 0) ? 0 : ((ix >= Nx) ? Nx - 1 : ix);
+    iy = (iy < 0) ? 0 : ((iy >= Ny) ? Ny - 1 : iy);
+    iz = (iz < 0) ? 0 : ((iz >= Nz) ? Nz - 1 : iz);
+
+    size_t cellIndex = cellIndexToFlatIndex((size_t)ix, (size_t)iy, (size_t)iz, Nx, Ny);
+    int currentCount = devCellListCount_[cellIndex];
+    if(currentCount < maxAtomsInCell_)
     {
-        devCellList_[cellIndexToFlatIndex(ix, iy, iz, currentCount, maxAtomsInCell_, Nx, Ny)] = (int)atom.index_;
+        devCellList_[cellIndexToFlatIndex((size_t)ix, (size_t)iy, (size_t)iz, (size_t)currentCount, maxAtomsInCell_, Nx, Ny)] = (int)atom.index_;
         devCellListCount_[cellIndex]++;
     }
 
-    return cellIndex;
+    return CMDFFMatrices::CCellListIndex(ix, iy, iz);
 }
 
 

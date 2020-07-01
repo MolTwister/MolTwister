@@ -7,10 +7,11 @@ BEGIN_CUDA_COMPATIBLE()
 class CFunctorGenCellList
 {
 public:
-    HOSTDEV_CALLABLE CFunctorGenCellList(CMDFFMatrices::CCellList& cellList);
+    HOSTDEV_CALLABLE CFunctorGenCellList();
 
 public:
-    HOSTDEV_CALLABLE int operator()(CMDFFMatrices::CAtom& atom);
+    void setForceFieldMatrices(CMDFFMatrices& ffMatrices);
+    HOSTDEV_CALLABLE CMDFFMatrices::CCellListIndex operator()(CMDFFMatrices::CAtom& atom);
     HOSTDEV_CALLABLE static size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t i, int maxAtomsInCell, size_t Nx, size_t Ny);
     HOSTDEV_CALLABLE static size_t cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t Nx, size_t Ny);
 
