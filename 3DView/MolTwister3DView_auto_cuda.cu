@@ -925,6 +925,21 @@ void C3DView::serialize(std::stringstream& io, bool saveToStream,
 {
     if(saveToStream)
     {
+        io << selColorRot_.size();
+        for(C3DVector item : selColorRot_)
+        {
+            item.serialize(io, saveToStream);
+        }
+
+        camera_.serialize(io, saveToStream);
+        coordLastClick_.serialize(io, saveToStream);
+        lastWindowSize_.serialize(io, saveToStream);
+        primitiveRes_.serialize(io, saveToStream);
+        progArg_.serialize(io, saveToStream);
+        expLookup_.serialize(io, saveToStream);
+        pbcUser_.serialize(io, saveToStream);
+        pbc_.serialize(io, saveToStream);
+
         io << updateRequested_;
         io << fullscreenRequested_;
         io << requestQuit_;
@@ -932,27 +947,12 @@ void C3DView::serialize(std::stringstream& io, bool saveToStream,
         io << viewAxes_;
         io << viewIsoSurface_;
         io << viewBondsAcrossPBC_;
-        camera_.serialize(io, saveToStream);
         io << leftMButtonPressed_;
         io << middleMButtonPressed_;
         io << rightMButtonPressed_;
-        coordLastClick_.serialize(io, saveToStream);
-        lastWindowSize_.serialize(io, saveToStream);
-        primitiveRes_.serialize(io, saveToStream);
-        progArg_.serialize(io, saveToStream);
-
-        io << selColorRot_.size();
-        for(C3DVector item : selColorRot_)
-        {
-            item.serialize(io, saveToStream);
-        }
-
-        CExpLookup expLookup_;
-        bool applyUserDefPBC_;
-        C3DRect pbcUser_;
-        C3DRect pbc_;
-        int numAtomsBeforeNoDraw_;
-        bool fogEnabled_;
+        io << applyUserDefPBC_;
+        io << numAtomsBeforeNoDraw_;
+        io << fogEnabled_;
     }
     else
     {
@@ -960,6 +960,39 @@ void C3DView::serialize(std::stringstream& io, bool saveToStream,
         glObjects_ = glObjects;
         currentFrame_ = currentFrame;
         defaultAtProp_ = defAtProp;
+
+        size_t size;
+        io >> size;
+        selColorRot_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            C3DVector color;
+            color.serialize(io, saveToStream);
+            selColorRot_[i] = color;
+        }
+
+        camera_.serialize(io, saveToStream);
+        coordLastClick_.serialize(io, saveToStream);
+        lastWindowSize_.serialize(io, saveToStream);
+        primitiveRes_.serialize(io, saveToStream);
+        progArg_.serialize(io, saveToStream);
+        expLookup_.serialize(io, saveToStream);
+        pbcUser_.serialize(io, saveToStream);
+        pbc_.serialize(io, saveToStream);
+
+        io >> updateRequested_;
+        io >> fullscreenRequested_;
+        io >> requestQuit_;
+        io >> orthoView_;
+        io >> viewAxes_;
+        io >> viewIsoSurface_;
+        io >> viewBondsAcrossPBC_;
+        io >> leftMButtonPressed_;
+        io >> middleMButtonPressed_;
+        io >> rightMButtonPressed_;
+        io >> applyUserDefPBC_;
+        io >> numAtomsBeforeNoDraw_;
+        io >> fogEnabled_;
     }
 }
 

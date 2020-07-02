@@ -43,9 +43,8 @@ void CMDFFNonBondedList::serialize(std::stringstream& io, bool saveToStream)
             {
                 if(item->getFFType() == ffType)
                 {
-                    std::shared_ptr<CMDFFNonBonded> copy = item->createCopy();
-                    copy->serialize(io, saveToStream);
-                    nonBonded_[i] = copy;
+                    nonBonded_[i] = item->createCopy();
+                    nonBonded_[i]->serialize(io, saveToStream);
                     break;
                 }
             }

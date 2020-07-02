@@ -4,6 +4,8 @@
 // means that 'pragma once' should not be used
 
 #include <string>
+#include <iostream>
+#include <sstream>
 #include "../../../Utilities/CUDAGeneralizations.h"
 
 BEGIN_CUDA_COMPATIBLE()
@@ -17,6 +19,7 @@ public:
     CMDSimulator() {}
 
 public:
+    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, std::stringstream& stateContent, int ensamble);
     static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensamble);
 };
 

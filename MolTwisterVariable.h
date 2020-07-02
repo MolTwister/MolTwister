@@ -15,6 +15,8 @@ public:
     
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CVar> createCopy() const = 0;
+    virtual std::shared_ptr<CVar> createCopy(const CVar& src) const = 0;
     EType getType() const { return type_; }
     void setName(const char* name) { name_ = name; }
     void getName(std::string& name) const { name = name_; }
@@ -32,6 +34,8 @@ public:
 
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarAtom); *(CVarAtom*)(ret.get()) = *this; return ret; }
+    virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarAtom(src)); *(CVarAtom*)(ret.get()) = *this; return ret; }
 
 public:
     int atomIndex_;
@@ -45,6 +49,8 @@ public:
 
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarBond); *(CVarBond*)(ret.get()) = *this; return ret; }
+    virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarBond(src)); *(CVarBond*)(ret.get()) = *this; return ret; }
 
 public:
     int atomIndex1_;
@@ -59,6 +65,8 @@ public:
 
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarAngle); *(CVarAngle*)(ret.get()) = *this; return ret; }
+    virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarAngle(src)); *(CVarAngle*)(ret.get()) = *this; return ret; }
 
 public:
     int atomIndex1_;
@@ -74,6 +82,8 @@ public:
 
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarDihedral); *(CVarDihedral*)(ret.get()) = *this; return ret; }
+    virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarDihedral(src)); *(CVarDihedral*)(ret.get()) = *this; return ret; }
 
 public:
     int atomIndex1_;

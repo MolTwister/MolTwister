@@ -5,6 +5,13 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, std::stringstream& stateContent, int ensamble)
+{
+    CMolTwisterState state;
+    state.serialize(stateContent, false);
+    run(numMDSteps, outputStride, nhChainLength, progressOutFileName, stdOut, &state, ensamble);
+}
+
 void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensamble)
 {
     CMDLoop         MDLoop;

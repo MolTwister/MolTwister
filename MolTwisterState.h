@@ -2,6 +2,8 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
+#include <sstream>
 #include <Python.h>
 #include "MolTwisterAtom.h"
 #include "3DView/MolTwisterGLObject.h"
@@ -26,6 +28,7 @@ public:
     ~CMolTwisterState();
     
 public:
+    void serialize(std::stringstream& io, bool saveToStream);
     void purgeAtomsList();
     void purgeGLObjectList();
     void purgeVariableList();
@@ -71,6 +74,10 @@ public:
     CDefaultAtomicProperties defaultAtProp_;
     C3DView* view3D_;
     int currentFrame_;
+
+private:
+    std::vector<std::shared_ptr<CVar>> registeredVariableTypes_;
+    std::vector<std::shared_ptr<CGLObject>> registeredGLObjectTypes_;
 };
 
 END_CUDA_COMPATIBLE()

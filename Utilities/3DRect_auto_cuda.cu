@@ -2,6 +2,20 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+HOST_CALLABLE void C3DRect::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        rLow_.serialize(io, saveToStream);
+        rHigh_.serialize(io, saveToStream);
+    }
+    else
+    {
+        rLow_.serialize(io, saveToStream);
+        rHigh_.serialize(io, saveToStream);
+    }
+}
+
 HOSTDEV_CALLABLE C3DVector C3DRect::getCenter() const
 {
     C3DVector center((rLow_.x_ + rHigh_.x_) / 2.0,

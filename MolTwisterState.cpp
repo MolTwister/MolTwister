@@ -9,6 +9,15 @@ CMolTwisterState::CMolTwisterState()
 {
     view3D_ = nullptr;
     currentFrame_ = 0;
+
+    // Register variable types
+    registeredVariableTypes_.emplace_back(std::make_shared<CVarAtom>());
+    registeredVariableTypes_.emplace_back(std::make_shared<CVarBond>());
+    registeredVariableTypes_.emplace_back(std::make_shared<CVarAngle>());
+    registeredVariableTypes_.emplace_back(std::make_shared<CVarDihedral>());
+
+    // Register GL object types
+    registeredGLObjectTypes_.emplace_back(std::make_shared<CGLObjectLine>());
 }
 
 CMolTwisterState::~CMolTwisterState()
@@ -16,6 +25,131 @@ CMolTwisterState::~CMolTwisterState()
     purgeAtomsList();
     purgeGLObjectList();
     purgeVariableList();
+}
+
+void CMolTwisterState::serialize(std::stringstream& io, bool saveToStream)
+{
+    // Note: registeredVariableTypes_ is filled in at construction and is used to fulfill
+    // serialization and should therefore not itself be seriealized.
+    if(saveToStream)
+    {
+        io << variables_.size();
+        int type;
+        for(std::shared_ptr<CVar> var : variables_)
+        {
+            type = (int)var->getType();
+            io << type;
+            var->serialize(io, saveToStream);
+        }
+
+        io << shortcutDirs_.size();
+        for(std::string str : shortcutDirs_)
+        {
+            io << str;
+        }
+
+        io << atoms_.size();
+        for(std::shared_ptr<CAtom> atom : atoms_)
+        {
+            atom->serialize(io, saveToStream);
+        }
+
+        io << glObjects_.size();
+        for(std::shared_ptr<CGLObject> glObj : glObjects_)
+        {
+            type = (int)glObj->getType();
+            io >> type;
+            glObj->serialize(io, saveToStream);
+        }
+
+        io << savedCoordinates_.size();
+        for(C3DVector vec : savedCoordinates_)
+        {
+            vec.serialize(io, saveToStream);
+        }
+
+        mdFFNonBondedList_.serialize(io, saveToStream);
+        mdFFBondList_.serialize(io, saveToStream);
+        mdFFAngleList_.serialize(io, saveToStream);
+        mdFFDihList_.serialize(io, saveToStream);
+        defaultAtProp_.serialize(io, saveToStream);
+        view3D_->serialize(io, saveToStream);
+
+        io << currentFrame_;
+    }
+    else
+    {
+        int type;
+        size_t size;
+
+        io >> size;
+        variables_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            io >> type;
+            for(std::shared_ptr<CVar> item : registeredVariableTypes_)
+            {
+                if(int(item->getType()) == type)
+                {
+                    variables_[i] = item->createCopy();
+                    variables_[i]->serialize(io, saveToStream);
+                    break;
+                }
+            }
+        }
+
+        io >> size;
+        shortcutDirs_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            std::string str;
+            io >> str;
+            shortcutDirs_[i] = str;
+        }
+
+        io >> size;
+        atoms_.resize(size);
+        for(size_t i=0; i<size; i++) atoms_[i] = std::make_shared<CAtom>();
+        for(size_t i=0; i<size; i++)
+        {
+            atoms_[i]->serialize(io, saveToStream, &atoms_);
+        }
+
+        io << glObjects_.size();
+        io >> size;
+        glObjects_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            io >> type;
+            for(std::shared_ptr<CGLObject> item : registeredGLObjectTypes_)
+            {
+                if(int(item->getType()) == type)
+                {
+                    glObjects_[i] = item->createCopy();
+                    glObjects_[i]->serialize(io, saveToStream);
+                    break;
+                }
+            }
+        }
+
+        io >> size;
+        savedCoordinates_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            C3DVector vec;
+            vec.serialize(io, saveToStream);
+            savedCoordinates_[i] = vec;
+        }
+
+        mdFFNonBondedList_.serialize(io, saveToStream);
+        mdFFBondList_.serialize(io, saveToStream);
+        mdFFAngleList_.serialize(io, saveToStream);
+        mdFFDihList_.serialize(io, saveToStream);
+        defaultAtProp_.serialize(io, saveToStream);
+        view3D_->serialize(io, saveToStream);
+
+        io >> currentFrame_;
+    }
 }
 
 int CMolTwisterState::deleteFrame(int frame)
@@ -89,11 +223,22 @@ int CMolTwisterState::addFrame()
 
 int CMolTwisterState::addGLObject(CGLObject& glObject)
 {
-    if(glObject.getType() == CGLObject::objLine)
+    bool foundGLType = false;
+    for(std::shared_ptr<CGLObject> item : registeredGLObjectTypes_)
     {
-        glObjects_.emplace_back(std::make_shared<CGLObjectLine>(glObject));
+        if(glObject.getType() == item->getType())
+        {
+            glObjects_.emplace_back(item->createCopy(glObject));
+            foundGLType = true;
+            break;
+        }
     }
-    
+
+    if(!foundGLType)
+    {
+        printf("Error: Attempted to add unknown GL object type!");
+    }
+
     return (int)glObjects_.size()-1;
 }
 
@@ -200,23 +345,18 @@ int CMolTwisterState::addVariable(CVar& variable)
     existingVar = getVariable(text.data(), variableIndex);
     if(existingVar)
     {
-        if(variable.getType() == CVar::typeAtom)
+        bool foundVariableType = false;
+        for(std::shared_ptr<CVar> item : registeredVariableTypes_)
         {
-            variables_[variableIndex] = std::make_shared<CVarAtom>(variable);
+            if(variable.getType() == item->getType())
+            {
+                variables_[variableIndex] = item->createCopy(variable);
+                foundVariableType = true;
+                break;
+            }
         }
-        else if(variable.getType() == CVar::typeBond)
-        {
-            variables_[variableIndex] = std::make_shared<CVarBond>(variable);
-        }
-        else if(variable.getType() == CVar::typeAngle)
-        {
-            variables_[variableIndex] = std::make_shared<CVarAngle>(variable);
-        }
-        else if(variable.getType() == CVar::typeDihedral)
-        {
-            variables_[variableIndex] = std::make_shared<CVarDihedral>(variable);
-        }
-        else
+
+        if(!foundVariableType)
         {
             printf("Error: Attempted to modify to unknown variable type!");
         }
@@ -225,24 +365,19 @@ int CMolTwisterState::addVariable(CVar& variable)
     }
     
     else
-    {        
-        if(variable.getType() == CVar::typeAtom)
+    {
+        bool foundVariableType = false;
+        for(std::shared_ptr<CVar> item : registeredVariableTypes_)
         {
-            variables_.emplace_back(std::make_shared<CVarAtom>(variable));
+            if(variable.getType() == item->getType())
+            {
+                variables_.emplace_back(item->createCopy(variable));
+                foundVariableType = true;
+                break;
+            }
         }
-        else if(variable.getType() == CVar::typeBond)
-        {
-            variables_.emplace_back(std::make_shared<CVarBond>(variable));
-        }
-        else if(variable.getType() == CVar::typeAngle)
-        {
-            variables_.emplace_back(std::make_shared<CVarAngle>(variable));
-        }
-        else if(variable.getType() == CVar::typeDihedral)
-        {
-            variables_.emplace_back(std::make_shared<CVarDihedral>(variable));
-        }
-        else
+
+        if(!foundVariableType)
         {
             printf("Error: Attempted to add unknown variable type!");
         }

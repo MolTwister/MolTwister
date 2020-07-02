@@ -41,9 +41,8 @@ void CMDFFAngleList::serialize(std::stringstream& io, bool saveToStream)
             {
                 if(item->getFFType() == ffType)
                 {
-                    std::shared_ptr<CMDFFAngle> copy = item->createCopy();
-                    copy->serialize(io, saveToStream);
-                    angles_[i] = copy;
+                    angles_[i] = item->createCopy();
+                    angles_[i]->serialize(io, saveToStream);
                     break;
                 }
             }

@@ -42,9 +42,8 @@ void CMDFFBondList::serialize(std::stringstream& io, bool saveToStream)
             {
                 if(item->getFFType() == ffType)
                 {
-                    std::shared_ptr<CMDFFBond> copy = item->createCopy();
-                    copy->serialize(io, saveToStream);
-                    bonds_[i] = copy;
+                    bonds_[i] = item->createCopy();
+                    bonds_[i]->serialize(io, saveToStream);
                     break;
                 }
             }

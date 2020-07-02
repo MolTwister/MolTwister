@@ -87,7 +87,9 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     {
         #if INCLUDE_CUDA_COMMANDS == 1
         {
-            mtdev::CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (void*)state_, CMDSimulator::ensambleNPT);
+            std::stringstream stateContent;
+            state_->serialize(stateContent, true);
+            mtdev::CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, stateContent, CMDSimulator::ensambleNPT);
         }
         #else
         {
@@ -98,7 +100,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     }
     else
     {
-        CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (void*)state_, CMDSimulator::ensambleNPT);
+        CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (CMolTwisterState*)state_, CMDSimulator::ensambleNPT);
     }
 
 /*    CConditionalOnXYZ cond;

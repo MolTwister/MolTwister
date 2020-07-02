@@ -16,6 +16,7 @@ public:
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::shared_ptr<CGLObject> createCopy() const = 0;
+    virtual std::shared_ptr<CGLObject> createCopy(const CGLObject& src) const = 0;
 
 public:
     EType getType() const { return type_; }
@@ -34,6 +35,7 @@ public:
 public:
     virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::shared_ptr<CGLObject> createCopy() const { auto ret = std::shared_ptr<CGLObject>(new CGLObjectLine); *(CGLObjectLine*)(ret.get()) = *this; return ret; }
+    virtual std::shared_ptr<CGLObject> createCopy(const CGLObject& src) const { auto ret = std::shared_ptr<CGLObject>(new CGLObjectLine(src)); *(CGLObjectLine*)(ret.get()) = *this; return ret; }
 
 public:
     C3DVector p1_;

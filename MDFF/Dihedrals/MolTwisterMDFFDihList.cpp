@@ -41,9 +41,8 @@ void CMDFFDihList::serialize(std::stringstream& io, bool saveToStream)
             {
                 if(item->getFFType() == ffType)
                 {
-                    std::shared_ptr<CMDFFDih> copy = item->createCopy();
-                    copy->serialize(io, saveToStream);
-                    dihedrals_[i] = copy;
+                    dihedrals_[i] = item->createCopy();
+                    dihedrals_[i]->serialize(io, saveToStream);
                     break;
                 }
             }
