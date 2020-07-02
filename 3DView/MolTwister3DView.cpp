@@ -88,7 +88,7 @@ void C3DView::CResolution::serialize(CSerializer& io, bool saveToStream)
 
 C3DView::CArg::~CArg()
 {
-    if(deleteArgsManually_ && argv_)
+    if(deleteArgs_ && argv_)
     {
         for(int i=0; i<argc_; i++)
         {
@@ -114,6 +114,7 @@ void C3DView::CArg::serialize(CSerializer& io, bool saveToStream)
     }
     else
     {
+        deleteArgs_ = true;
         int size;
         io >> size;
         argv_ = new char*[size];

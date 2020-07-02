@@ -118,7 +118,6 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.h
-    ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp

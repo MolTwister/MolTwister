@@ -77,6 +77,7 @@ public:
 private:
     std::vector<std::shared_ptr<CVar>> registeredVariableTypes_;
     std::vector<std::shared_ptr<CGLObject>> registeredGLObjectTypes_;
+    bool deleteView_;
 };
 
 END_CUDA_COMPATIBLE()

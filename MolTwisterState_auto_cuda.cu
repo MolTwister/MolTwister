@@ -9,6 +9,7 @@ CMolTwisterState::CMolTwisterState()
 {
     view3D_ = nullptr;
     currentFrame_ = 0;
+    deleteView_ = false;
 
     // Register variable types
     registeredVariableTypes_.emplace_back(std::make_shared<CVarAtom>());
@@ -25,6 +26,8 @@ CMolTwisterState::~CMolTwisterState()
     purgeAtomsList();
     purgeGLObjectList();
     purgeVariableList();
+
+    if(deleteView_) delete view3D_;
 }
 
 void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
@@ -146,7 +149,10 @@ void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
         mdFFAngleList_.serialize(io, saveToStream);
         mdFFDihList_.serialize(io, saveToStream);
         defaultAtProp_.serialize(io, saveToStream);
-        view3D_->serialize(io, saveToStream);
+
+        deleteView_ = true;
+        view3D_ = new C3DView(0, nullptr);
+        view3D_->serialize(io, saveToStream, &atoms_, &glObjects_, &currentFrame_, &defaultAtProp_);
 
         io >> currentFrame_;
     }

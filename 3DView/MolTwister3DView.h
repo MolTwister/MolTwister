@@ -68,7 +68,7 @@ private:
     {
     public:
         CArg() { argc_ = 0; argv_ = nullptr; }
-        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; deleteArgsManually_ = false; }
+        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; deleteArgs_ = false; }
         ~CArg();
 
     public:
@@ -79,7 +79,7 @@ private:
         char** argv_;
 
     private:
-        bool deleteArgsManually_;
+        bool deleteArgs_;
     };
     
 public:

@@ -26,7 +26,7 @@ void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, floa
     // on the CPU. We need a better way of obtaining the PBC. Perhaps from within the CPU code.
 
     float R = rCutoff + dShell;
-    C3DRect pbc = state->view3D_->calcPBC();
+    C3DRect pbc = state->view3D_->getPBC();
     maxAtomsInCell_ = ceil(R*R*R);
 
     pbcWidthX_ = pbc.getWidthX();
