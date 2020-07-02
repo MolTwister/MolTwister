@@ -1,7 +1,9 @@
 #pragma once
-#include <iostream>
-#include <sstream>
 #include "MolTwisterAtom.h"
+#include "Utilities/Serializer.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CVar
 {
@@ -14,7 +16,7 @@ public:
     CVar(const CVar& src) { type_ = src.type_; name_ = src.name_; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::shared_ptr<CVar> createCopy() const = 0;
     virtual std::shared_ptr<CVar> createCopy(const CVar& src) const = 0;
     EType getType() const { return type_; }
@@ -33,7 +35,7 @@ public:
     CVarAtom(const CVar& src);
 
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarAtom); *(CVarAtom*)(ret.get()) = *this; return ret; }
     virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarAtom(src)); *(CVarAtom*)(ret.get()) = *this; return ret; }
 
@@ -48,7 +50,7 @@ public:
     CVarBond(const CVar& src);
 
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarBond); *(CVarBond*)(ret.get()) = *this; return ret; }
     virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarBond(src)); *(CVarBond*)(ret.get()) = *this; return ret; }
 
@@ -64,7 +66,7 @@ public:
     CVarAngle(const CVar& src);
 
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarAngle); *(CVarAngle*)(ret.get()) = *this; return ret; }
     virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarAngle(src)); *(CVarAngle*)(ret.get()) = *this; return ret; }
 
@@ -81,7 +83,7 @@ public:
     CVarDihedral(const CVar& src);
 
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::shared_ptr<CVar> createCopy() const { auto ret = std::shared_ptr<CVar>(new CVarDihedral); *(CVarDihedral*)(ret.get()) = *this; return ret; }
     virtual std::shared_ptr<CVar> createCopy(const CVar& src) const { auto ret = std::shared_ptr<CVar>(new CVarDihedral(src)); *(CVarDihedral*)(ret.get()) = *this; return ret; }
 
@@ -91,3 +93,5 @@ public:
     int atomIndex3_;
     int atomIndex4_;
 };
+
+END_CUDA_COMPATIBLE()

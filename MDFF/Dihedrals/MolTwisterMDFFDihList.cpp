@@ -12,7 +12,7 @@ CMDFFDihList::~CMDFFDihList()
 {
 }
 
-void CMDFFDihList::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFDihList::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFList<CMDFFDih>::serialize(io, saveToStream);
 

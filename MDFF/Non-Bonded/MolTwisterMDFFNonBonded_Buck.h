@@ -9,7 +9,7 @@ public:
     CMDFFNonBonded_Buck() : CMDFFNonBonded() { A_ = 0.0; rho_ = 0.0; C_ = 0.0; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "Buck"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

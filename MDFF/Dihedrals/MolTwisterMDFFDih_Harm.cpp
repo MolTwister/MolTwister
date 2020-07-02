@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFDih_Harm::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFDih_Harm::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFDih::serialize(io, saveToStream);
 

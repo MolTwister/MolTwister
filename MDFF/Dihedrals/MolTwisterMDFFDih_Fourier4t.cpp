@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFDih_Fourier4t::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFDih_Fourier4t::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFDih::serialize(io, saveToStream);
 

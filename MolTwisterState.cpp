@@ -27,7 +27,7 @@ CMolTwisterState::~CMolTwisterState()
     purgeVariableList();
 }
 
-void CMolTwisterState::serialize(std::stringstream& io, bool saveToStream)
+void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
 {
     // Note: registeredVariableTypes_ is filled in at construction and is used to fulfill
     // serialization and should therefore not itself be seriealized.

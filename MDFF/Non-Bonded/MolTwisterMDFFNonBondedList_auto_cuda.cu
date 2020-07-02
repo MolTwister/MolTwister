@@ -14,7 +14,7 @@ CMDFFNonBondedList::~CMDFFNonBondedList()
 {
 }
 
-void CMDFFNonBondedList::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFNonBondedList::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFList<CMDFFNonBonded>::serialize(io, saveToStream);
 

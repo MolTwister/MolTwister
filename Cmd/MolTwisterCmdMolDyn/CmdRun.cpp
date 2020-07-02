@@ -87,7 +87,8 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     {
         #if INCLUDE_CUDA_COMMANDS == 1
         {
-            std::stringstream stateContent;
+            // :TODO: Consider making CSerializer a pure header library, such that we do not need to use BEGIN_CUDA_...()
+            CSerializer stateContent;
             state_->serialize(stateContent, true);
             mtdev::CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, stateContent, CMDSimulator::ensambleNPT);
         }

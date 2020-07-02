@@ -280,7 +280,7 @@ HOSTDEV_CALLABLE bool C3DVector::operator==(const C3DVector& rhs) const
     return true;
 }
 
-HOST_CALLABLE void C3DVector::serialize(std::stringstream& io, bool saveToStream)
+HOST_CALLABLE void C3DVector::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {

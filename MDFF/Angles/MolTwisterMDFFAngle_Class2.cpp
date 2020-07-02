@@ -4,7 +4,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFAngle_Class2::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFAngle_Class2::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFAngle::serialize(io, saveToStream);
 

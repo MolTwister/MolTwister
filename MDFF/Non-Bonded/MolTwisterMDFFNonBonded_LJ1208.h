@@ -9,7 +9,7 @@ public:
     CMDFFNonBonded_LJ1208() : CMDFFNonBonded() { sigma_ = 0.0; epsilon_ = 0.0; alpha_ = 1.0; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "LJ1208"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

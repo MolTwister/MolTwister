@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFBond_Morse::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFBond_Morse::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFBond::serialize(io, saveToStream);
 

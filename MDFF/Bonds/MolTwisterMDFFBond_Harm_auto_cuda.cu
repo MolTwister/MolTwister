@@ -4,7 +4,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFBond_Harm::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFBond_Harm::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFBond::serialize(io, saveToStream);
 

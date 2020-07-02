@@ -3,6 +3,10 @@
 #include <string.h>
 #include <vector>
 #include <memory>
+#include "Utilities/Serializer.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 template<class ArrayType>
 class CMDFFList
@@ -11,7 +15,7 @@ public:
     CMDFFList() {}
     
 public:
-    virtual void serialize(std::stringstream&, bool saveToStream)
+    virtual void serialize(CSerializer&, bool saveToStream)
     {
         if(saveToStream)
         {
@@ -51,3 +55,5 @@ public:
         }
     }
 };
+
+END_CUDA_COMPATIBLE()

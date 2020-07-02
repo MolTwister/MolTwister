@@ -2,14 +2,13 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <iostream>
-#include <sstream>
 #include <Python.h>
 #include "MolTwisterAtom.h"
 #include "3DView/MolTwisterGLObject.h"
 #include "MolTwisterVariable.h"
 #include "3DView/MolTwister3DView.h"
 #include "Utilities/3DRect.h"
+#include "Utilities/Serializer.h"
 #include "DefaultAtomicProperties.h"
 #include "MDFF/Non-Bonded/MolTwisterMDFFNonBondedList.h"
 #include "MDFF/Bonds/MolTwisterMDFFBondList.h"
@@ -28,7 +27,7 @@ public:
     ~CMolTwisterState();
     
 public:
-    void serialize(std::stringstream& io, bool saveToStream);
+    void serialize(CSerializer& io, bool saveToStream);
     void purgeAtomsList();
     void purgeGLObjectList();
     void purgeVariableList();

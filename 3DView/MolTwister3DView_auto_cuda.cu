@@ -40,7 +40,7 @@ C3DRect C3DView::pbc_ = C3DRect();
 int C3DView::numAtomsBeforeNoDraw_ = 7000;
 bool C3DView::fogEnabled_ = false;
 
-void C3DView::CCamera::serialize(std::stringstream& io, bool saveToStream)
+void C3DView::CCamera::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {
@@ -58,7 +58,7 @@ void C3DView::CCamera::serialize(std::stringstream& io, bool saveToStream)
     }
 }
 
-void C3DView::CScreenCoord::serialize(std::stringstream& io, bool saveToStream)
+void C3DView::CScreenCoord::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {
@@ -72,7 +72,7 @@ void C3DView::CScreenCoord::serialize(std::stringstream& io, bool saveToStream)
     }
 }
 
-void C3DView::CResolution::serialize(std::stringstream& io, bool saveToStream)
+void C3DView::CResolution::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {
@@ -99,7 +99,7 @@ C3DView::CArg::~CArg()
     }
 }
 
-void C3DView::CArg::serialize(std::stringstream& io, bool saveToStream)
+void C3DView::CArg::serialize(CSerializer& io, bool saveToStream)
 {
     // Note deleteArgsManually_ should not be serialized, since this is used
     // to control delete after serialization
@@ -919,7 +919,7 @@ void C3DView::drawScene(ESelModes mode)
     }
 }
 
-void C3DView::serialize(std::stringstream& io, bool saveToStream,
+void C3DView::serialize(CSerializer& io, bool saveToStream,
                         std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects,
                         int* currentFrame, CDefaultAtomicProperties* defAtProp)
 {

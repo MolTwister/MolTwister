@@ -2,7 +2,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOST_CALLABLE void C3DRect::serialize(std::stringstream& io, bool saveToStream)
+HOST_CALLABLE void C3DRect::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {

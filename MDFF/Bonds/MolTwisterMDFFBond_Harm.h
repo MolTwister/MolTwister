@@ -16,7 +16,7 @@ public:
     CMDFFBond_Harm() : CMDFFBond() { k_ = 0.0; r0_ = 0.0; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "Harm"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

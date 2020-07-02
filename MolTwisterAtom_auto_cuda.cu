@@ -64,7 +64,7 @@ CAtom::~CAtom()
 {
 }
 
-void CAtom::serialize(std::stringstream& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList)
+void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList)
 {
     if(saveToStream)
     {

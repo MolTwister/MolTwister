@@ -2,10 +2,9 @@
 #include <vector>
 #include <string.h>
 #include <string>
-#include <iostream>
-#include <sstream>
 #include "Utilities/3DVector.h"
 #include "Utilities/CUDAGeneralizations.h"
+#include "Utilities/Serializer.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -30,7 +29,7 @@ public:
     ~CDefaultAtomicProperties();
     
 public:
-    void serialize(std::stringstream& io, bool saveToStream);
+    void serialize(CSerializer& io, bool saveToStream);
     void getCPKColor(std::string ID, double& r, double& g, double& b) const;
     double getWDWRadius(std::string ID) const;
     double getCovalentRadius(std::string ID) const;

@@ -4,7 +4,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFBond::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFBond::serialize(CSerializer& io, bool saveToStream)
 {
     int bondDetectionCriteria;
 

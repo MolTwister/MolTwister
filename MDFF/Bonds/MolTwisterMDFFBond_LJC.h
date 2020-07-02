@@ -9,7 +9,7 @@ public:
     CMDFFBond_LJC() : CMDFFBond() { epsilon_ = 0.0; sigma_ = 0.0; scale_ = 0.0; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "LJC"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

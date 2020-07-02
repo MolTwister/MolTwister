@@ -12,7 +12,7 @@ CMDFFAngleList::~CMDFFAngleList()
 {
 }
 
-void CMDFFAngleList::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFAngleList::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFList<CMDFFAngle>::serialize(io, saveToStream);
 

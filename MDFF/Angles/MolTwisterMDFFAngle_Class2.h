@@ -56,7 +56,7 @@ public:
     CMDFFAngle_Class2() : CMDFFAngle() { angleABCEqualToCBA_ = false; toRad_ = 0.017453292519943295; }
     
 public:
-    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "Class2"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 3; }

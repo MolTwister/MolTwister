@@ -4,7 +4,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFNonBonded::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFNonBonded::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {

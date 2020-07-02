@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, std::stringstream& stateContent, int ensamble)
+void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, CSerializer& stateContent, int ensamble)
 {
     CMolTwisterState state;
     state.serialize(stateContent, false);

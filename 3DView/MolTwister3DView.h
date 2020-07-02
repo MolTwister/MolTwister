@@ -2,13 +2,12 @@
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
 #include "Utilities/CUDAGeneralizations.h"
+#include "Utilities/Serializer.h"
 #include "DefaultAtomicProperties.h"
 #include "ExpLookup.h"
 #include "MolTwisterAtom.h"
 #include "MolTwisterGLObject.h"
 #include <memory>
-#include <iostream>
-#include <sstream>
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -24,7 +23,7 @@ private:
         CCamera() { pos_ = C3DVector(3.0, 0.0, 0.0); lookAt_ = C3DVector(0.0, 0.0, 0.0); up_ = C3DVector(0.0, 0.0, 1.0); zoomFactor_ = 1.0; }
 
     public:
-        void serialize(std::stringstream& io, bool saveToStream);
+        void serialize(CSerializer& io, bool saveToStream);
 
     public:
         C3DVector pos_;
@@ -41,7 +40,7 @@ private:
         CScreenCoord(const CScreenCoord& src) { x_ = src.x_; y_ = src.y_; }
 
     public:
-        void serialize(std::stringstream& io, bool saveToStream);
+        void serialize(CSerializer& io, bool saveToStream);
         double length2() const { return double(x_*x_ + y_*y_); }
         CScreenCoord operator-(const CScreenCoord& rhs) const { CScreenCoord ret(x_ - rhs.x_, y_ - rhs.y_); return ret; }
         CScreenCoord operator+(const CScreenCoord& rhs) const { CScreenCoord ret(x_ + rhs.x_, y_ + rhs.y_); return ret; }
@@ -58,7 +57,7 @@ private:
         CResolution() { sphere_ = 24; cylinder_ = 36; }
 
     public:
-        void serialize(std::stringstream& io, bool saveToStream);
+        void serialize(CSerializer& io, bool saveToStream);
 
     public:
         int sphere_;
@@ -73,7 +72,7 @@ private:
         ~CArg();
 
     public:
-        void serialize(std::stringstream& io, bool saveToStream);
+        void serialize(CSerializer& io, bool saveToStream);
 
     public:
         int argc_;
@@ -87,7 +86,7 @@ public:
     C3DView(int argc, char *argv[]);
     
 public:
-    void serialize(std::stringstream& io, bool saveToStream,
+    void serialize(CSerializer& io, bool saveToStream,
                    std::vector<std::shared_ptr<CAtom>>* atoms=nullptr, std::vector<std::shared_ptr<CGLObject>>* glObjects=nullptr,
                    int* currentFrame=nullptr, CDefaultAtomicProperties* defAtProp=nullptr);
 

@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDFFNonBonded_LJBuck::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFNonBonded_LJBuck::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFNonBonded::serialize(io, saveToStream);
 

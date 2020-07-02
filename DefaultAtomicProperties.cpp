@@ -16,7 +16,7 @@ CDefaultAtomicProperties::~CDefaultAtomicProperties()
     atomicProperties_.empty();
 }
 
-void CDefaultAtomicProperties::serialize(std::stringstream& io, bool saveToStream)
+void CDefaultAtomicProperties::serialize(CSerializer& io, bool saveToStream)
 {
     if(saveToStream)
     {

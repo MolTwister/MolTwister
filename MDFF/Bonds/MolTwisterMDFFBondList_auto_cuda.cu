@@ -13,7 +13,7 @@ CMDFFBondList::~CMDFFBondList()
 {
 }
 
-void CMDFFBondList::serialize(std::stringstream& io, bool saveToStream)
+void CMDFFBondList::serialize(CSerializer& io, bool saveToStream)
 {
     CMDFFList<CMDFFBond>::serialize(io, saveToStream);
 

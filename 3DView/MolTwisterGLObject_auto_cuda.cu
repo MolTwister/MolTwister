@@ -3,7 +3,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CGLObject::serialize(std::stringstream& io, bool saveToStream)
+void CGLObject::serialize(CSerializer& io, bool saveToStream)
 {
     int type;
 
@@ -43,7 +43,7 @@ CGLObjectLine::CGLObjectLine(const CGLObject& src) : CGLObject()
     }
 }
 
-void CGLObjectLine::serialize(std::stringstream& io, bool saveToStream)
+void CGLObjectLine::serialize(CSerializer& io, bool saveToStream)
 {
     CGLObject::serialize(io, saveToStream);
 

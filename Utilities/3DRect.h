@@ -1,8 +1,7 @@
 #pragma once
 #include "CUDAGeneralizations.h"
+#include "Serializer.h"
 #include "3DVector.h"
-#include <iostream>
-#include <sstream>
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -13,7 +12,7 @@ public:
     HOSTDEV_CALLABLE C3DRect(C3DVector rLow, C3DVector rHigh) { rLow_ = rLow; rHigh_ = rHigh; }
 
 public:
-    HOST_CALLABLE void serialize(std::stringstream& io, bool saveToStream);
+    HOST_CALLABLE void serialize(CSerializer& io, bool saveToStream);
     HOSTDEV_CALLABLE double getWidthX() const { return rHigh_.x_ - rLow_.x_; }
     HOSTDEV_CALLABLE double getWidthY() const { return rHigh_.y_ - rLow_.y_; }
     HOSTDEV_CALLABLE double getWidthZ() const { return rHigh_.z_ - rLow_.z_; }
