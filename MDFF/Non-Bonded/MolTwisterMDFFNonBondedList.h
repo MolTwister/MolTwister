@@ -16,6 +16,7 @@ public:
     ~CMDFFNonBondedList();
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     void add(const CMDFFNonBonded& nonBonded);
     void del(int index) { nonBonded_.erase(nonBonded_.begin() + index); }
     CMDFFNonBonded* get(int index) const { return nonBonded_[index].get(); }

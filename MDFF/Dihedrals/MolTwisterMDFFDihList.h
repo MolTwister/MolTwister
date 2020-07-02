@@ -14,6 +14,7 @@ public:
     ~CMDFFDihList();
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     void add(const CMDFFDih& dih);
     void del(int index) { dihedrals_.erase(dihedrals_.begin() + index); }
     CMDFFDih* get(int index) const { return dihedrals_[index].get(); }

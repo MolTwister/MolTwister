@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "Utilities/3DVector.h"
 #include "Utilities/CUDAGeneralizations.h"
 
@@ -11,7 +12,11 @@ public:
     
 public:
     CGLObject() { type_ = objNone; }
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CGLObject> createCopy() const = 0;
+
 public:
     EType getType() const { return type_; }
     
@@ -25,7 +30,11 @@ public:
     CGLObjectLine() : CGLObject() { type_ = objLine; }
     CGLObjectLine(C3DVector p1, C3DVector p2, float r, float g, float b);
     CGLObjectLine(const CGLObject& src);
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+    virtual std::shared_ptr<CGLObject> createCopy() const { auto ret = std::shared_ptr<CGLObject>(new CGLObjectLine); *(CGLObjectLine*)(ret.get()) = *this; return ret; }
+
 public:
     C3DVector p1_;
     C3DVector p2_;

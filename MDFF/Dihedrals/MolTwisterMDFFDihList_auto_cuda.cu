@@ -12,6 +12,45 @@ CMDFFDihList::~CMDFFDihList()
 {
 }
 
+void CMDFFDihList::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFList<CMDFFDih>::serialize(io, saveToStream);
+
+    // Note: we do not serialize registeredForceFieldTypes_, size this is always built in the
+    // class constructor. Moreover, it is used to read from the stream
+    if(saveToStream)
+    {
+        io << dihedrals_.size();
+        for(std::shared_ptr<CMDFFDih> item : dihedrals_)
+        {
+            io << item->getFFType();
+            item->serialize(io, saveToStream);
+        }
+    }
+    else
+    {
+        size_t size;
+
+        io >> size;
+        dihedrals_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            std::string ffType;
+            io >> ffType;
+            for(std::shared_ptr<CMDFFDih> item : registeredForceFieldTypes_)
+            {
+                if(item->getFFType() == ffType)
+                {
+                    std::shared_ptr<CMDFFDih> copy = item->createCopy();
+                    copy->serialize(io, saveToStream);
+                    dihedrals_[i] = copy;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void CMDFFDihList::add(const CMDFFDih& dih)
 {    
     std::shared_ptr<std::vector<int>> indices = indexFromNames(dih.getAtomInBond(0), dih.getAtomInBond(1), dih.getAtomInBond(2), dih.getAtomInBond(3));

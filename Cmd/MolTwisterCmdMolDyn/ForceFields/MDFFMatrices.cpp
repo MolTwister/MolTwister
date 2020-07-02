@@ -21,8 +21,12 @@ HOSTDEV_CALLABLE void CMDFFMatrices::CCellList::resetToDefaults()
 
 void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell)
 {
+    // :TODO: On GPU code, pbc is 0 for all values. It does not work to have a state into this place.
+    // Probably due to calling a function getPBC() on a system that has only been properly iniialized
+    // on the CPU. We need a better way of obtaining the PBC. Perhaps from within the CPU code.
+
     float R = rCutoff + dShell;
-    C3DRect pbc = state->view3D_->getPBC();
+    C3DRect pbc = state->view3D_->calcPBC();
     maxAtomsInCell_ = ceil(R*R*R);
 
     pbcWidthX_ = pbc.getWidthX();
@@ -169,8 +173,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     }
 
     // Prepare cell list vectors and associated properties
-    cellList.init(state_, rCutoff, dShell);
-    neighList.init(state_, cellList.getMaxAtomsInCell());
+    cellList.init(state, rCutoff, dShell);
+    neighList.init(state, cellList.getMaxAtomsInCell());
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();

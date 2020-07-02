@@ -9,6 +9,7 @@ public:
     CMDFFBond_Morse() : CMDFFBond() { D_ = 0.0; alpha_ = 0.0; r0_ = 0.0; }
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::string getFFType() const { return "Morse"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

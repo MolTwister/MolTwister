@@ -5,6 +5,36 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFDih::serialize(std::stringstream& io, bool saveToStream)
+{
+    int bondDetectionCriteria;
+
+    if(saveToStream)
+    {
+        bondDetectionCriteria = (int)bondDetectionCriteria_;
+
+        io << atomNamesToBond_[0];
+        io << atomNamesToBond_[1];
+        io << atomNamesToBond_[2];
+        io << atomNamesToBond_[3];
+        io << comments_;
+        io << bondDetectionCriteria;
+        io << detCritR0_;
+    }
+    else
+    {
+        io >> atomNamesToBond_[0];
+        io >> atomNamesToBond_[1];
+        io >> atomNamesToBond_[2];
+        io >> atomNamesToBond_[3];
+        io >> comments_;
+        io >> bondDetectionCriteria;
+        io >> detCritR0_;
+
+        bondDetectionCriteria_ = (EDetCrit)bondDetectionCriteria;
+    }
+}
+
 void CMDFFDih::parse(std::vector<std::string> arguments)
 {
     size_t nextArg = onParse(arguments);

@@ -16,6 +16,7 @@ public:
     CMDFFAngle_Harm() : CMDFFAngle() { k_ = 0.0; theta0_ = 0.0; toRad_ = 0.017453292519943295; }
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::string getFFType() const { return "Harm"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

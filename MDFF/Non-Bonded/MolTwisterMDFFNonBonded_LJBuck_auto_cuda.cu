@@ -5,6 +5,30 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFNonBonded_LJBuck::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFNonBonded::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << ljBuckType_;
+        io << sigma_;
+        io << epsilon_;
+        io << A_;
+        io << rho_;
+        io << C_;
+    }
+    else
+    {
+        io >> ljBuckType_;
+        io >> sigma_;
+        io >> epsilon_;
+        io >> A_;
+        io >> rho_;
+        io >> C_;
+    }
+}
+
 std::pair<bool, size_t> CMDFFNonBonded_LJBuck::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

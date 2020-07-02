@@ -14,6 +14,45 @@ CMDFFNonBondedList::~CMDFFNonBondedList()
 {
 }
 
+void CMDFFNonBondedList::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFList<CMDFFNonBonded>::serialize(io, saveToStream);
+
+    // Note: we do not serialize registeredForceFieldTypes_, size this is always built in the
+    // class constructor. Moreover, it is used to read from the stream
+    if(saveToStream)
+    {
+        io << nonBonded_.size();
+        for(std::shared_ptr<CMDFFNonBonded> item : nonBonded_)
+        {
+            io << item->getFFType();
+            item->serialize(io, saveToStream);
+        }
+    }
+    else
+    {
+        size_t size;
+
+        io >> size;
+        nonBonded_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            std::string ffType;
+            io >> ffType;
+            for(std::shared_ptr<CMDFFNonBonded> item : registeredForceFieldTypes_)
+            {
+                if(item->getFFType() == ffType)
+                {
+                    std::shared_ptr<CMDFFNonBonded> copy = item->createCopy();
+                    copy->serialize(io, saveToStream);
+                    nonBonded_[i] = copy;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void CMDFFNonBondedList::add(const CMDFFNonBonded& nonBonded)
 {
     std::shared_ptr<std::vector<int>> indices = indexFromNames(nonBonded.getAtomInBond(0), nonBonded.getAtomInBond(1));

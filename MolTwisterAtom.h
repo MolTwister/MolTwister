@@ -3,6 +3,8 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <iostream>
+#include <sstream>
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
 #include "Utilities/CUDAGeneralizations.h"
@@ -36,6 +38,7 @@ public:
     
     
 public:
+    void serialize(std::stringstream& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList=nullptr);
     int addFrame();
     int deleteFrame(int frame);
     void setPos(double X, double Y, double Z, int frame) { r_[frame].set(X, Y, Z); }

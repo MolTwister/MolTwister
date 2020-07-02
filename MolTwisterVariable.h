@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include <sstream>
 #include "MolTwisterAtom.h"
 
 class CVar
@@ -12,6 +14,7 @@ public:
     CVar(const CVar& src) { type_ = src.type_; name_ = src.name_; }
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     EType getType() const { return type_; }
     void setName(const char* name) { name_ = name; }
     void getName(std::string& name) const { name = name_; }
@@ -26,7 +29,10 @@ class CVarAtom : public CVar
 public:
     CVarAtom() : CVar() { type_ = typeAtom; atomIndex_ = -1; }
     CVarAtom(const CVar& src);
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+
 public:
     int atomIndex_;
 };
@@ -36,7 +42,10 @@ class CVarBond : public CVar
 public:
     CVarBond() : CVar() { type_ = typeBond; atomIndex1_ = -1; atomIndex2_ = -1; }
     CVarBond(const CVar& src);
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+
 public:
     int atomIndex1_;
     int atomIndex2_;
@@ -47,7 +56,10 @@ class CVarAngle : public CVar
 public:
     CVarAngle() : CVar() { type_ = typeAngle; atomIndex1_ = -1; atomIndex2_ = -1; atomIndex3_ = -1; }
     CVarAngle(const CVar& src);
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+
 public:
     int atomIndex1_;
     int atomIndex2_;
@@ -59,7 +71,10 @@ class CVarDihedral : public CVar
 public:
     CVarDihedral() : CVar() { type_ = typeDihedral; atomIndex1_ = -1; atomIndex2_ = -1; atomIndex3_ = -1; atomIndex4_ = -1; }
     CVarDihedral(const CVar& src);
-    
+
+public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
+
 public:
     int atomIndex1_;
     int atomIndex2_;

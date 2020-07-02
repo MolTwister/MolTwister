@@ -31,8 +31,7 @@ C3DView::CScreenCoord C3DView::coordLastClick_ = C3DView::CScreenCoord();
 C3DView::CScreenCoord C3DView::lastWindowSize_ = C3DView::CScreenCoord();
 C3DView::CResolution C3DView::primitiveRes_ = C3DView::CResolution();
 C3DView::CArg C3DView::progArg_ = C3DView::CArg();
-int C3DView::numSelRotColors_ = 0;
-C3DVector C3DView::selColorRot_[50] = {};
+std::vector<C3DVector> C3DView::selColorRot_ = std::vector<C3DVector>();
 CDefaultAtomicProperties* C3DView::defaultAtProp_ = nullptr;
 CExpLookup C3DView::expLookup_;
 bool C3DView::applyUserDefPBC_ = false;
@@ -40,6 +39,93 @@ C3DRect C3DView::pbcUser_ = C3DRect();
 C3DRect C3DView::pbc_ = C3DRect();
 int C3DView::numAtomsBeforeNoDraw_ = 7000;
 bool C3DView::fogEnabled_ = false;
+
+void C3DView::CCamera::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        pos_.serialize(io, saveToStream);
+        lookAt_.serialize(io, saveToStream);
+        up_.serialize(io, saveToStream);
+        io << zoomFactor_;
+    }
+    else
+    {
+        pos_.serialize(io, saveToStream);
+        lookAt_.serialize(io, saveToStream);
+        up_.serialize(io, saveToStream);
+        io >> zoomFactor_;
+    }
+}
+
+void C3DView::CScreenCoord::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << x_;
+        io << y_;
+    }
+    else
+    {
+        io >> x_;
+        io >> y_;
+    }
+}
+
+void C3DView::CResolution::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << sphere_;
+        io << cylinder_;
+    }
+    else
+    {
+        io >> sphere_;
+        io >> cylinder_;
+    }
+}
+
+C3DView::CArg::~CArg()
+{
+    if(deleteArgsManually_ && argv_)
+    {
+        for(int i=0; i<argc_; i++)
+        {
+            if(argv_[i]) delete [] argv_[i];
+        }
+
+        delete [] argv_;
+    }
+}
+
+void C3DView::CArg::serialize(std::stringstream& io, bool saveToStream)
+{
+    // Note deleteArgsManually_ should not be serialized, since this is used
+    // to control delete after serialization
+    if(saveToStream)
+    {
+        io << argc_;
+        for(int i=0; i<argc_; i++)
+        {
+            std::string arg = argv_[i];
+            io << arg;
+        }
+    }
+    else
+    {
+        int size;
+        io >> size;
+        argv_ = new char*[size];
+        for(int i=0; i<size; i++)
+        {
+            std::string arg;
+            io >> arg;
+            argv_[i] = new char[arg.size() + 1];
+            strcpy(argv_[i], arg.data());
+        }
+    }
+}
 
 C3DView::C3DView(int argc, char *argv[])
 {
@@ -193,42 +279,39 @@ void C3DView::initScene()
 
 void C3DView::initSelColorRot()
 {
-    int index = 0;
-    
-    selColorRot_[index++] = C3DVector(0.4, 0.4, 0.6);
-    selColorRot_[index++] = C3DVector(0.4, 0.6, 0.4);
-    selColorRot_[index++] = C3DVector(0.4, 0.6, 0.6);
-    selColorRot_[index++] = C3DVector(0.6, 0.4, 0.4);
-    selColorRot_[index++] = C3DVector(0.6, 0.4, 0.6);
-    selColorRot_[index++] = C3DVector(0.6, 0.6, 0.4);
-    selColorRot_[index++] = C3DVector(0.6, 0.6, 0.6);
+    selColorRot_.emplace_back(C3DVector(0.4, 0.4, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.4, 0.6, 0.4));
+    selColorRot_.emplace_back(C3DVector(0.4, 0.6, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.4, 0.4));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.4, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.6, 0.4));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.6, 0.6));
 
-    selColorRot_[index++] = C3DVector(0.0, 0.0, 0.6);
-    selColorRot_[index++] = C3DVector(0.0, 0.6, 0.0);
-    selColorRot_[index++] = C3DVector(0.0, 0.6, 0.6);
-    selColorRot_[index++] = C3DVector(0.6, 0.0, 0.0);
-    selColorRot_[index++] = C3DVector(0.6, 0.0, 0.6);
-    selColorRot_[index++] = C3DVector(0.6, 0.6, 0.0);
-    selColorRot_[index++] = C3DVector(0.6, 0.6, 0.6);
+    selColorRot_.emplace_back(C3DVector(0.0, 0.0, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.0, 0.6, 0.0));
+    selColorRot_.emplace_back(C3DVector(0.0, 0.6, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.0, 0.0));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.0, 0.6));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.6, 0.0));
+    selColorRot_.emplace_back(C3DVector(0.6, 0.6, 0.6));
 
-    selColorRot_[index++] = C3DVector(0.0, 0.0, 1.0);
-    selColorRot_[index++] = C3DVector(0.0, 1.0, 0.0);
-    selColorRot_[index++] = C3DVector(0.0, 1.0, 1.0);
-    selColorRot_[index++] = C3DVector(1.0, 0.0, 0.0);
-    selColorRot_[index++] = C3DVector(1.0, 0.0, 1.0);
-    selColorRot_[index++] = C3DVector(1.0, 1.0, 0.0);
-    selColorRot_[index++] = C3DVector(1.0, 1.0, 1.0);
+    selColorRot_.emplace_back(C3DVector(0.0, 0.0, 1.0));
+    selColorRot_.emplace_back(C3DVector(0.0, 1.0, 0.0));
+    selColorRot_.emplace_back(C3DVector(0.0, 1.0, 1.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 0.0, 0.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 0.0, 1.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 1.0, 0.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 1.0, 1.0));
 
-    selColorRot_[index++] = C3DVector(0.4, 0.4, 1.0);
-    selColorRot_[index++] = C3DVector(0.4, 1.0, 0.4);
-    selColorRot_[index++] = C3DVector(0.4, 1.0, 1.0);
-    selColorRot_[index++] = C3DVector(1.0, 0.4, 0.4);
-    selColorRot_[index++] = C3DVector(1.0, 0.4, 1.0);
-    selColorRot_[index++] = C3DVector(1.0, 1.0, 0.4);
-    selColorRot_[index++] = C3DVector(1.0, 1.0, 1.0);
-    
-    numSelRotColors_ = index;
+    selColorRot_.emplace_back(C3DVector(0.4, 0.4, 1.0));
+    selColorRot_.emplace_back(C3DVector(0.4, 1.0, 0.4));
+    selColorRot_.emplace_back(C3DVector(0.4, 1.0, 1.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 0.4, 0.4));
+    selColorRot_.emplace_back(C3DVector(1.0, 0.4, 1.0));
+    selColorRot_.emplace_back(C3DVector(1.0, 1.0, 0.4));
+    selColorRot_.emplace_back(C3DVector(1.0, 1.0, 1.0));
 }
+
 
 void C3DView::drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection, C3DVector selColor)
 {
@@ -536,7 +619,7 @@ void C3DView::drawMolecules(ESelModes mode)
             {            
                 if((*atoms_)[i]->isSelected())
                 {
-                    if(selCount >= numSelRotColors_) selCount = 0;
+                    if(selCount >= (int)selColorRot_.size()) selCount = 0;
                     drawAtom(currFrmAtVec(*(*atoms_)[i]), 0.3, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
                     selCount++;
                 }
@@ -590,7 +673,7 @@ void C3DView::drawSelectionHUD(ESelModes mode)
     {
         for(int i=0; i<(int)atoms_->size(); i++)
         {
-            if((*atoms_)[i]->isSelected() && (selCount < numSelRotColors_))
+            if((*atoms_)[i]->isSelected() && (selCount < (int)selColorRot_.size()))
             {
                 hasSel = true;
 
@@ -833,6 +916,50 @@ void C3DView::drawScene(ESelModes mode)
         drawGLObjects(mode);
         drawSelectionHUD(mode);
         drawIsoSurfaces(mode);
+    }
+}
+
+void C3DView::serialize(std::stringstream& io, bool saveToStream,
+                        std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects,
+                        int* currentFrame, CDefaultAtomicProperties* defAtProp)
+{
+    if(saveToStream)
+    {
+        io << updateRequested_;
+        io << fullscreenRequested_;
+        io << requestQuit_;
+        io << orthoView_;
+        io << viewAxes_;
+        io << viewIsoSurface_;
+        io << viewBondsAcrossPBC_;
+        camera_.serialize(io, saveToStream);
+        io << leftMButtonPressed_;
+        io << middleMButtonPressed_;
+        io << rightMButtonPressed_;
+        coordLastClick_.serialize(io, saveToStream);
+        lastWindowSize_.serialize(io, saveToStream);
+        primitiveRes_.serialize(io, saveToStream);
+        progArg_.serialize(io, saveToStream);
+
+        io << selColorRot_.size();
+        for(C3DVector item : selColorRot_)
+        {
+            item.serialize(io, saveToStream);
+        }
+
+        CExpLookup expLookup_;
+        bool applyUserDefPBC_;
+        C3DRect pbcUser_;
+        C3DRect pbc_;
+        int numAtomsBeforeNoDraw_;
+        bool fogEnabled_;
+    }
+    else
+    {
+        atoms_ = atoms;
+        glObjects_ = glObjects;
+        currentFrame_ = currentFrame;
+        defaultAtProp_ = defAtProp;
     }
 }
 

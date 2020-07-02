@@ -5,6 +5,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFBond_Morse::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFBond::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << D_;
+        io << alpha_;
+        io << r0_;
+    }
+    else
+    {
+        io >> D_;
+        io >> alpha_;
+        io >> r0_;
+    }
+}
+
 size_t CMDFFBond_Morse::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

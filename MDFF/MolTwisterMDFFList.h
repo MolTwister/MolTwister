@@ -11,6 +11,18 @@ public:
     CMDFFList() {}
     
 public:
+    virtual void serialize(std::stringstream&, bool saveToStream)
+    {
+        if(saveToStream)
+        {
+            // Plaeholder for future serialization!
+        }
+        else
+        {
+            // Plaeholder for future serialization!
+        }
+    }
+
     void appendToList(std::vector<std::shared_ptr<ArrayType>>& list, const std::vector<int>& indicesOfSimilarEntries, const ArrayType& itemToAppend) const
     {
         if(indicesOfSimilarEntries.size() == 0)

@@ -14,6 +14,7 @@ public:
     ~CMDFFAngleList();
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     void add(const CMDFFAngle& angle);
     void del(int index) { angles_.erase(angles_.begin() + index); }
     CMDFFAngle* get(int index) const { return angles_[index].get(); }

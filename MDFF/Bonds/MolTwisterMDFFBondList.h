@@ -15,6 +15,7 @@ public:
     ~CMDFFBondList();
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     void add(const CMDFFBond& bond);
     void del(int index) { bonds_.erase(bonds_.begin() + index); }
     CMDFFBond* get(int index) const { return bonds_[index].get(); }

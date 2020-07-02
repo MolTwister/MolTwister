@@ -2,6 +2,8 @@
 #include <vector>
 #include <string.h>
 #include <string>
+#include <iostream>
+#include <sstream>
 #include "Utilities/3DVector.h"
 #include "Utilities/CUDAGeneralizations.h"
 
@@ -13,12 +15,12 @@ public:
     class CAtomicProperty
     {
     public:
-        CAtomicProperty() { ID_[0] = '\0'; }
-        CAtomicProperty(const char* ID, C3DVector color, double sigma=1.0, double RCov=0.8) { strcpy(ID_, ID); color_ = color; sigma_ = sigma; RCov_ = RCov; }
+        CAtomicProperty() { }
+        CAtomicProperty(std::string ID, C3DVector color, double sigma=1.0, double RCov=0.8) { ID_ = ID; color_ = color; sigma_ = sigma; RCov_ = RCov; }
         
     public:
         C3DVector color_;
-        char ID_[10];
+        std::string ID_;
         double sigma_;
         double RCov_;
     };
@@ -28,6 +30,7 @@ public:
     ~CDefaultAtomicProperties();
     
 public:
+    void serialize(std::stringstream& io, bool saveToStream);
     void getCPKColor(std::string ID, double& r, double& g, double& b) const;
     double getWDWRadius(std::string ID) const;
     double getCovalentRadius(std::string ID) const;

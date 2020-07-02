@@ -3,6 +3,22 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CGLObject::serialize(std::stringstream& io, bool saveToStream)
+{
+    int type;
+
+    if(saveToStream)
+    {
+        type = (int)type_;
+        io << type;
+    }
+    else
+    {
+        io >> type;
+        type_ = (EType)type;
+    }
+}
+
 CGLObjectLine::CGLObjectLine(C3DVector p1, C3DVector p2, float r, float g, float b) : CGLObject()
 { 
     type_ = objLine;
@@ -24,6 +40,28 @@ CGLObjectLine::CGLObjectLine(const CGLObject& src) : CGLObject()
         
         type_ = objLine;
         *this = *p;
+    }
+}
+
+void CGLObjectLine::serialize(std::stringstream& io, bool saveToStream)
+{
+    CGLObject::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        p1_.serialize(io, saveToStream);
+        p2_.serialize(io, saveToStream);
+        io << color_[0];
+        io << color_[1];
+        io << color_[2];
+    }
+    else
+    {
+        p1_.serialize(io, saveToStream);
+        p2_.serialize(io, saveToStream);
+        io >> color_[0];
+        io >> color_[1];
+        io >> color_[2];
     }
 }
 

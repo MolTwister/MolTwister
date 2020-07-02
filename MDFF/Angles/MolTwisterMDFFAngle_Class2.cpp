@@ -4,6 +4,48 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFAngle_Class2::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFAngle::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << Ea_.theta0_;
+        io << Ea_.K2_;
+        io << Ea_.K3_;
+        io << Ea_.K4_;
+
+        io << Ebb_.M_;
+        io << Ebb_.r1_;
+        io << Ebb_.r2_;
+
+        io << Eba_.N1_;
+        io << Eba_.N2_;
+        io << Eba_.r1_;
+        io << Eba_.r2_;
+
+        io << toRad_;
+    }
+    else
+    {
+        io >> Ea_.theta0_;
+        io >> Ea_.K2_;
+        io >> Ea_.K3_;
+        io >> Ea_.K4_;
+
+        io >> Ebb_.M_;
+        io >> Ebb_.r1_;
+        io >> Ebb_.r2_;
+
+        io >> Eba_.N1_;
+        io >> Eba_.N2_;
+        io >> Eba_.r1_;
+        io >> Eba_.r2_;
+
+        io >> toRad_;
+    }
+}
+
 size_t CMDFFAngle_Class2::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

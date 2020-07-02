@@ -4,6 +4,22 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFNonBonded::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << atomNamesToBond_[0];
+        io << atomNamesToBond_[1];
+        io << comments_;
+    }
+    else
+    {
+        io >> atomNamesToBond_[0];
+        io >> atomNamesToBond_[1];
+        io >> comments_;
+    }
+}
+
 bool CMDFFNonBonded::parse(std::vector<std::string> arguments)
 {
     std::pair<bool, size_t> nextArg = onParse(arguments);

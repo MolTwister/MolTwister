@@ -4,6 +4,22 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFBond_Harm::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFBond::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << k_;
+        io << r0_;
+    }
+    else
+    {
+        io >> k_;
+        io >> r0_;
+    }
+}
+
 size_t CMDFFBond_Harm::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

@@ -6,6 +6,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFNonBonded_Buck::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFNonBonded::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << A_;
+        io << rho_;
+        io << C_;
+    }
+    else
+    {
+        io >> A_;
+        io >> rho_;
+        io >> C_;
+    }
+}
+
 std::pair<bool, size_t> CMDFFNonBonded_Buck::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

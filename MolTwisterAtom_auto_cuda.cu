@@ -1,5 +1,6 @@
 #include <iostream>
 #include <math.h>
+#include <assert.h>
 #include "Utilities/3DRect.h"
 #include "MolTwisterAtom.h"
 
@@ -61,6 +62,89 @@ CAtom::CAtom(const CAtom& src)
 
 CAtom::~CAtom()
 {
+}
+
+void CAtom::serialize(std::stringstream& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList)
+{
+    if(saveToStream)
+    {
+        io << r_.size();
+        for(C3DVector item : r_)
+        {
+            item.serialize(io, saveToStream);
+        }
+
+        io << bonds_.size();
+        for(CAtom* atom : bonds_)
+        {
+            io << atom->atomIndex_;
+        }
+
+        io << listOf1to4Connections_.size();
+        for(C1to4Conn item : listOf1to4Connections_)
+        {
+            io << item.atom_->atomIndex_;
+            io << item.numBondsAway_;
+        }
+
+        io << Q_;
+        io << sigma_;
+        io << m_;
+        io << resname_;
+        io << isMobile_;
+        io << ignoreBondFrom_;
+        io << ID_;
+        io << atomIndex_;
+        io << molIndex_;
+        io << isSelected_;
+    }
+    else
+    {
+        assert(newAtomList != nullptr);
+
+        size_t size;
+
+        io >> size;
+        r_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            r_[i].serialize(io, saveToStream);
+        }
+
+        io >> size;
+        bonds_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            int atomIndex;
+            io >> atomIndex;
+            bonds_[i] = (*newAtomList)[atomIndex].get();
+        }
+
+        io >> size;
+        listOf1to4Connections_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            C1to4Conn conn;
+
+            int atomIndex;
+            io >> atomIndex;
+            conn.atom_ = (*newAtomList)[atomIndex].get();
+            io >> conn.numBondsAway_;
+
+            listOf1to4Connections_[i] = conn;
+        }
+
+        io >> Q_;
+        io >> sigma_;
+        io >> m_;
+        io >> resname_;
+        io >> isMobile_;
+        io >> ignoreBondFrom_;
+        io >> ID_;
+        io >> atomIndex_;
+        io >> molIndex_;
+        io >> isSelected_;
+    }
 }
 
 int CAtom::addFrame()

@@ -9,6 +9,7 @@ public:
     CMDFFDih_Harm() : CMDFFDih() { K_ = 0.0; D_ = 1; N_ = 0; }
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::string getFFType() const { return "Harm"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }

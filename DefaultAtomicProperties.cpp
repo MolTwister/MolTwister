@@ -16,6 +16,36 @@ CDefaultAtomicProperties::~CDefaultAtomicProperties()
     atomicProperties_.empty();
 }
 
+void CDefaultAtomicProperties::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << atomicProperties_.size();
+        for(CAtomicProperty item : atomicProperties_)
+        {
+            item.color_.serialize(io, saveToStream);
+            io << item.ID_;
+            io << item.sigma_;
+            io << item.RCov_;
+        }
+    }
+    else
+    {
+        size_t size;
+        io >> size;
+        atomicProperties_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            CAtomicProperty prop;
+            prop.color_.serialize(io, saveToStream);
+            io >> prop.ID_;
+            io >> prop.sigma_;
+            io >> prop.RCov_;
+            atomicProperties_[i] = prop;
+        }
+    }
+}
+
 void CDefaultAtomicProperties::initAtomicPropertiesArray()
 {
     // Initialize CPK colors, van der Waals radius (always place two character ID's berfore single 

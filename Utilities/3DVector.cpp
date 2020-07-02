@@ -280,6 +280,24 @@ HOSTDEV_CALLABLE bool C3DVector::operator==(const C3DVector& rhs) const
     return true;
 }
 
+HOST_CALLABLE void C3DVector::serialize(std::stringstream& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << x_;
+        io << y_;
+        io << z_;
+        io << cmpLimit_;
+    }
+    else
+    {
+        io >> x_;
+        io >> y_;
+        io >> z_;
+        io >> cmpLimit_;
+    }
+}
+
 HOSTDEV_CALLABLE void C3DVector::copy(const C3DVector& src)
 {
     x_ = src.x_;

@@ -5,6 +5,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFDih_Harm::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFDih::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << K_;
+        io << D_;
+        io << N_;
+    }
+    else
+    {
+        io >> K_;
+        io >> D_;
+        io >> N_;
+    }
+}
+
 size_t CMDFFDih_Harm::onParse(std::vector<std::string> arguments)
 {    
     size_t arg = 0;

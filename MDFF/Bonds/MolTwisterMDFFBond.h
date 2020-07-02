@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <iostream>
+#include <sstream>
 #include "Utilities/3DVector.h"
 #include "Utilities/CUDAGeneralizations.h"
 
@@ -26,6 +28,7 @@ public:
     virtual ~CMDFFBond() {}
     
 public:
+    virtual void serialize(std::stringstream& io, bool saveToStream);
     virtual std::string getFFType() const = 0;
     virtual std::string getLammpsDef(int index, bool convertToCal) const = 0;
     virtual int getNumLammpsDef() const = 0;

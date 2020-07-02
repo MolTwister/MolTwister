@@ -22,8 +22,6 @@ public:
         C3DVector r_;
         C3DVector p_;
         int typeIndex_;
-        C3DVector* devNeighList_;
-        int neighListSize_;
     };
 
     class CCellListIndex

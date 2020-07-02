@@ -1,4 +1,6 @@
 #pragma once
+#include <iostream>
+#include <sstream>
 #include "CUDAGeneralizations.h"
 
 BEGIN_CUDA_COMPATIBLE()
@@ -13,6 +15,7 @@ public:
     HOSTDEV_CALLABLE C3DVector(const C3DVector& src) { copy(src); }
     
 public:
+    HOST_CALLABLE void serialize(std::stringstream& io, bool saveToStream);
     HOSTDEV_CALLABLE void copy(const C3DVector& src);
     HOSTDEV_CALLABLE void set(double x, double y, double z) { x_=x; y_=y; z_=z; }
     HOSTDEV_CALLABLE void set(const double* r) { x_=r[0]; y_=r[1]; z_=r[2]; }

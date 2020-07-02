@@ -7,6 +7,8 @@
 #include "MolTwisterAtom.h"
 #include "MolTwisterGLObject.h"
 #include <memory>
+#include <iostream>
+#include <sstream>
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -20,7 +22,10 @@ private:
     {
     public:
         CCamera() { pos_ = C3DVector(3.0, 0.0, 0.0); lookAt_ = C3DVector(0.0, 0.0, 0.0); up_ = C3DVector(0.0, 0.0, 1.0); zoomFactor_ = 1.0; }
-        
+
+    public:
+        void serialize(std::stringstream& io, bool saveToStream);
+
     public:
         C3DVector pos_;
         C3DVector lookAt_;
@@ -34,8 +39,9 @@ private:
         CScreenCoord() { x_ = y_ = 0; }
         CScreenCoord(int X, int Y) { x_ = X; y_ = Y; }
         CScreenCoord(const CScreenCoord& src) { x_ = src.x_; y_ = src.y_; }
-        
+
     public:
+        void serialize(std::stringstream& io, bool saveToStream);
         double length2() const { return double(x_*x_ + y_*y_); }
         CScreenCoord operator-(const CScreenCoord& rhs) const { CScreenCoord ret(x_ - rhs.x_, y_ - rhs.y_); return ret; }
         CScreenCoord operator+(const CScreenCoord& rhs) const { CScreenCoord ret(x_ + rhs.x_, y_ + rhs.y_); return ret; }
@@ -50,7 +56,10 @@ private:
     {
     public:
         CResolution() { sphere_ = 24; cylinder_ = 36; }
-        
+
+    public:
+        void serialize(std::stringstream& io, bool saveToStream);
+
     public:
         int sphere_;
         int cylinder_;
@@ -60,17 +69,28 @@ private:
     {
     public:
         CArg() { argc_ = 0; argv_ = nullptr; }
-        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; }
-        
+        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; deleteArgsManually_ = false; }
+        ~CArg();
+
+    public:
+        void serialize(std::stringstream& io, bool saveToStream);
+
     public:
         int argc_;
         char** argv_;
+
+    private:
+        bool deleteArgsManually_;
     };
     
 public:
     C3DView(int argc, char *argv[]);
     
 public:
+    void serialize(std::stringstream& io, bool saveToStream,
+                   std::vector<std::shared_ptr<CAtom>>* atoms=nullptr, std::vector<std::shared_ptr<CGLObject>>* glObjects=nullptr,
+                   int* currentFrame=nullptr, CDefaultAtomicProperties* defAtProp=nullptr);
+
     void show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp);
     void requestUpdate(bool updateCameraPos) { if(updateCameraPos) updateRequested_ = 2; else updateRequested_ = 1; }
     void requestFullScreen(bool on) { if(on) fullscreenRequested_ = 1; else fullscreenRequested_ = 2; }
@@ -134,8 +154,7 @@ private:
     static CScreenCoord lastWindowSize_;
     static CResolution primitiveRes_;
     static CArg progArg_;
-    static int numSelRotColors_;
-    static C3DVector selColorRot_[50];
+    static std::vector<C3DVector> selColorRot_;
     static CDefaultAtomicProperties* defaultAtProp_;
     static CExpLookup expLookup_;
     static bool applyUserDefPBC_;

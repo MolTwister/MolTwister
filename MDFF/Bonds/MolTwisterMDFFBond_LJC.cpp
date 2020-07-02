@@ -4,6 +4,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFBond_LJC::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFBond::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << epsilon_;
+        io << sigma_;
+        io << scale_;
+    }
+    else
+    {
+        io >> epsilon_;
+        io >> sigma_;
+        io >> scale_;
+    }
+}
+
 size_t CMDFFBond_LJC::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

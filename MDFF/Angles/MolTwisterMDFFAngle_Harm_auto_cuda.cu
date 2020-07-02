@@ -6,6 +6,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFAngle_Harm::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFAngle::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << k_;
+        io << theta0_;
+        io << toRad_;
+    }
+    else
+    {
+        io >> k_;
+        io >> theta0_;
+        io >> toRad_;
+    }
+}
+
 size_t CMDFFAngle_Harm::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

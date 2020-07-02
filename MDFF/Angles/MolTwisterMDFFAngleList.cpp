@@ -12,6 +12,45 @@ CMDFFAngleList::~CMDFFAngleList()
 {
 }
 
+void CMDFFAngleList::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFList<CMDFFAngle>::serialize(io, saveToStream);
+
+    // Note: we do not serialize registeredForceFieldTypes_, size this is always built in the
+    // class constructor. Moreover, it is used to read from the stream
+    if(saveToStream)
+    {
+        io << angles_.size();
+        for(std::shared_ptr<CMDFFAngle> item : angles_)
+        {
+            io << item->getFFType();
+            item->serialize(io, saveToStream);
+        }
+    }
+    else
+    {
+        size_t size;
+
+        io >> size;
+        angles_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            std::string ffType;
+            io >> ffType;
+            for(std::shared_ptr<CMDFFAngle> item : registeredForceFieldTypes_)
+            {
+                if(item->getFFType() == ffType)
+                {
+                    std::shared_ptr<CMDFFAngle> copy = item->createCopy();
+                    copy->serialize(io, saveToStream);
+                    angles_[i] = copy;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 void CMDFFAngleList::add(const CMDFFAngle& angle)
 {
     std::shared_ptr<std::vector<int>> indices = indexFromNames(angle.getAtomInBond(0), angle.getAtomInBond(1), angle.getAtomInBond(2));

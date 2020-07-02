@@ -5,6 +5,24 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFNonBonded_LJ::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFNonBonded::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << sigma_;
+        io << epsilon_;
+        io << alpha_;
+    }
+    else
+    {
+        io >> sigma_;
+        io >> epsilon_;
+        io >> alpha_;
+    }
+}
+
 std::pair<bool, size_t> CMDFFNonBonded_LJ::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;

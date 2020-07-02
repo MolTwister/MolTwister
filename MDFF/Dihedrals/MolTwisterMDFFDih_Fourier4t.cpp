@@ -5,6 +5,26 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+void CMDFFDih_Fourier4t::serialize(std::stringstream& io, bool saveToStream)
+{
+    CMDFFDih::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << V_[0];
+        io << V_[1];
+        io << V_[2];
+        io << V_[3];
+    }
+    else
+    {
+        io >> V_[0];
+        io >> V_[1];
+        io >> V_[2];
+        io >> V_[3];
+    }
+}
+
 size_t CMDFFDih_Fourier4t::onParse(std::vector<std::string> arguments)
 {
     size_t arg = 0;
