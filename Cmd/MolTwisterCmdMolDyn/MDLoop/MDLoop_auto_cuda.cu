@@ -131,7 +131,7 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t Particles, N = %i\r\n", SimBox.N);
     COut::Printf("\t NH RESPA, n = %i\r\n", SimBox.NH_T.n);
     COut::Printf("\t NH Chain length, M = %i\r\n", SimBox.NH_T.M);
-    COut::Printf("\t Init. box length, L = %g Å\r\n", SimBox.Lmax);
+    COut::Printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g Å\r\n", SimBox.LmaxX, SimBox.LmaxY, SimBox.LmaxZ);
     COut::Printf("\t Dimension, d = %i\r\n", SimBox.dim);
     COut::Printf("\t----------------------------\r\n\r\n");
     COut::Printf("\t%-15s%-15s%-15s%-20s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]", "Fmax[internal]");

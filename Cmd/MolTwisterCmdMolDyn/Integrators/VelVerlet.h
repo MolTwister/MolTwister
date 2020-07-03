@@ -17,10 +17,10 @@ public:
     virtual ~CVelVerlet();
 
 public:
-    void Propagator(int N, int dim, double dt, double Lmax, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, bool bNPT=false);
+    void Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, bool bNPT=false);
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles);
     void SetRandMom(double tau);
-    double GetV(double Lmax, bool bNPT=false) const;
+    double GetV(double LmaxX, double LmaxY, double LmaxZ, bool bNPT=false) const;
 
 private:
     void CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F);

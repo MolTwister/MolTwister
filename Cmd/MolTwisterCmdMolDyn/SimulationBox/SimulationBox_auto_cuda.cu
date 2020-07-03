@@ -9,7 +9,9 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut) : VelVerle
     state_ = state;
 
     N = 100;
-    Lmax = 40.0;         // [Å]
+    LmaxX = 40.0;        // [Å]
+    LmaxY = 40.0;        // [Å]
+    LmaxZ = 40.0;        // [Å]
     dt = 1.0 / Conv_t;   // [fs]
     dim = dim3D;
     bNegMomHalfWay = false;
@@ -196,7 +198,9 @@ void CSimulationBox::InitSystem(int iM)
     double tauP = 5000.0*dt;
     NH_T.tau = 20.0*dt;
     NH_P.tau = tauP;
-    Lmax = dBoxLen;
+    LmaxX = dBoxLen;
+    LmaxY = dBoxLen;
+    LmaxZ = dBoxLen;
     dim = dim3D;
     ResizeArrays();
     NH_T.SetRandNHPos();
@@ -208,7 +212,7 @@ void CSimulationBox::InitSystem(int iM)
     VelVerlet.W = NH_P.T*tauP*tauP;
     VelVerlet.SetRandMom(tauP);
     VelVerlet.P = 10.0 / Conv_press;
-    VelVerlet.V0 = Lmax*Lmax*Lmax;
+    VelVerlet.V0 = LmaxX*LmaxY*LmaxZ;
 
     copyPosFromState();
 }
@@ -353,7 +357,7 @@ double CSimulationBox::CalcTemp()
 
 double CSimulationBox::CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const
 {
-    double  V = VelVerlet.GetV(Lmax, bNPTEnsemble);
+    double  V = VelVerlet.GetV(LmaxX, LmaxY, LmaxZ, bNPTEnsemble);
     double  sum = 0.0;
     
     for(int k=0; k<N; k++)
