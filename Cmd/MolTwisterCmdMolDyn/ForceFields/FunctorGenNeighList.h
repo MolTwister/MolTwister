@@ -20,11 +20,14 @@ private:
     CMDFFMatrices::CCellListIndex* devAtomCellIndicesRaw_;
     int* devNeighList_;
     int* devNeighListCount_;
+    CMDFFMatrices::CAtom* devAtomList_;
+    int numAtoms_;
     int cellCountX_;
     int cellCountY_;
     int cellCountZ_;
     int maxNeighbors_;
     int maxAtomsInCell_;
+    float rCutoff2_;
 };
 
 END_CUDA_COMPATIBLE()

@@ -340,8 +340,10 @@ bool CMolTwister::_run()
                 if(system(nullptr))
                 {
                     printf("\r\n");
-                    system(commandLine.data());
-                    foundCmd = true;
+                    if(system(commandLine.data()) != -1)
+                    {
+                        foundCmd = true;
+                    }
                 }
                 
                 if(!foundCmd)

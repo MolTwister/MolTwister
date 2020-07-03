@@ -67,7 +67,7 @@ private:
     class CArg
     {
     public:
-        CArg() { argc_ = 0; argv_ = nullptr; }
+        CArg() { argc_ = 0; argv_ = nullptr; deleteArgs_ = false; }
         CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; deleteArgs_ = false; }
         ~CArg();
 

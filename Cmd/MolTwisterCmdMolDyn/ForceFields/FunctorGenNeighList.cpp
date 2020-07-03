@@ -10,6 +10,14 @@ HOSTDEV_CALLABLE CFunctorGenNeighList::CFunctorGenNeighList()
     devAtomCellIndicesRaw_ = nullptr;
     devNeighList_ = nullptr;
     devNeighListCount_ = nullptr;
+    devAtomList_ = nullptr;
+    numAtoms_ = 0;
+    cellCountX_ = 0;;
+    cellCountY_ = 0;
+    cellCountZ_ = 0;
+    maxNeighbors_ = 0;
+    maxAtomsInCell_ = 0;
+    rCutoff2_ = 0.0f;
 }
 
 void CFunctorGenNeighList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
@@ -21,17 +29,27 @@ void CFunctorGenNeighList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     devNeighList_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighList_[0]);
     devNeighListCount_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighListCount_[0]);
 
+    devAtomList_ = mtraw_pointer_cast(&ffMatrices.devAtomList_[0]);
+    numAtoms_ = (int)ffMatrices.devAtomList_.size();
+
     cellCountX_ = ffMatrices.cellList_.getCellCountX();
     cellCountY_ = ffMatrices.cellList_.getCellCountY();
     cellCountZ_ = ffMatrices.cellList_.getCellCountZ();
 
     maxNeighbors_ = ffMatrices.neighList_.getMaxNeighbors();
     maxAtomsInCell_ = ffMatrices.cellList_.getMaxAtomsInCell();
+
+    rCutoff2_ = ffMatrices.getRCutoff();
+    rCutoff2_*= rCutoff2_;
 }
 
 HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom)
 {
+    if(atom.index_ >= numAtoms_) return -1;
     CMDFFMatrices::CCellListIndex cellIndex = devAtomCellIndicesRaw_[atom.index_];
+
+    int maxCellListCountSize = cellCountX_ * cellCountY_ * cellCountZ_;
+    int maxCellListSize = maxCellListCountSize * maxAtomsInCell_;
 
     int ixl = cellIndex.ix_ - 1;
     int ixh = ixl + 2;
@@ -52,16 +70,42 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
             for(int iz=izl; iz<=izh; iz++)
             {
                 Iz = size_t((iz >= 0) ? ((iz < izh) ? iz : 0) : cellCountZ_ - 1);
-                int numAtomsInCell = devCellListCount_[CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, (size_t)cellCountX_, (size_t)cellCountY_)];
-                for(size_t i=0; i<(size_t)numAtomsInCell; i++)
+                size_t cellIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, (size_t)cellCountX_, (size_t)cellCountY_);
+                if((int)cellIndex < maxCellListCountSize)
                 {
-                    int atomIndex = devCellList_[CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, i, (size_t)maxAtomsInCell_, (size_t)cellCountX_, (size_t)cellCountY_)];
-                    int currentNeigh = devNeighListCount_[atom.index_];
-                    if(currentNeigh < maxNeighbors_)
+                    int numAtomsInCell = devCellListCount_[cellIndex];
+                    for(size_t i=0; i<(size_t)numAtomsInCell; i++)
                     {
-                        devNeighList_[neighIndexToFlatIndex(atom.index_, currentNeigh, maxNeighbors_)] = atomIndex;
-                        devNeighListCount_[atom.index_]++;
+                        size_t cellListEntryIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, i, (size_t)maxAtomsInCell_, (size_t)cellCountX_, (size_t)cellCountY_);
+                        if((int)cellListEntryIndex < maxCellListSize)
+                        {
+                            int atomIndex = devCellList_[cellListEntryIndex];
+                            if(atomIndex < numAtoms_)
+                            {
+                                C3DVector r = devAtomList_[atomIndex].r_;
+                                double r2 = r.norm2();
+
+                                int currentNeigh = devNeighListCount_[atom.index_];
+                                if((currentNeigh < maxNeighbors_) && (r2 < rCutoff2_))
+                                {
+                                    devNeighList_[neighIndexToFlatIndex(atom.index_, currentNeigh, maxNeighbors_)] = atomIndex;
+                                    devNeighListCount_[atom.index_]++;
+                                }
+                            }
+                            else
+                            {
+                                return -4;
+                            }
+                        }
+                        else
+                        {
+                            return -3;
+                        }
                     }
+                }
+                else
+                {
+                    return -2;
                 }
             }
         }

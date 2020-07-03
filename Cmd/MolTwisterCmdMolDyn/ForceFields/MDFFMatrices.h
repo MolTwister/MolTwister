@@ -39,7 +39,7 @@ public:
     class CCellList
     {
     public:
-        HOSTDEV_CALLABLE CCellList() { resetToDefaults(); }
+        HOST_CALLABLE CCellList();
 
     public:
         void init(CMolTwisterState* state, float rCutoff, float dShell);
@@ -58,9 +58,6 @@ public:
         HOSTDEV_CALLABLE int getCellCountZ() const { return cellCountZ_; }
 
         HOSTDEV_CALLABLE int getMaxAtomsInCell() const { return maxAtomsInCell_; }
-
-    private:
-        HOSTDEV_CALLABLE void resetToDefaults();
 
     public:
         mtdevice_vector<int> devCellList_;
@@ -83,15 +80,12 @@ public:
     class CNeighList
     {
     public:
-        HOSTDEV_CALLABLE CNeighList() { resetToDefaults(); }
+        HOST_CALLABLE CNeighList();
 
     public:
         void init(CMolTwisterState* state, int maxNeighbors);
         void resetNeighList();
         HOSTDEV_CALLABLE int getMaxNeighbors() const { return maxNeighbours_; }
-
-    private:
-        HOSTDEV_CALLABLE void resetToDefaults();
 
     public:
         mtdevice_vector<int> devNeighList_;
@@ -187,6 +181,7 @@ public:
     int getNumAtoms() const { return Natoms_; }
     int getNumBonds() const { return Nbonds_; }
     int getNumAtomTypes() const { return NatomTypes_; }
+    float getRCutoff() const { return rCutoff_; }
     void updateAtomList(const mthost_vector<CParticle3D>& atomList);
     void genNeighList();
 

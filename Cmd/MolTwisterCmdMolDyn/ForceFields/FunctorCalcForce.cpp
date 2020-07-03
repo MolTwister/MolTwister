@@ -1,4 +1,5 @@
 #include "FunctorCalcForce.h"
+#include "FunctorGenNeighList.h"
 #include <float.h>
 #include <math.h>
 
@@ -11,6 +12,7 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     Ly_ = Ly;
     Lz_ = Lz;
     cutF_ = cutF;
+    maxNeighbours_ = 0;
 
     devAtomList_ = nullptr;
     devNonBondFFMatrix_ = nullptr;
@@ -22,6 +24,8 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     devDihedralList_ = nullptr;
     devDihedralFFList_ = nullptr;
     devLastErrorList_ = nullptr;
+    devNeighList_ = nullptr;
+    devNeighListCount_ = nullptr;
 }
 
 void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
@@ -36,10 +40,14 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     devDihedralList_ = mtraw_pointer_cast(&ffMatrices.devDihedralList_[0]);
     devDihedralFFList_ = mtraw_pointer_cast(&ffMatrices.devDihedralFFList_[0]);
     devLastErrorList_ = mtraw_pointer_cast(&ffMatrices.devLastErrorList_[0]);
+    devNeighList_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighList_[0]);
+    devNeighListCount_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighListCount_[0]);
 
     Natoms_ = ffMatrices.getNumAtoms();
     Natomtypes_ = ffMatrices.getNumAtomTypes();
     Nbonds_ = ffMatrices.getNumBonds();
+
+    maxNeighbours_ = ffMatrices.neighList_.getMaxNeighbors();
 }
 
 HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
@@ -59,12 +67,14 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     int k = atom.index_;
     devLastErrorList_[k].reset();
     C3DVector r_k = devAtomList_[k].r_;
-    for(int i=0; i<Natoms_; i++)
+    int numNeighbors = devNeighListCount_[atom.index_];
+    for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
+        int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
         C3DVector r_i = devAtomList_[i].r_;
 
         Fpi+= calcForceNonBondedOn_r_k(r_k, r_i, k, i);
-
+/*
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
 
@@ -74,7 +84,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
         if(dim_ < 3) continue;
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
-        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
     }
     F+= Fpi;
 

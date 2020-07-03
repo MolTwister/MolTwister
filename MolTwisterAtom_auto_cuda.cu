@@ -466,15 +466,9 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsAtPBCBdry1, std::vecto
 {
     int indexCurrBdry = 0;
     double length=0.0;
-    double distPBC=0.0, distPBC_2=0.0;
     std::vector<CAtom*>* atomsAtPBCBdry[2] = { &atomsAtPBCBdry1, &atomsAtPBCBdry2 };
     std::map<CAtom*, int> visitedAtoms;
-    
-    if(pbcDir == dirX) distPBC = pbc.getWidthX();
-    if(pbcDir == dirY) distPBC = pbc.getWidthY();
-    if(pbcDir == dirZ) distPBC = pbc.getWidthZ();
-    distPBC_2 = distPBC / 2.0;
-    
+
     atomsAtPBCBdry1.clear();
     atomsAtPBCBdry2.clear();
     

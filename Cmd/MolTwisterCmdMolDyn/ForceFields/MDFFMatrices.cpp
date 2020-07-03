@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOSTDEV_CALLABLE void CMDFFMatrices::CCellList::resetToDefaults()
+HOST_CALLABLE CMDFFMatrices::CCellList::CCellList()
 {
     pbcWidthX_ = 0;
     pbcWidthY_ = 0;
@@ -56,7 +56,7 @@ void CMDFFMatrices::CCellList::resetCellList()
     }
 }
 
-HOSTDEV_CALLABLE void CMDFFMatrices::CNeighList::resetToDefaults()
+HOST_CALLABLE CMDFFMatrices::CNeighList::CNeighList()
 {
     maxNeighbours_ = 0;
 }
@@ -119,12 +119,15 @@ void CMDFFMatrices::genNeighList()
     CFunctorGenCellList genCellList;
     genCellList.setForceFieldMatrices(*this);
     mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), cellList_.devAtomCellIndices_.begin(), genCellList);
+    mtcudaDeviceSynchronize();
+    genCellList.assembleCellList(cellList_.devAtomCellIndices_);
 
     // Generate neighborlists
     neighList_.resetNeighList();
     CFunctorGenNeighList genNeighList;
     genNeighList.setForceFieldMatrices(*this);
     mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), neighList_.devNeighListCount_.begin(), genNeighList);
+    mtcudaDeviceSynchronize();
 }
 
 void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const

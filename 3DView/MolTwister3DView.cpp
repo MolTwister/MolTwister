@@ -1434,7 +1434,7 @@ void C3DView::pickAtoms(int x, int y)
     // and search for object in selection that is
     // closest to the viewport (i.e. smalledt depth
     // value in the z-buffer)
-    float fZ1, fZ2, minZ=0.0f;
+    float fZ1, minZ=0.0f;
     int selAtIndex=-1;
     
     hits = glRenderMode(GL_RENDER);
@@ -1447,7 +1447,6 @@ void C3DView::pickAtoms(int x, int y)
         ptr++;
         fZ1 = float(*ptr) / float(0xFFFFFFFF);
         ptr++;
-        fZ2 = float(*ptr) / float(0xFFFFFFFF);
         
         ptr++;
         for(int j=0; j<numNames; j++)

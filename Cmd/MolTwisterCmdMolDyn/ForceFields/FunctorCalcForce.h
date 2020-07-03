@@ -39,6 +39,9 @@ private:
     CMDFFMatrices::CDihedral* devDihedralList_;
     CMDFFMatrices::CPoint* devDihedralFFList_;
     CMDFFMatrices::CLastError* devLastErrorList_;
+    int* devNeighList_;
+    int* devNeighListCount_;
+    int maxNeighbours_;
 };
 
 END_CUDA_COMPATIBLE()
