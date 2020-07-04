@@ -34,10 +34,9 @@ public:
     double V0;
     double W;
     double p_eps;
-    double eps;
-    double tau;
 
 private:
+    double eps;
     CMDFFMatrices* mdFFMatrices_;
 };
 

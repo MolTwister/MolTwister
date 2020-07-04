@@ -12,14 +12,14 @@ BEGIN_CUDA_COMPATIBLE()
 class CMDSimulator
 {
 public:
-    enum Ensamble { ensambleNVT=0, ensambleNPT=1 };
+    enum Ensemble { ensembleNVT=0, ensembleNPT=1 };
 
 public:
     CMDSimulator() {}
 
 public:
-    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, CSerializer& stateContent, int ensamble);
-    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensamble);
+    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, CSerializer& stateContent, int ensemble);
+    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensemble);
 };
 
 END_CUDA_COMPATIBLE()

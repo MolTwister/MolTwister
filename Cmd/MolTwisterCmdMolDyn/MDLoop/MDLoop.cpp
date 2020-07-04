@@ -131,10 +131,10 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t Particles, N = %i\r\n", SimBox.N);
     COut::Printf("\t NH RESPA, n = %i\r\n", SimBox.NH_T.n);
     COut::Printf("\t NH Chain length, M = %i\r\n", SimBox.NH_T.M);
-    COut::Printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g Å\r\n", SimBox.LmaxX, SimBox.LmaxY, SimBox.LmaxZ);
+    COut::Printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g Å\r\n", SimBox.getLmaxX(), SimBox.getLmaxY(), SimBox.getLmaxZ());
     COut::Printf("\t Dimension, d = %i\r\n", SimBox.dim);
     COut::Printf("\t----------------------------\r\n\r\n");
-    COut::Printf("\t%-15s%-15s%-15s%-20s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]", "Fmax[internal]");
+    COut::Printf("\t%-15s%-15s%-15s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]");
 }
 
 void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t)
@@ -181,7 +181,7 @@ void CMDLoop::AppendToMomentumDistribution(CSimulationBox& SimBox,
         else                p = 0.0;
         
         int i = ((p+dMaxP) / (2.0*dMaxP)) * double(aMomentumDistr.size());
-        if(i < (int)aMomentumDistr.size()) aMomentumDistr[i]++;
+        if((i >=0) && (i < (int)aMomentumDistr.size())) aMomentumDistr[i]++;
     }
 }
 

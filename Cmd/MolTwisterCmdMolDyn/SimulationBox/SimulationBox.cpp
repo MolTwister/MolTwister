@@ -9,9 +9,10 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut) : VelVerle
     state_ = state;
 
     N = 100;
-    LmaxX = 40.0;        // [Å]
-    LmaxY = 40.0;        // [Å]
-    LmaxZ = 40.0;        // [Å]
+    C3DRect pbc = state->view3D_->getPBC();
+    LmaxX_ = pbc.getWidthX(); // [Å]
+    LmaxY_ = pbc.getWidthY(); // [Å]
+    LmaxZ_ = pbc.getWidthZ(); // [Å]
     dt = 1.0 / Conv_t;   // [fs]
     dim = dim3D;
     bNegMomHalfWay = false;
@@ -189,8 +190,6 @@ void CSimulationBox::InitSystem(int iM)
     //          * temperature from settings
     //          * Pressure from settings
     //          * NH-parameters from settings
-    const double dBoxLen = 35.0;
-
     NH_T.n = NH_P.n = 4;
     N = (int)state_->atoms_.size();
     NH_T.T = NH_P.T = 298.0 / Conv_T;
@@ -198,9 +197,6 @@ void CSimulationBox::InitSystem(int iM)
     double tauP = 5000.0*dt;
     NH_T.tau = 20.0*dt;
     NH_P.tau = tauP;
-    LmaxX = dBoxLen;
-    LmaxY = dBoxLen;
-    LmaxZ = dBoxLen;
     dim = dim3D;
     ResizeArrays();
     NH_T.SetRandNHPos();
@@ -212,7 +208,7 @@ void CSimulationBox::InitSystem(int iM)
     VelVerlet.W = NH_P.T*tauP*tauP;
     VelVerlet.SetRandMom(tauP);
     VelVerlet.P = 10.0 / Conv_press;
-    VelVerlet.V0 = LmaxX*LmaxY*LmaxZ;
+    VelVerlet.V0 = LmaxX_*LmaxY_*LmaxZ_;
 
     copyPosFromState();
 }
@@ -357,7 +353,7 @@ double CSimulationBox::CalcTemp()
 
 double CSimulationBox::CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const
 {
-    double  V = VelVerlet.GetV(LmaxX, LmaxY, LmaxZ, bNPTEnsemble);
+    double  V = VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, bNPTEnsemble);
     double  sum = 0.0;
     
     for(int k=0; k<N; k++)

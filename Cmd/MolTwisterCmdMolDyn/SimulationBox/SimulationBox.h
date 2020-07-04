@@ -21,16 +21,19 @@ public:
     void PBCWrap();
     double CalcTemp();
     double CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;
-    double CalcV() { return VelVerlet.GetV(LmaxX, LmaxY, LmaxZ, bNPTEnsemble); }
+    double CalcV() { return VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, bNPTEnsemble); }
+    double getLmaxX() { return LmaxX_; }
+    double getLmaxY() { return LmaxY_; }
+    double getLmaxZ() { return LmaxZ_; }
 
     void NHTPropagator(CFct& Fct)
         { NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
         { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
     void VelVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F)
-        { VelVerlet.Propagator(N, dim, dt, LmaxX, LmaxY, LmaxZ, aParticles, F, bNPTEnsemble); }
+        { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, bNPTEnsemble); }
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces()
-        { return VelVerlet.CalcParticleForces(dim, LmaxX, LmaxY, LmaxZ, aParticles); }
+        { return VelVerlet.CalcParticleForces(dim, LmaxX_, LmaxY_, LmaxZ_, aParticles); }
     
 private:
     void ResizeArrays();
@@ -45,15 +48,15 @@ public:
     CNHChain NH_P;                                  // Nose-Hoover chain propagator pressure
     CVelVerlet VelVerlet;                           // Velocity verlet propagator
     int N;                                          // Number of particles
-    double LmaxX;                                   // Box side length in Å
-    double LmaxY;                                   // Box side length in Å
-    double LmaxZ;                                   // Box side length in Å
     double dt;                                      // Time-step in reduced units
     EDim dim;                                       // System dimension
     bool bNegMomHalfWay;                            // If true, p=-p for all p, midway the simulation
     bool bNPTEnsemble;                              // If true, NPT, else NVT
 
 private:
+    double LmaxX_;                                   // Box side length in Å
+    double LmaxY_;                                   // Box side length in Å
+    double LmaxZ_;                                   // Box side length in Å
     CMolTwisterState* state_;
 };
 

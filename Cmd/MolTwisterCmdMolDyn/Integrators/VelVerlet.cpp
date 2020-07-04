@@ -14,7 +14,6 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
     eps = 0.0;
     W = 1.0;
     Fcut = 1000.0;
-    tau = 1.0;
 
     const float rCutoff = 10.0f;
     const float dShell = 2.0f;
