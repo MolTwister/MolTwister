@@ -36,7 +36,8 @@ private:
 class CMDLoop
 {
 public:
-    CMDLoop();
+    CMDLoop() = delete;
+    CMDLoop(std::string fileNameXYZ);
 
 public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
@@ -56,6 +57,7 @@ private:
     
 private:
     double m_dMaxP;
+    std::string fileNameXYZ_;
 };
 
 END_CUDA_COMPATIBLE()

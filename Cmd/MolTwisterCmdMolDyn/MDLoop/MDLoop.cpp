@@ -64,8 +64,10 @@ void CFctP::ScaleMomentum(double coeff)
 
 
 
-CMDLoop::CMDLoop()
+CMDLoop::CMDLoop(std::string fileNameXYZ)
 {
+    fileNameXYZ_ = fileNameXYZ;
+
     const double dMaxV = 0.3; // Max v[Å/fs]in distr.
     m_dMaxP = dMaxV / Conv_P; // m*v_max, m = 1g/mol
 }
@@ -139,7 +141,7 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
 
 void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t)
 {
-    FILE* pFile = fopen("gas.xyz", "a+");
+    FILE* pFile = fopen(fileNameXYZ_.data(), "a+");
     
     if(!pFile) return;
     

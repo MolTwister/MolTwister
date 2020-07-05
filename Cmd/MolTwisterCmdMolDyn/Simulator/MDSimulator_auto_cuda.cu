@@ -14,7 +14,7 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& st
 
 void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
-    CMDLoop         MDLoop;
+    CMDLoop         MDLoop(config.outXYZFile_);
     CSimulationBox  SimBox((CMolTwisterState*)state, stdOut);
 
     SimBox.bNPTEnsemble = (config.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? true : false;
