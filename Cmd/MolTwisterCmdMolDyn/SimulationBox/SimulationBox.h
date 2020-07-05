@@ -17,7 +17,7 @@ public:
     CSimulationBox(CMolTwisterState* state, FILE* stdOut);
     
 public:
-    void InitSystem(int iM);
+    void InitSystem(int iMT, int iMP);
     void PBCWrap();
     double CalcTemp();
     double CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;

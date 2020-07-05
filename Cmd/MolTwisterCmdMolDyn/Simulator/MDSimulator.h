@@ -6,20 +6,18 @@
 #include <string>
 #include "../../../Utilities/CUDAGeneralizations.h"
 #include "../../../Utilities/Serializer.h"
+#include "../Config/MolDynConfigStruct.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
 class CMDSimulator
 {
 public:
-    enum Ensemble { ensembleNVT=0, ensembleNPT=1 };
-
-public:
     CMDSimulator() {}
 
 public:
-    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, CSerializer& stateContent, int ensemble);
-    static void run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensemble);
+    static void run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent);
+    static void run(SMolDynConfigStruct config, FILE* stdOut, void* state);
 };
 
 END_CUDA_COMPATIBLE()

@@ -1,11 +1,12 @@
 #pragma once
 #include "../Tools/MolTwisterCmdEntry.h"
+#include "Config/MolDynConfig.h"
 
 class CCmdRun : public CCmdEntry
 {
 public:
     CCmdRun() = delete;
-    CCmdRun(CMolTwisterState* state, FILE* stdOut) : CCmdEntry(state, stdOut) { }
+    CCmdRun(CMolTwisterState* state, FILE* stdOut, CMolDynConfig* molDynConfig) : CCmdEntry(state, stdOut) { molDynConfig_ = molDynConfig; }
     virtual ~CCmdRun() = default;
 
 public:
@@ -17,4 +18,5 @@ public:
 
 private:
     std::string lastError_;
+    CMolDynConfig* molDynConfig_;
 };

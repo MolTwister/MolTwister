@@ -380,6 +380,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCfg.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCfg.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp
@@ -405,6 +407,9 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorGenNeighList.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfigStruct.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfig.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfig.cpp
     )
 
 if(${INCLUDE_CUDA_COMMANDS})

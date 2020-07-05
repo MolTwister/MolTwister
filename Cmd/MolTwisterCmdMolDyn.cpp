@@ -2,6 +2,7 @@
 
 #include "MolTwisterCmdMolDyn/CmdRun.h"
 #include "MolTwisterCmdMolDyn/CmdFF.h"
+#include "MolTwisterCmdMolDyn/CmdCfg.h"
 
 #if INCLUDE_CUDA_COMMANDS == 1
 #include "MolTwisterCmdMolDyn/CmdCudaTest.h"
@@ -17,8 +18,9 @@ void CCmdMolDyn::onAddKeywords()
 void CCmdMolDyn::onRegisterSubCommands()
 {
     parser_->purge();
-    parser_->registerCmd(std::make_shared<CCmdRun>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdRun>(state_, stdOut_, &molDynConfig_));
     parser_->registerCmd(std::make_shared<CCmdFF>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdCfg>(state_, stdOut_, &molDynConfig_));
 
     #if INCLUDE_CUDA_COMMANDS == 1
     {

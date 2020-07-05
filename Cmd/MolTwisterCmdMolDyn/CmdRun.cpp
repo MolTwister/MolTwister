@@ -89,7 +89,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
         {
             CSerializer stateContent;
             state_->serialize(stateContent, true);
-            mtdev::CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, stateContent, CMDSimulator::ensembleNVT);
+            mtdev::CMDSimulator::run(molDynConfig_->cfg_, stdOut_, stateContent);
         }
         #else
         {
@@ -100,7 +100,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     }
     else
     {
-        CMDSimulator::run(1000000, 400, 4, "out.txt", stdOut_, (CMolTwisterState*)state_, CMDSimulator::ensembleNVT);
+        CMDSimulator::run(molDynConfig_->cfg_, stdOut_, (CMolTwisterState*)state_);
     }
 
 /*    CConditionalOnXYZ cond;

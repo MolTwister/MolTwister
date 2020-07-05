@@ -167,10 +167,10 @@ void CSimulationBox::InitFreeParticles1D()
     NH_T.SetRandNHMom();
 }
 */
-void CSimulationBox::InitSystem(int iM)
+void CSimulationBox::InitSystem(int iMT, int iMP)
 {
-    NH_T.M = iM;
-    NH_P.M = iM;
+    NH_T.M = iMT;
+    NH_P.M = iMP;
     /*
     if(System == sys1DHarmBond) Init1DHarmBond();
     else if(System == sys1DExtHarmOsc) Init1DExtHarmOsc();

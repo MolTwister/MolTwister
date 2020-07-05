@@ -5,22 +5,22 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, CSerializer& stateContent, int ensemble)
+void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent)
 {
     CMolTwisterState state;
     state.serialize(stateContent, false);
-    run(numMDSteps, outputStride, nhChainLength, progressOutFileName, stdOut, &state, ensemble);
+    run(config, stdOut, &state);
 }
 
-void CMDSimulator::run(int numMDSteps, int outputStride, int nhChainLength, std::string progressOutFileName, FILE* stdOut, void* state, int ensemble)
+void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
     CMDLoop         MDLoop;
     CSimulationBox  SimBox((CMolTwisterState*)state, stdOut);
 
-    SimBox.bNPTEnsemble = (ensemble == ensembleNPT) ? true : false;
-    COut::SetOutputFile(fopen(progressOutFileName.data(), "w"));
-    SimBox.InitSystem(nhChainLength);
-    MDLoop.RunSimulation(SimBox, numMDSteps, outputStride);
+    SimBox.bNPTEnsemble = (config.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? true : false;
+    COut::SetOutputFile(fopen(config.outInfoFile_.data(), "w"));
+    SimBox.InitSystem(config.temperatureNHChainLength_, config.pressureNHChainLength_);
+    MDLoop.RunSimulation(SimBox, config.numberOfTimeSteps_, config.outputStride_);
     COut::CloseOutputFile();
 }
 
