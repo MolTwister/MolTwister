@@ -15,6 +15,7 @@ struct SMolDynConfigStruct
     int pressureNHChainLength_;
     int pressureRESPASteps_;
     double cutoffRadius_;
+    double neighListShell_;
     double cutoffForce_;
     int numberOfTimeSteps_;
     double timeStep_;

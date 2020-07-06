@@ -15,11 +15,9 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& st
 void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
     CMDLoop         MDLoop(config.outXYZFile_);
-    CSimulationBox  SimBox((CMolTwisterState*)state, stdOut);
+    CSimulationBox  SimBox((CMolTwisterState*)state, stdOut, config);
 
-    SimBox.bNPTEnsemble = (config.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? true : false;
     COut::SetOutputFile(fopen(config.outInfoFile_.data(), "w"));
-    SimBox.InitSystem(config.temperatureNHChainLength_, config.pressureNHChainLength_);
     MDLoop.RunSimulation(SimBox, config.numberOfTimeSteps_, config.outputStride_);
     COut::CloseOutputFile();
 }

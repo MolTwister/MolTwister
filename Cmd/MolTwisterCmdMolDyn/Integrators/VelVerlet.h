@@ -13,7 +13,7 @@ class CMDFFMatrices;
 class CVelVerlet
 {
 public:
-    CVelVerlet(CMolTwisterState* state, FILE* stdOut);
+    CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, double dShell, double fCutoff);
     virtual ~CVelVerlet();
 
 public:

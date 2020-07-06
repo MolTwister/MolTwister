@@ -11,7 +11,7 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "timestep", "outstride", "ensemble", "NVT", "NPT",
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
-             "cutoffradius", "cutoffforce",
+        "cutoffradius", "neighshell", "cutoffforce",
              "infofile", "xyzfile"
            };
 }
@@ -35,6 +35,7 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tpressurerespa = %i; Nose-Hoover pressure RESPA steps.\r\n", cfg_.pressureRESPASteps_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tcutoffradius = %g AA; Desired cutoff radius.\r\n", cfg_.cutoffRadius_);
+    fprintf(stdOut, "\tneighshell = %g AA; Desired neighbor list shell distance.\r\n", cfg_.neighListShell_);
     fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force (in reduced units).\r\n", cfg_.cutoffForce_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
@@ -98,6 +99,10 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.cutoffRadius_ = std::atof(value.data());
     }
+    else if(parameter == "neighshell")
+    {
+        cfg_.neighListShell_ = std::atof(value.data());
+    }
     else if(parameter == "cutoffforce")
     {
         cfg_.cutoffForce_ = std::atof(value.data());
@@ -132,6 +137,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.pressureNHChainLength_ = 4;
     cfg_.pressureRESPASteps_ = 4;
     cfg_.cutoffRadius_ = 10.0; // Å
+    cfg_.neighListShell_ = 2.0; // Å
     cfg_.cutoffForce_ = 1000.0; // Reduced units
     cfg_.numberOfTimeSteps_ = 100000;
     cfg_.outInfoFile_ = "out.txt";

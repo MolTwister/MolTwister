@@ -124,11 +124,11 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t----------------------------\r\n");
     COut::Printf("\tSmall MD V1.0 - Run\r\n");
     COut::Printf("\t----------------------------\r\n");
-    COut::Printf("\t Ensemble = %s\r\n", SimBox.bNPTEnsemble ? "NPT" : "NVT");
+    COut::Printf("\t Ensemble = %s\r\n", SimBox.isNPTEnsemble() ? "NPT" : "NVT");
     COut::Printf("\t Temperature, T = %g K\r\n", SimBox.NH_T.T*Conv_T);
-    if(SimBox.bNPTEnsemble) COut::Printf("\t Pressure, P = %g atm\r\n", SimBox.VelVerlet.P*Conv_press);
+    if(SimBox.isNPTEnsemble()) COut::Printf("\t Pressure, P = %g atm\r\n", SimBox.VelVerlet.P*Conv_press);
     COut::Printf("\t NH T relax, tau = %g fs\r\n", SimBox.NH_T.tau*Conv_t);
-    if(SimBox.bNPTEnsemble) COut::Printf("\t NH P relax, tau = %g fs\r\n", SimBox.NH_P.tau*Conv_t);
+    if(SimBox.isNPTEnsemble()) COut::Printf("\t NH P relax, tau = %g fs\r\n", SimBox.NH_P.tau*Conv_t);
     COut::Printf("\t Timestep, dt = %g fs\r\n", SimBox.dt*Conv_t);
     COut::Printf("\t Particles, N = %i\r\n", SimBox.N);
     COut::Printf("\t NH RESPA, n = %i\r\n", SimBox.NH_T.n);

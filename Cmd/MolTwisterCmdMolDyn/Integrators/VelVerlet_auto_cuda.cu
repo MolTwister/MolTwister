@@ -7,17 +7,15 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut)
+CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, double dShell, double fCutoff)
 {
     P = 1.0 / Conv_press;
     p_eps = 1.0;
     eps = 0.0;
     W = 1.0;
-    Fcut = 1000.0;
+    Fcut = fCutoff;
 
-    const float rCutoff = 10.0f;
-    const float dShell = 2.0f;
-    mdFFMatrices_ = new CMDFFMatrices(state, stdOut, rCutoff, dShell);
+    mdFFMatrices_ = new CMDFFMatrices(state, stdOut, (float)rCutoff, (float)dShell);
 }
 
 CVelVerlet::~CVelVerlet()

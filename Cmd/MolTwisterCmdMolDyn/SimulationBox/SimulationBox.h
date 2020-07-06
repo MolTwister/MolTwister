@@ -5,6 +5,7 @@
 #include "../Integrators/VelVerlet.h"
 #include "../../../MolTwisterState.h"
 #include "../../../Utilities/CUDAGeneralizations.h"
+#include "../Config/MolDynConfigStruct.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -14,10 +15,9 @@ public:
     enum EDim { dim1D = 1, dim2D = 2, dim3D = 3 };
 
 public:
-    CSimulationBox(CMolTwisterState* state, FILE* stdOut);
+    CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynConfigStruct config);
     
 public:
-    void InitSystem(int iMT, int iMP);
     void PBCWrap();
     double CalcTemp();
     double CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;
@@ -25,6 +25,7 @@ public:
     double getLmaxX() { return LmaxX_; }
     double getLmaxY() { return LmaxY_; }
     double getLmaxZ() { return LmaxZ_; }
+    bool isNPTEnsemble() { return bNPTEnsemble; }
 
     void NHTPropagator(CFct& Fct)
         { NH_T.Propagator(N, dim, dt, Fct); }
@@ -36,6 +37,7 @@ public:
         { return VelVerlet.CalcParticleForces(dim, LmaxX_, LmaxY_, LmaxZ_, aParticles); }
     
 private:
+    void InitSystem();
     void ResizeArrays();
 
     void copyPosFromState();
@@ -51,13 +53,14 @@ public:
     double dt;                                      // Time-step in reduced units
     EDim dim;                                       // System dimension
     bool bNegMomHalfWay;                            // If true, p=-p for all p, midway the simulation
-    bool bNPTEnsemble;                              // If true, NPT, else NVT
 
 private:
     double LmaxX_;                                   // Box side length in Å
     double LmaxY_;                                   // Box side length in Å
     double LmaxZ_;                                   // Box side length in Å
+    bool bNPTEnsemble;                              // If true, NPT, else NVT
     CMolTwisterState* state_;
+    SMolDynConfigStruct molDynConfig_;
 };
 
 END_CUDA_COMPATIBLE()
