@@ -18,7 +18,6 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
     dt = 1.0 / Conv_t;   // [fs]
     dim = dim3D;
     bNegMomHalfWay = false;
-    bNPTEnsemble = false;
     ResizeArrays();
 
     InitSystem();
@@ -26,8 +25,6 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
 
 void CSimulationBox::InitSystem()
 {
-    bNPTEnsemble = (molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? true : false;
-
     NH_T.M = molDynConfig_.temperatureNHChainLength_;
     NH_P.M = molDynConfig_.pressureNHChainLength_;
 
@@ -145,7 +142,7 @@ double CSimulationBox::CalcTemp()
 
 double CSimulationBox::CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const
 {
-    double  V = VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, bNPTEnsemble);
+    double  V = VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, molDynConfig_.ensemble_);
     double  sum = 0.0;
     
     for(int k=0; k<N; k++)

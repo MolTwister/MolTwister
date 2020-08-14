@@ -21,18 +21,18 @@ public:
     void PBCWrap();
     double CalcTemp();
     double CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;
-    double CalcV() { return VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, bNPTEnsemble); }
+    double CalcV() { return VelVerlet.GetV(LmaxX_, LmaxY_, LmaxZ_, molDynConfig_.ensemble_); }
     double getLmaxX() { return LmaxX_; }
     double getLmaxY() { return LmaxY_; }
     double getLmaxZ() { return LmaxZ_; }
-    bool isNPTEnsemble() { return bNPTEnsemble; }
+    SMolDynConfigStruct::Ensemble getEnsemble() { return molDynConfig_.ensemble_; }
 
     void NHTPropagator(CFct& Fct)
-        { NH_T.Propagator(N, dim, dt, Fct); }
+        { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT || molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNVT) NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
-        { if(bNPTEnsemble) NH_P.Propagator(N, dim, dt, Fct); }
+        { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT) NH_P.Propagator(N, dim, dt, Fct); }
     void VelVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F)
-        { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, bNPTEnsemble); }
+        { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, molDynConfig_.ensemble_); }
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces()
         { return VelVerlet.CalcParticleForces(dim, LmaxX_, LmaxY_, LmaxZ_, aParticles); }
     
@@ -58,7 +58,6 @@ private:
     double LmaxX_;                                   // Box side length in Å
     double LmaxY_;                                   // Box side length in Å
     double LmaxZ_;                                   // Box side length in Å
-    bool bNPTEnsemble;                              // If true, NPT, else NVT
     CMolTwisterState* state_;
     SMolDynConfigStruct molDynConfig_;
 };

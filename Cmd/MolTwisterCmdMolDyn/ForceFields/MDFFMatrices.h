@@ -43,15 +43,16 @@ public:
 
     public:
         void init(CMolTwisterState* state, float rCutoff, float dShell);
+        void updatePBC(float Lx, float Ly, float Lz);
         void resetCellList();
 
-        HOSTDEV_CALLABLE int getPBCWidthX() const { return pbcWidthX_; }
-        HOSTDEV_CALLABLE int getPBCWidthY() const { return pbcWidthY_; }
-        HOSTDEV_CALLABLE int getPBCWidthZ() const { return pbcWidthZ_; }
+        HOSTDEV_CALLABLE float getPBCWidthX() const { return pbcWidthX_; }
+        HOSTDEV_CALLABLE float getPBCWidthY() const { return pbcWidthY_; }
+        HOSTDEV_CALLABLE float getPBCWidthZ() const { return pbcWidthZ_; }
 
-        HOSTDEV_CALLABLE int getPBCLowX() const { return pbcLowX_; }
-        HOSTDEV_CALLABLE int getPBCLowY() const { return pbcLowY_; }
-        HOSTDEV_CALLABLE int getPBCLowZ() const { return pbcLowZ_; }
+        HOSTDEV_CALLABLE float getPBCLowX() const { return pbcLowX_; }
+        HOSTDEV_CALLABLE float getPBCLowY() const { return pbcLowY_; }
+        HOSTDEV_CALLABLE float getPBCLowZ() const { return pbcLowZ_; }
 
         HOSTDEV_CALLABLE int getCellCountX() const { return cellCountX_; }
         HOSTDEV_CALLABLE int getCellCountY() const { return cellCountY_; }
@@ -65,12 +66,12 @@ public:
         mtdevice_vector<CCellListIndex> devAtomCellIndices_;
 
     private:
-        int pbcWidthX_;
-        int pbcWidthY_;
-        int pbcWidthZ_;
-        int pbcLowX_;
-        int pbcLowY_;
-        int pbcLowZ_;
+        float pbcWidthX_;
+        float pbcWidthY_;
+        float pbcWidthZ_;
+        float pbcLowX_;
+        float pbcLowY_;
+        float pbcLowZ_;
         int cellCountX_;
         int cellCountY_;
         int cellCountZ_;
@@ -183,7 +184,7 @@ public:
     int getNumAtomTypes() const { return NatomTypes_; }
     float getRCutoff() const { return rCutoff_; }
     void updateAtomList(const mthost_vector<CParticle3D>& atomList);
-    void genNeighList();
+    void genNeighList(float Lx, float Ly, float Lz);
 
     HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet);
     HOSTDEV_CALLABLE static size_t toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t columnCount);

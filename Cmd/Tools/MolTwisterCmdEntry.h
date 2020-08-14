@@ -16,6 +16,7 @@ public:
     virtual std::vector<std::string> getCmdHelpLines() = 0;
     virtual std::string getCmdFreetextHelp() = 0;
     virtual std::string execute(std::vector<std::string> arguments) = 0;
+    void redirectOutput(FILE* stdOut = stdout) { stdOut_ = stdOut; }
 
 protected:
     CMolTwisterState* state_;

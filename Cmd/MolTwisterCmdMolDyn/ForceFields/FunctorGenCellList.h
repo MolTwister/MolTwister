@@ -22,12 +22,12 @@ private:
     int cellCountX_;
     int cellCountY_;
     int cellCountZ_;
-    int pbcWidthX_;
-    int pbcWidthY_;
-    int pbcWidthZ_;
-    int pbcLowX_;
-    int pbcLowY_;
-    int pbcLowZ_;
+    float pbcWidthX_;
+    float pbcWidthY_;
+    float pbcWidthZ_;
+    float pbcLowX_;
+    float pbcLowY_;
+    float pbcLowZ_;
     int maxAtomsInCell_;
 };
 

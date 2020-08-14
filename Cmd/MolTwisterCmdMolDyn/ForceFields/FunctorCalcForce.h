@@ -28,6 +28,7 @@ private:
     float Lx_;
     float Ly_;
     float Lz_;
+    C3DRect pbc_;
     float cutF_;
     CMDFFMatrices::CAtom* devAtomList_;
     CMDFFMatrices::CPoint* devNonBondFFMatrix_;

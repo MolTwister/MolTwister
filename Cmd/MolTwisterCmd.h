@@ -29,7 +29,7 @@ public:
     virtual std::string getHelpString(std::string subCommand) const { return std::string("\tHelp not available for ") + getCmd() + std::string(" ") + subCommand + std::string("!"); }
     static int getNumKeywords() { return (int)keywords_.size(); }
     static std::string getKeyword(int index) { return keywords_[index]; }
-    void redirectOutput(FILE* stdOut = stdout) { stdOut_ = stdOut; }
+    void redirectOutput(FILE* stdOut = stdout) { stdOut_ = stdOut; parser_->redirectOutput(stdOut); }
     
 protected:
     virtual void onAddKeywords() = 0;

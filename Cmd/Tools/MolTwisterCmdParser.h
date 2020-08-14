@@ -13,6 +13,7 @@ public:
     std::string genHelpText(std::string parentCmd);
     std::string genHelpText(std::string parentCmd, std::string subCommand);
     void purge() { cmdEntryList_.clear(); }
+    void redirectOutput(FILE* stdOut = stdout);
 
 private:
     std::vector<std::shared_ptr<CCmdEntry>> cmdEntryList_;

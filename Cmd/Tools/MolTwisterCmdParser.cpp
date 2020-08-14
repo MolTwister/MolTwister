@@ -87,3 +87,11 @@ std::string CCmdParser::genHelpText(std::string parentCmd, std::string subComman
 
     return std::string("\t") + subCommand + std::string(" is not a valid sub command argument for ") + parentCmd + std::string("!\r\n\r\n");
 }
+
+void CCmdParser::redirectOutput(FILE* stdOut)
+{
+    for(std::shared_ptr<CCmdEntry> cmdEntry : cmdEntryList_)
+    {
+        cmdEntry->redirectOutput(stdOut);
+    }
+}

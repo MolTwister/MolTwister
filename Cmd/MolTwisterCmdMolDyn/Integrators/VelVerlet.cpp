@@ -23,9 +23,31 @@ CVelVerlet::~CVelVerlet()
     if(mdFFMatrices_) delete mdFFMatrices_;
 }
 
-void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, bool bNPT)
+void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble)
 {
-    if(!bNPT)
+    // This is the implementation for NPT
+    if(ensemble == SMolDynConfigStruct::ensembleNPT)
+    {
+        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.1
+        Prop_p(N, dt, aParticles, F);                    // Step 3.2
+        Prop_r(N, dt, aParticles, F);                    // Step 3.3
+        eps+= (dt * p_eps / W);                          // Step 3.4
+        double Vmax = LmaxX * LmaxY * LmaxZ;
+        double etaCube = GetV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
+        etaCube = pow(etaCube, 1.0/3.0);
+
+        double LmX = etaCube * LmaxX;
+        double LmY = etaCube * LmaxY;
+        double LmZ = etaCube * LmaxZ;
+
+        CalcParticleForces(dim, LmX, LmY, LmZ, aParticles, F);
+
+        Prop_p(N, dt, aParticles, F);                    // Step 3.5
+        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
+    }
+
+    // This is the same implementation for both NVT and NVE
+    else
     {
         double dt_2 = dt / 2.0;
         for(int k=0; k<N; k++)
@@ -41,26 +63,6 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double Lmax
         {
             aParticles[k].p+= F[k].F_*dt_2;
         }
-    }
-
-    else
-    {
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.1
-        Prop_p(N, dt, aParticles, F);                    // Step 3.2
-        Prop_r(N, dt, aParticles, F);                    // Step 3.3
-        eps+= (dt * p_eps / W);                          // Step 3.4
-        double Vmax = LmaxX * LmaxY * LmaxZ;
-        double etaCube = GetV(LmaxX, LmaxY, LmaxZ, true) / Vmax;
-        etaCube = pow(etaCube, 1.0/3.0);
-
-        double LmX = etaCube * LmaxX;
-        double LmY = etaCube * LmaxY;
-        double LmZ = etaCube * LmaxZ;
-
-        CalcParticleForces(dim, LmX, LmY, LmZ, aParticles, F);
-
-        Prop_p(N, dt, aParticles, F);                    // Step 3.5
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
     }
 }
 
@@ -124,18 +126,18 @@ void CVelVerlet::SetRandMom(double tau)
     if(p_eps == 0.0) p_eps = (W / tau);
 }
 
-double CVelVerlet::GetV(double LmaxX, double LmaxY, double LmaxZ, bool bNPT) const
+double CVelVerlet::GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
 {
-    if(!bNPT) return LmaxX*LmaxY*LmaxZ;
+    if(ensemble == SMolDynConfigStruct::ensembleNPT) return V0 * exp(3.0 * eps);
 
-    return V0 * exp(3.0 * eps);
+    return LmaxX*LmaxY*LmaxZ;
 }
 
 void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F)
 {
     mdFFMatrices_->updateAtomList(aParticles);
-    mdFFMatrices_->genNeighList();
-    CFunctorCalcForce calcForce(dim, Lx, Ly, Lz, Fcut);
+    mdFFMatrices_->genNeighList((float)Lx, (float)Ly, (float)Lz);
+    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     mtcudaDeviceSynchronize();

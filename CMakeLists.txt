@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
 # ************************************************************************************
 # Function declataions
@@ -62,7 +62,7 @@ else()
     add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
 endif()
 
-set(MolTwister CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 14)
 
 find_package(PythonLibs REQUIRED)
 find_package(OpenGL REQUIRED)

@@ -7,12 +7,12 @@ BEGIN_CUDA_COMPATIBLE()
 
 HOST_CALLABLE CMDFFMatrices::CCellList::CCellList()
 {
-    pbcWidthX_ = 0;
-    pbcWidthY_ = 0;
-    pbcWidthZ_ = 0;
-    pbcLowX_ = 0;
-    pbcLowY_ = 0;
-    pbcLowZ_ = 0;
+    pbcWidthX_ = 0.0f;
+    pbcWidthY_ = 0.0f;
+    pbcWidthZ_ = 0.0f;
+    pbcLowX_ = 0.0f;
+    pbcLowY_ = 0.0f;
+    pbcLowZ_ = 0.0f;
     cellCountX_ = 0;
     cellCountY_ = 0;
     cellCountZ_ = 0;
@@ -27,25 +27,36 @@ void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, floa
 
     float R = rCutoff + dShell;
     C3DRect pbc = state->view3D_->getPBC();
-    maxAtomsInCell_ = ceil(R*R*R);
+    maxAtomsInCell_ = (int)ceil(double(R*R*R));
 
-    pbcWidthX_ = pbc.getWidthX();
-    pbcWidthY_ = pbc.getWidthY();
-    pbcWidthZ_ = pbc.getWidthZ();
+    pbcWidthX_ = (float)pbc.getWidthX();
+    pbcWidthY_ = (float)pbc.getWidthY();
+    pbcWidthZ_ = (float)pbc.getWidthZ();
 
-    pbcLowX_ = pbc.rLow_.x_;
-    pbcLowY_ = pbc.rLow_.y_;
-    pbcLowZ_ = pbc.rLow_.z_;
+    pbcLowX_ = (float)pbc.rLow_.x_;
+    pbcLowY_ = (float)pbc.rLow_.y_;
+    pbcLowZ_ = (float)pbc.rLow_.z_;
 
-    cellCountX_ = floor(pbcWidthX_ / R);
-    cellCountY_ = floor(pbcWidthY_ / R);
-    cellCountZ_ = floor(pbcWidthZ_ / R);
+    cellCountX_ = (int)floor(double(pbcWidthX_ / R));
+    cellCountY_ = (int)floor(double(pbcWidthY_ / R));
+    cellCountZ_ = (int)floor(double(pbcWidthZ_ / R));
 
     int totNumCells = cellCountX_ * cellCountY_ * cellCountZ_;
 
     devCellList_ = mtdevice_vector<int>(totNumCells * maxAtomsInCell_, -1);
     devCellListCount_ = mtdevice_vector<int>(totNumCells, 0);
     devAtomCellIndices_ = mtdevice_vector<CCellListIndex>(state->atoms_.size());
+}
+
+void CMDFFMatrices::CCellList::updatePBC(float Lx, float Ly, float Lz)
+{
+    pbcWidthX_ = Lx;
+    pbcWidthY_ = Ly;
+    pbcWidthZ_ = Lz;
+
+    pbcLowX_ = -pbcWidthX_ / 2.0f;
+    pbcLowY_ = -pbcWidthY_ / 2.0f;
+    pbcLowZ_ = -pbcWidthZ_ / 2.0f;
 }
 
 void CMDFFMatrices::CCellList::resetCellList()
@@ -112,10 +123,11 @@ void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
     devAtomList_ = hostAtomList;
 }
 
-void CMDFFMatrices::genNeighList()
+void CMDFFMatrices::genNeighList(float Lx, float Ly, float Lz)
 {
     // Generate cell list
     cellList_.resetCellList();
+    cellList_.updatePBC(Lx, Ly, Lz);
     CFunctorGenCellList genCellList;
     genCellList.setForceFieldMatrices(*this);
     mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), cellList_.devAtomCellIndices_.begin(), genCellList);
@@ -163,7 +175,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
         hostAtomList[i].r_.x_ = state->atoms_[i]->r_[0].x_;
         hostAtomList[i].r_.y_ = state->atoms_[i]->r_[0].y_;
         hostAtomList[i].r_.z_ = state->atoms_[i]->r_[0].z_;
-        hostAtomList[i].m_ = state->atoms_[i]->m_;
+        hostAtomList[i].m_ = (float)state->atoms_[i]->m_;
         hostAtomList[i].index_ = (int)i;
     }
 
@@ -211,7 +223,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                     if(ffIndex >= 0)
                     {
                         CMDFFNonBonded* forceField = state->mdFFNonBondedList_.get(ffIndex);
-                        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+                        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles));
                         for(size_t j=0; j<plot.size(); j++)
                         {
                             hostNonBondFFMatrix[toIndexNonBond(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
@@ -243,7 +255,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     for(int i=0; i<state->mdFFBondList_.size(); i++)
     {
         CMDFFBond* forceField = state->mdFFBondList_.get(i);
-        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01, rCutoff, numPointsInForceProfiles));
+        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             hostBondFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];

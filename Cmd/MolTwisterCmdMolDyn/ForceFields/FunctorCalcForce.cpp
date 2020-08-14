@@ -11,6 +11,7 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     Lx_ = Lx;
     Ly_ = Ly;
     Lz_ = Lz;
+    pbc_ = C3DRect(C3DVector(-(double)Lx/2.0, -(double)Ly/2.0, -(double)Lz/2.0), C3DVector((double)Lx/2.0, (double)Ly/2.0, (double)Lz/2.0));
     cutF_ = cutF;
     maxNeighbours_ = 0;
 
@@ -52,13 +53,19 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
 
 HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
 {
-    C3DVector F;
-    C3DVector PBCx = C3DVector( Lx_, 0.0,   0.0 );
-    C3DVector PBCy = C3DVector( 0.0,  Ly_,  0.0 );
-    C3DVector PBCz = C3DVector( 0.0,  0.0,  Lz_ );
+    C3DVector F, f;
+    C3DVector PBCx = C3DVector( (double)Lx_, 0.0,          0.0         );
+    C3DVector PBCy = C3DVector( 0.0,         (double)Ly_,  0.0         );
+    C3DVector PBCz = C3DVector( 0.0,         0.0,          (double)Lz_ );
 
     // Clear forces from primary image (pi = primary image)
     C3DVector Fpi(0.0, 0.0, 0.0);
+
+    // :TODO: Remove debug code related to the below testFile
+    //        Found that Neigh.lists are not correct, atoms are
+    //        counted twice and there are no nigh. across the PBC
+//    std::string testFileName = std::string("test_") + std::to_string(atom.index_) + std::string(".txt");
+//    FILE* testFile = fopen(testFileName.data(), "a");
 
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
@@ -72,9 +79,16 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     {
         int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
         C3DVector r_i = devAtomList_[i].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
-        Fpi+= calcForceNonBondedOn_r_k(r_k, r_i, k, i);
-/*
+//        if(k == 0)  fprintf(testFile, "%i\r\n", i);
+
+
+        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
+        Fpi+= f;
+        F+= f;
+
+        /*
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
 
@@ -86,7 +100,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
     }
-    F+= Fpi;
 
     // Add forces from harmonic bonds on particle k
     for(int j=0; j<Nbonds_; j++)
@@ -104,15 +117,20 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         {
             C3DVector r_k = devAtomList_[k].r_;
             C3DVector r_i = devAtomList_[iBondTo].r_;
+            r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
-            Fpi+= calcForceBondOn_r_k(r_k, r_i, devBondList_[j].bondType_);
+            f = calcForceBondOn_r_k(r_k, r_i, devBondList_[j].bondType_);
+            Fpi+= f;
+            F+= f;
         }
     }
-    F+= Fpi;
 
-    if(fabs(F.x_) > cutF_) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
-    if(fabs(F.y_) > cutF_) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
-    if(fabs(F.z_) > cutF_) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * cutF_; devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+    if(fabs(F.x_) > double(cutF_)) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+    if(fabs(F.y_) > double(cutF_)) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+    if(fabs(F.z_) > double(cutF_)) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+
+//    if(k == 0)  fprintf(testFile, "\r\n");
+//    fclose(testFile);
 
     return CMDFFMatrices::CForces(F, Fpi);
 }
@@ -146,8 +164,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
     // it for r = | r_k - r_i |. We use linear interpolation. If r < 1E-3,
     // we assume that atom i and k are the same in the same image. This,
     // should not yield a contribution to the forces on atom k.
-    float r = (r_k - r_i).norm();
-    if(r < 1E-3f) return C3DVector(0.0f, 0.0f, 0.0f);
+    float r = (float)(r_k - r_i).norm();
+    if(r < 1E-3f) return C3DVector(0.0, 0.0, 0.0);
 
     float mdU_dr_Sum = 0.0f;
     size_t ffCount = devNonBondFFMatrixFFCount_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, Natomtypes_)];
@@ -179,7 +197,25 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
     // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
     // forces on r_k.
     C3DVector c = calcNonBondForceCoeffs12(r_i, r_k);
-    return c*mdU_dr_Sum;
+    return c*double(mdU_dr_Sum);
+/*
+    const double epsilon = 1.23;
+    const double sigma = 3.73;
+    double sigma2 = sigma * sigma;
+    double sigma3 = sigma2 * sigma;
+    double sigma6 = sigma3 * sigma3;
+    double sigma12 = sigma6 * sigma6;
+    C3DVector r_vec_ji = r_k - r_i;
+    double r_ji = r_vec_ji.norm();
+    double r_inv_ji = (r_ji == 0.0) ? 1.0 / 1.0E-3 : 1.0 / r_ji;
+    double r_inv_ji2 = r_inv_ji * r_inv_ji;
+    double r_inv_ji3 = r_inv_ji2 * r_inv_ji;
+    double r_inv_ji6 = r_inv_ji3 * r_inv_ji3;
+    double r_inv_ji12 = r_inv_ji6 * r_inv_ji6;
+    double c = 4.0*epsilon*r_inv_ji2
+             * (12.0*sigma12*r_inv_ji12 - 6.0*sigma6*r_inv_ji6);
+
+    return r_vec_ji * c;*/
 }
 
 HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
@@ -195,7 +231,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
     CMDFFMatrices::CPoint p_first = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, 0,NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, NUM_POINTS_IN_PROFILES-1,NUM_POINTS_IN_PROFILES)];
     float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-    float r = (r_k - r_i).norm();
+    float r = (float)(r_k - r_i).norm();
     int idx = int((r - p_first.x_) / delta);
 
     // Interpolate the function value between i and (i+1)
@@ -216,7 +252,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
     // + (r_y_k - r_y_i)^2 + (r_z_k - r_z_i)^2) and then calulcate the
     // forces on r_k.
     C3DVector c = calcBondForceCoeffs12(r_i, r_k);
-    return c*mdU_dr;
+    return c*double(mdU_dr);
 }
 
 END_CUDA_COMPATIBLE()

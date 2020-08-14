@@ -3,7 +3,7 @@
 
 struct SMolDynConfigStruct
 {
-    enum Ensemble { ensembleNVT=0, ensembleNPT=1 };
+    enum Ensemble { ensembleNVT=0, ensembleNPT=1, ensembleNVE=2 };
 
     Ensemble ensemble_;
     double temperature_;

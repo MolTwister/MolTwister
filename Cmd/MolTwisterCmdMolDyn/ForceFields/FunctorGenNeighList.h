@@ -28,6 +28,7 @@ private:
     int maxNeighbors_;
     int maxAtomsInCell_;
     float rCutoff2_;
+    C3DRect pbc_;
 };
 
 END_CUDA_COMPATIBLE()

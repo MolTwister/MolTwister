@@ -43,9 +43,9 @@ HOSTDEV_CALLABLE CMDFFMatrices::CCellListIndex CFunctorGenCellList::operator()(C
     int Nz = cellCountZ_;
 
     C3DVector r = atom.r_;
-    int ix = floor((r.x_ - lx) * float(Nx) / wx);
-    int iy = floor((r.y_ - ly) * float(Ny) / wy);
-    int iz = floor((r.z_ - lz) * float(Nz) / wz);
+    int ix = (int)floor((r.x_ - double(lx)) * double(Nx) / double(wx));
+    int iy = (int)floor((r.y_ - double(ly)) * double(Ny) / double(wy));
+    int iz = (int)floor((r.z_ - double(lz)) * double(Nz) / double(wz));
 
     ix = (ix < 0) ? 0 : ((ix >= Nx) ? Nx - 1 : ix);
     iy = (iy < 0) ? 0 : ((iy >= Ny) ? Ny - 1 : iy);
@@ -78,7 +78,7 @@ CUDA_GLOBAL void kernelAssembleList(CMDFFMatrices::CCellListIndex* devAtomCellIn
             int currentCount = devCellListCount[cellIndex];
             if(currentCount < maxAtomsInCell)
             {
-                int cellListEntryIndex = CFunctorGenCellList::cellIndexToFlatIndex(ix, iy, iz, (size_t)currentCount, maxAtomsInCell, Nx, Ny);
+                int cellListEntryIndex = (int)CFunctorGenCellList::cellIndexToFlatIndex((size_t)ix, (size_t)iy, (size_t)iz, (size_t)currentCount, maxAtomsInCell, (size_t)Nx, (size_t)Ny);
                 if(cellListEntryIndex < maxCellListSize)
                 {
                     devCellList[cellListEntryIndex] = i;

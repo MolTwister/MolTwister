@@ -46,6 +46,23 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
 
     size_t arg = 0;
 
+    // Make sure our MD system is centralized
+    int atomCount = (int)state_->atoms_.size();
+    C3DRect boundingBox;
+    std::vector<int> atomIndices(atomCount);
+    for(int i=0; i<atomCount; i++) atomIndices[i] = i;
+    boundingBox = state_->calcBoundingBox(state_->currentFrame_, atomIndices);
+    C3DVector v0;
+    for(int i=0; i<atomCount; i++)
+    {
+        CAtom* atomPtr = state_->atoms_[i].get();
+
+        v0.x_ = (boundingBox.rLow_.x_ + boundingBox.rHigh_.x_) / 2.0;
+        v0.y_ = (boundingBox.rLow_.y_ + boundingBox.rHigh_.y_) / 2.0;
+        v0.z_ = (boundingBox.rLow_.z_ + boundingBox.rHigh_.z_) / 2.0;
+        atomPtr->r_[state_->currentFrame_]+= v0;
+    }
+
     // Determine if simulation should be executed on CPU or on GPU
     std::string text = CASCIIUtility::getArg(arguments, arg++);
     bool runOnGPU = false;

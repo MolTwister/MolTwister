@@ -16,6 +16,7 @@ namespace MolTwisterCmdMeasure
         std::vector<std::string> getCmdHelpLines();
         std::string getCmdFreetextHelp();
         std::string execute(std::vector<std::string> arguments);
+        void redirectOutput(FILE* stdOut = stdout) { stdOut_ = stdOut; }
 
     private:
         std::string lastError_;

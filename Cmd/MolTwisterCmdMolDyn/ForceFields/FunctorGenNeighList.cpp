@@ -12,7 +12,7 @@ HOSTDEV_CALLABLE CFunctorGenNeighList::CFunctorGenNeighList()
     devNeighListCount_ = nullptr;
     devAtomList_ = nullptr;
     numAtoms_ = 0;
-    cellCountX_ = 0;;
+    cellCountX_ = 0;
     cellCountY_ = 0;
     cellCountZ_ = 0;
     maxNeighbors_ = 0;
@@ -41,6 +41,14 @@ void CFunctorGenNeighList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
 
     rCutoff2_ = ffMatrices.getRCutoff();
     rCutoff2_*= rCutoff2_;
+
+    pbc_.rLow_.x_ = (double)ffMatrices.cellList_.getPBCLowX();
+    pbc_.rLow_.y_ = (double)ffMatrices.cellList_.getPBCLowY();
+    pbc_.rLow_.z_ = (double)ffMatrices.cellList_.getPBCLowZ();
+
+    pbc_.rHigh_.x_ = double(ffMatrices.cellList_.getPBCLowX() + ffMatrices.cellList_.getPBCWidthX());
+    pbc_.rHigh_.y_ = double(ffMatrices.cellList_.getPBCLowY() + ffMatrices.cellList_.getPBCWidthY());
+    pbc_.rHigh_.z_ = double(ffMatrices.cellList_.getPBCLowZ() + ffMatrices.cellList_.getPBCWidthZ());
 }
 
 HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom)
@@ -60,6 +68,8 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
     int izl = cellIndex.iz_ - 1;
     int izh = izl + 2;
 
+    C3DVector r0 = atom.r_;
+
     size_t Ix, Iy, Iz;
     for(int ix=ixl; ix<=ixh; ix++)
     {
@@ -76,18 +86,18 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
                     int numAtomsInCell = devCellListCount_[cellIndex];
                     for(size_t i=0; i<(size_t)numAtomsInCell; i++)
                     {
-                        size_t cellListEntryIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, i, (size_t)maxAtomsInCell_, (size_t)cellCountX_, (size_t)cellCountY_);
+                        size_t cellListEntryIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, i, maxAtomsInCell_, (size_t)cellCountX_, (size_t)cellCountY_);
                         if((int)cellListEntryIndex < maxCellListSize)
                         {
                             int atomIndex = devCellList_[cellListEntryIndex];
                             if(atomIndex < numAtoms_)
                             {
-                                C3DVector r = devAtomList_[atomIndex].r_;
-                                double r2 = r.norm2();
+                                double drSqr = r0.distToAcrossPBC2(devAtomList_[atomIndex].r_, pbc_);
 
                                 int currentNeigh = devNeighListCount_[atom.index_];
-                                if((currentNeigh < maxNeighbors_) && (r2 < rCutoff2_))
+                                if((currentNeigh < maxNeighbors_) && (drSqr < (double)rCutoff2_))
                                 {
+                                    if(atomIndex == atom.index_) continue;
                                     devNeighList_[neighIndexToFlatIndex(atom.index_, currentNeigh, maxNeighbors_)] = atomIndex;
                                     devNeighListCount_[atom.index_]++;
                                 }
@@ -110,6 +120,7 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
             }
         }
     }
+    fflush(stdout);
 
     return devNeighListCount_[atom.index_];
 }

@@ -22,7 +22,7 @@ void CMolDynConfig::print(FILE* stdOut)
 
     fprintf(stdOut, "\ttimestep = %g fs; Time step between each MD integration.\r\n", cfg_.timeStep_);
     fprintf(stdOut, "\toutstride = %i; Number of time steps between each trajectory output.\r\n", cfg_.outputStride_);
-    fprintf(stdOut, "\tensemble {nvt, npt} = %s; Ensemble, where n, v, p and t are atom count, volume, pressure and temperature, respectivley.\r\n", (cfg_.ensemble_ == SMolDynConfigStruct::ensembleNVT) ? "NVT" : ((cfg_.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? "NPT" : "Unknown"));
+    fprintf(stdOut, "\tensemble {nve, nvt, npt} = %s; Ensemble, where n, v, p, e and t are atom count, volume, pressure, energy and temperature, respectivley.\r\n", (cfg_.ensemble_ == SMolDynConfigStruct::ensembleNVT) ? "NVT" : ((cfg_.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? "NPT" : (cfg_.ensemble_ == SMolDynConfigStruct::ensembleNVE) ? "NVE" : "Unknown"));
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\ttemperature = %g K; Desired temperature of system.\r\n", cfg_.temperature_);
     fprintf(stdOut, "\ttemperaturerelax = %g fs; Nose-Hoover thermal relaxation time.\r\n", cfg_.temperatureRelaxationTime_);
@@ -58,6 +58,7 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         if(value == "nvt") cfg_.ensemble_ = SMolDynConfigStruct::ensembleNVT;
         else if(value == "npt") cfg_.ensemble_ = SMolDynConfigStruct::ensembleNPT;
+        else if(value == "nve") cfg_.ensemble_ = SMolDynConfigStruct::ensembleNVE;
         else
         {
             return "Error: unknown ensemble!";
@@ -139,7 +140,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.cutoffRadius_ = 10.0; // Å
     cfg_.neighListShell_ = 2.0; // Å
     cfg_.cutoffForce_ = 1000.0; // Reduced units
-    cfg_.numberOfTimeSteps_ = 100000;
+    cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
 }

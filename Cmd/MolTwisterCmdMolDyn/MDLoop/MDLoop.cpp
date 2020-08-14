@@ -83,7 +83,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     mthost_vector<CMDFFMatrices::CForces>  F;
     
     
-    srand((unsigned int)time(NULL));
+    srand((unsigned int)time(nullptr));
     
     ResizeDistrArrays(aMomentumDistr, aVolumeDistr, iNumPDistrBins, 4);
     CalcInitialForces(SimBox, F);
@@ -124,11 +124,11 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t----------------------------\r\n");
     COut::Printf("\tSmall MD V1.0 - Run\r\n");
     COut::Printf("\t----------------------------\r\n");
-    COut::Printf("\t Ensemble = %s\r\n", SimBox.isNPTEnsemble() ? "NPT" : "NVT");
-    COut::Printf("\t Temperature, T = %g K\r\n", SimBox.NH_T.T*Conv_T);
-    if(SimBox.isNPTEnsemble()) COut::Printf("\t Pressure, P = %g atm\r\n", SimBox.VelVerlet.P*Conv_press);
-    COut::Printf("\t NH T relax, tau = %g fs\r\n", SimBox.NH_T.tau*Conv_t);
-    if(SimBox.isNPTEnsemble()) COut::Printf("\t NH P relax, tau = %g fs\r\n", SimBox.NH_P.tau*Conv_t);
+    COut::Printf("\t Ensemble = %s\r\n", (SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT) ? "NPT" : ((SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNVT) ? "NVT" : "NVE"));
+    if(SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT || SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNVT) COut::Printf("\t Temperature, T = %g K\r\n", SimBox.NH_T.T*Conv_T);
+    if(SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT) COut::Printf("\t Pressure, P = %g atm\r\n", SimBox.VelVerlet.P*Conv_press);
+    if(SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT || SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNVT) COut::Printf("\t NH T relax, tau = %g fs\r\n", SimBox.NH_T.tau*Conv_t);
+    if(SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT) COut::Printf("\t NH P relax, tau = %g fs\r\n", SimBox.NH_P.tau*Conv_t);
     COut::Printf("\t Timestep, dt = %g fs\r\n", SimBox.dt*Conv_t);
     COut::Printf("\t Particles, N = %i\r\n", SimBox.N);
     COut::Printf("\t NH RESPA, n = %i\r\n", SimBox.NH_T.n);
@@ -182,7 +182,7 @@ void CMDLoop::AppendToMomentumDistribution(CSimulationBox& SimBox,
         else if(iAxis == 3) p = SimBox.NH_T.p_eta[0];
         else                p = 0.0;
         
-        int i = ((p+dMaxP) / (2.0*dMaxP)) * double(aMomentumDistr.size());
+        int i = int(((p+dMaxP) / (2.0*dMaxP)) * double(aMomentumDistr.size()));
         if((i >=0) && (i < (int)aMomentumDistr.size())) aMomentumDistr[i]++;
     }
 }

@@ -229,7 +229,7 @@ bool CMolTwister::_run()
                 printf("\t   * Alt + f: Fullscreen (use Esc to exit fullscreen mode)\r\n");
                 printf("\t   * Alt + o: Switch between orthographic and perspective mode\r\n");
                 printf("\t   * Alt + a: Switch on or offf axis\r\n");
-                printf("\t   * Alt + i: Switch on or off charge density iso-surfaces.\r\n");
+                printf("\t   * Alt + i: Switch on or off Coulomb energy iso-surfaces.\r\n");
                 printf("\t              Should only be used on smaller systems, with a\r\n");
                 printf("\t              few molecules, due to the slow nature of the\r\n");
                 printf("\t              applied algorithms.\r\n");
@@ -316,7 +316,7 @@ bool CMolTwister::_run()
                         CASCIIUtility::removeWhiteSpace(fileName);
                         fileStdOut = fopen(fileName.data(), "w+");
 
-                        if(fileStdOut)     cmdList_[i]->redirectOutput(fileStdOut);
+                        if(fileStdOut)  cmdList_[i]->redirectOutput(fileStdOut);
                         else            printf("Error: could not create file!");
                     }
                     
