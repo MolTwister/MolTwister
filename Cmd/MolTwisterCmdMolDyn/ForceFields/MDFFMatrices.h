@@ -181,6 +181,7 @@ public:
 public:
     int getNumAtoms() const { return Natoms_; }
     int getNumBonds() const { return Nbonds_; }
+    int getNumAngles() const { return Nangles_; }
     int getNumAtomTypes() const { return NatomTypes_; }
     float getRCutoff() const { return rCutoff_; }
     void updateAtomList(const mthost_vector<CParticle3D>& atomList);
@@ -200,7 +201,8 @@ private:
                            CCellList& cellList, CNeighList& neighList,
                            int& Natoms,
                            int& NatomTypes,
-                           int& Nbonds) const;
+                           int& Nbonds,
+                           int& Nangles) const;
     void prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const;
 
 public:
@@ -223,6 +225,7 @@ private:
     float dShell_;
     int Natoms_;
     int Nbonds_;
+    int Nangles_;
     int NatomTypes_;
     CMolTwisterState* state_;
 };

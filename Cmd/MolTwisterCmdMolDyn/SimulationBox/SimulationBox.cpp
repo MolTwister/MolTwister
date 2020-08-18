@@ -155,4 +155,9 @@ double CSimulationBox::CalcPress(const mthost_vector<CMDFFMatrices::CForces>& F)
     return (1.0 / (3.0*V)) * sum;
 }
 
+std::string CSimulationBox::getAtomType(int index)
+{
+    return state_->atoms_[index]->getID();
+}
+
 END_CUDA_COMPATIBLE()

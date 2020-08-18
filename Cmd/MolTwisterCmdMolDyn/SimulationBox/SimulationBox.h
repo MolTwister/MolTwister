@@ -35,6 +35,7 @@ public:
         { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, molDynConfig_.ensemble_); }
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces()
         { return VelVerlet.CalcParticleForces(dim, LmaxX_, LmaxY_, LmaxZ_, aParticles); }
+    std::string getAtomType(int index);
     
 private:
     void InitSystem();

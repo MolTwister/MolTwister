@@ -73,13 +73,13 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
     size_t Ix, Iy, Iz;
     for(int ix=ixl; ix<=ixh; ix++)
     {
-        Ix = size_t((ix >= 0) ? ((ix < ixh) ? ix : 0) : cellCountX_ - 1);
+        Ix = size_t((ix >= 0) ? ((ix < cellCountX_) ? ix : 0) : cellCountX_ - 1);
         for(int iy=iyl; iy<=iyh; iy++)
         {
-            Iy = size_t((iy >= 0) ? ((iy < iyh) ? iy : 0) : cellCountY_ - 1);
+            Iy = size_t((iy >= 0) ? ((iy < cellCountY_) ? iy : 0) : cellCountY_ - 1);
             for(int iz=izl; iz<=izh; iz++)
             {
-                Iz = size_t((iz >= 0) ? ((iz < izh) ? iz : 0) : cellCountZ_ - 1);
+                Iz = size_t((iz >= 0) ? ((iz < cellCountZ_) ? iz : 0) : cellCountZ_ - 1);
                 size_t cellIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, (size_t)cellCountX_, (size_t)cellCountY_);
                 if((int)cellIndex < maxCellListCountSize)
                 {
@@ -120,7 +120,6 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
             }
         }
     }
-    fflush(stdout);
 
     return devNeighListCount_[atom.index_];
 }

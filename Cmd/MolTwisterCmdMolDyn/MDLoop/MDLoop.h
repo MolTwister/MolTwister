@@ -46,7 +46,7 @@ private:
     void CalcInitialForces(CSimulationBox& SimBox, mthost_vector<CMDFFMatrices::CForces>& F);
     void NegMomHalfWay(int t, int iNStep, CSimulationBox& SimBox);
     void PrintHeading(CSimulationBox& SimBox);
-    void AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t);
+    void AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t, CSimulationBox& SimBox);
     void ResizeDistrArrays(std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr, int iSize, int iNArrays);
     void AppendToMomentumDistribution(CSimulationBox& SimBox, std::vector<int>& aMomentumDistr, double dMaxP, int iAxis);
     void AppendToVolumeDistribution(double V, std::vector<int>& aVolumeDistr, double dMaxV);

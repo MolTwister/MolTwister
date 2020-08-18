@@ -139,7 +139,7 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
     COut::Printf("\t%-15s%-15s%-15s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]");
 }
 
-void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t)
+void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t, CSimulationBox& SimBox)
 {
     FILE* pFile = fopen(fileNameXYZ_.data(), "a+");
     
@@ -152,7 +152,7 @@ void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t)
         double y = aParticles[k].x.y_;
         double z = aParticles[k].x.z_;
         
-        fprintf(pFile, "%-15s% -15g%-15g%-15g\r\n", "C", x, y, z);
+        fprintf(pFile, "%-15s% -15g%-15g%-15g\r\n", SimBox.getAtomType(k).data(), x, y, z);
     }
     
     fclose(pFile);
@@ -253,7 +253,7 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
     
     if((t % iOutputEvery) == 0)
     {
-        AppendToXYZFile(SimBox.aParticles, t);
+        AppendToXYZFile(SimBox.aParticles, t, SimBox);
         COut::Printf("\t%-15i%-15g%-15g%-20g\r\n", t, SimBox.CalcTemp() * Conv_T,
                SimBox.CalcPress(F) * Conv_press, SimBox.CalcV());
     }
