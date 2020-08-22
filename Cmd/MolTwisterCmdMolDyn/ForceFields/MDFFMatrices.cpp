@@ -103,7 +103,7 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
                       devAngleList_, devAngleFFList_,
                       devDihedralList_, devDihedralFFList_,
                       cellList_, neighList_,
-                      Natoms_, NatomTypes_, Nbonds_, Nangles_);
+                      Natoms_, NatomTypes_, Nbonds_, Nangles_, Ndihedrals_);
     prepareLastErrorList(state, devLastErrorList_);
 }
 
@@ -160,7 +160,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                                       int& Natoms,
                                       int& NatomTypes,
                                       int& Nbonds,
-                                      int& Nangles) const
+                                      int& Nangles,
+                                      int& Ndihedrals) const
 {
     const int maxNumFFPerAtomicSet = MAX_FF_PER_ATOMIC_SET;
     const int numPointsInForceProfiles = NUM_POINTS_IN_PROFILES;
@@ -297,6 +298,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     mtStateTools.getAllMDDihedralsInSystem(dihedralAtoms1, dihedralAtoms2, dihedralAtoms3, dihedralAtoms4, dihedralMDTypeIndices, bondsAcrossPBC);
 
     mthost_vector<CDihedral> hostDihedralList = mthost_vector<CDihedral>(dihedralAtoms1.size());
+    Ndihedrals = (int)dihedralAtoms1.size();
     for(size_t i=0; i<dihedralAtoms1.size(); i++)
     {
         if(i >= dihedralAtoms2.size()) continue;

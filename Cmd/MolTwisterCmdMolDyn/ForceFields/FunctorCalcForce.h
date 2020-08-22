@@ -18,17 +18,22 @@ private:
     HOSTDEV_CALLABLE C3DVector calcBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
     HOSTDEV_CALLABLE C3DVector calcAngularForceCoeffs13(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3) const;
     HOSTDEV_CALLABLE C3DVector calcAngularForceCoeffs2(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3) const;
+    HOSTDEV_CALLABLE C3DVector calcDihedralForceCoeffs14(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3, const C3DVector& r4) const;
+    HOSTDEV_CALLABLE C3DVector calcDihedralForceCoeffs23(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3, const C3DVector& r4) const;
+
     HOSTDEV_CALLABLE C3DVector calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
     HOSTDEV_CALLABLE C3DVector calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
-    HOSTDEV_CALLABLE C3DVector calcForceAngular13On_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& bondType);
-    HOSTDEV_CALLABLE C3DVector calcForceAngular2On_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& bondType);
-    //    C3DVector calcForceAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j const int& k, const int& i);
+    HOSTDEV_CALLABLE C3DVector calcForceAngularOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType);
+    HOSTDEV_CALLABLE C3DVector calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType);
+    HOSTDEV_CALLABLE C3DVector calcForceDihedralOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType);
+    HOSTDEV_CALLABLE C3DVector calcForceDihedralOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType);
 
 private:
     int Natomtypes_;
     int Natoms_;
     int Nbonds_;
     int Nangles_;
+    int Ndihedrals_;
     int dim_;
     float Lx_;
     float Ly_;
