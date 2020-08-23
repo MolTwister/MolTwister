@@ -788,7 +788,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
                         CASCIIUtility::removeWhiteSpace(fileName);
                         stdOutFile = fopen(fileName.data(), "w+");
                         
-                        if(stdOutFile)     cmdList[i]->redirectOutput(stdOutFile);
+                        if(stdOutFile)  cmdList[i]->redirectOutput(stdOutFile);
                         else            printf("Error: could not create file %s!", fileName.data());
                     }
                     

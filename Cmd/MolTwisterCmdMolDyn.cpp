@@ -9,6 +9,8 @@
 #include "MolTwisterCmdMolDyn/CmdResetGPU.h"
 #endif
 
+CMolDynConfig CCmdMolDyn::molDynConfig_ = CMolDynConfig();
+
 void CCmdMolDyn::onAddKeywords()
 {
     addKeyword("moldyn");

@@ -20,5 +20,5 @@ protected:
     virtual void onRegisterSubCommands();
 
 private:
-    CMolDynConfig molDynConfig_;
+    static CMolDynConfig molDynConfig_;
 };

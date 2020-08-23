@@ -69,36 +69,9 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     // Clear forces from primary image (pi = primary image)
     C3DVector Fpi(0.0, 0.0, 0.0);
 
-    // Add non-bonded forces to particle, as well as
-    // non-bonded forces from first PBC images
-    // :TODO: Later this will be a loop over the neighbor list only!!!
-    // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
     int k = atom.index_;
     devLastErrorList_[k].reset();
     C3DVector r_k = devAtomList_[k].r_;
-    int numNeighbors = devNeighListCount_[atom.index_];
-    for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
-    {
-        int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
-        C3DVector r_i = devAtomList_[i].r_;
-        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
-
-        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
-        Fpi+= f;
-        F+= f;
-
-        /*
-        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
-        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
-
-        if(dim_ < 2) continue;
-        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCy, k, i);
-        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCy, k, i);
-
-        if(dim_ < 3) continue;
-        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
-        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
-    }
 
     // Add forces from bonds on particle k
     for(int j=0; j<Nbonds_; j++)
@@ -114,7 +87,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         }
         if((iBondTo != -1) && (devBondList_[j].bondType_ != -1))
         {
-            C3DVector r_k = devAtomList_[k].r_;
             C3DVector r_i = devAtomList_[iBondTo].r_;
             r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
@@ -148,7 +120,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         }
         if((iBondToI != -1) && (iBondToJ != -1) && (devAngleList_[j].angleType_ != -1))
         {
-            C3DVector r_k = devAtomList_[k].r_;
             C3DVector r_i = devAtomList_[iBondToI].r_;
             C3DVector r_j = devAtomList_[iBondToJ].r_;
             r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
@@ -202,7 +173,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         }
         if((iBondToI != -1) && (iBondToJ != -1) && (iBondToL != -1) && (devDihedralList_[j].dihedralType_ != -1))
         {
-            C3DVector r_k = devAtomList_[k].r_;
             C3DVector r_i = devAtomList_[iBondToI].r_;
             C3DVector r_j = devAtomList_[iBondToJ].r_;
             C3DVector r_l = devAtomList_[iBondToL].r_;
@@ -221,6 +191,34 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             Fpi+= f;
             F+= f;
         }
+    }
+
+    // Add non-bonded forces to particle, as well as
+    // non-bonded forces from first PBC images
+    // :TODO: Later this will be a loop over the neighbor list only!!!
+    // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
+    int numNeighbors = devNeighListCount_[atom.index_];
+    for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
+    {
+        int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
+        C3DVector r_i = devAtomList_[i].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+
+        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
+        Fpi+= f;
+        F+= f;
+
+        /*
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCx, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCx, k, i);
+
+        if(dim_ < 2) continue;
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCy, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCy, k, i);
+
+        if(dim_ < 3) continue;
+        F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
+        F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
     }
 
     if(fabs(F.x_) > double(cutF_)) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
