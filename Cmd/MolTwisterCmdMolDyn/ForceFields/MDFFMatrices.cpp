@@ -21,10 +21,6 @@ HOST_CALLABLE CMDFFMatrices::CCellList::CCellList()
 
 void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell)
 {
-    // :TODO: On GPU code, pbc is 0 for all values. It does not work to have a state into this place.
-    // Probably due to calling a function getPBC() on a system that has only been properly iniialized
-    // on the CPU. We need a better way of obtaining the PBC. Perhaps from within the CPU code.
-
     float R = rCutoff + dShell;
     C3DRect pbc = state->view3D_->getPBC();
     maxAtomsInCell_ = (int)ceil(double(R*R*R));
@@ -102,6 +98,7 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
                       devBondList_, devBondFFList_,
                       devAngleList_, devAngleFFList_,
                       devDihedralList_, devDihedralFFList_,
+                      devBondsForAtomLists_, devBondsForAtomListPointers_,
                       cellList_, neighList_,
                       Natoms_, NatomTypes_, Nbonds_, Nangles_, Ndihedrals_);
     prepareLastErrorList(state, devLastErrorList_);
@@ -156,6 +153,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                                       mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                                       mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                                       mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                                      mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
                                       CCellList& cellList, CNeighList& neighList,
                                       int& Natoms,
                                       int& NatomTypes,
@@ -324,6 +322,42 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
         }
     }
 
+    // Generate one list per atom that contains all bonds connected to that atom, where all lists are stored in a single list
+    mthost_vector<CBond> hostBondsForAtomLists;
+    mthost_vector<CListPointer> hostBondsForAtomListPointers(numAtoms);
+    int globIndex = 0;
+    for(int k=0; k<numAtoms; k++)
+    {
+        hostBondsForAtomListPointers[k].indexFirstEntry_ = globIndex;
+        int bondCount = 0;
+        for(int j=0; j<Nbonds; j++)
+        {
+            int iBondTo = -1;
+            if((int)hostBondList[j].atomIndex1_ == k)
+            {
+                iBondTo = (int)hostBondList[j].atomIndex2_;
+            }
+            if((int)hostBondList[j].atomIndex2_ == k)
+            {
+                iBondTo = (int)hostBondList[j].atomIndex1_;
+            }
+            if((iBondTo != -1) && (hostBondList[j].bondType_ != -1))
+            {
+                CBond bond;
+                bond.atomIndex1_ = k;
+                bond.atomIndex2_ = iBondTo;
+                bond.bondType_ = hostBondList[j].bondType_;
+
+                hostBondsForAtomLists.push_back(bond);
+                globIndex++;
+                bondCount++;
+            }
+            hostBondsForAtomListPointers[k].numEntries_ = bondCount;
+        }
+    }
+
+    // :TODO: Continue from here to add angles and dihedrals per atom!!!
+
     // Upload results to device
     devAtomList = hostAtomList;
     devForcesList = hostForcesList;
@@ -335,6 +369,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     devAngleFFList = hostAngleFFList;
     devDihedralList = hostDihedralList;
     devDihedralFFList = hostDihedralFFList;
+    devBondsForAtomLists = hostBondsForAtomLists;
+    devBondsForAtomListPointers = hostBondsForAtomListPointers;
 }
 
 HOSTDEV_CALLABLE size_t CMDFFMatrices::toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)

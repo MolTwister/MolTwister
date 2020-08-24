@@ -143,6 +143,16 @@ public:
         int dihedralType_;
     };
 
+    class CListPointer
+    {
+    public:
+        HOSTDEV_CALLABLE CListPointer() { }
+
+    public:
+        int numEntries_;
+        int indexFirstEntry_;
+    };
+
     class CPoint
     {
     public:
@@ -199,6 +209,7 @@ private:
                            mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
                            mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                            mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                           mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
                            CCellList& cellList, CNeighList& neighList,
                            int& Natoms,
                            int& NatomTypes,
@@ -212,13 +223,15 @@ public:
     mtdevice_vector<CForces> devForcesList_;
     mtdevice_vector<CPoint> devNonBondFFMatrix_;
     mtdevice_vector<size_t> devNonBondFFMatrixFFCount_;
-    mtdevice_vector<CBond> devBondList_;
-    mtdevice_vector<CPoint> devBondFFList_;
-    mtdevice_vector<CAngle> devAngleList_;
-    mtdevice_vector<CPoint> devAngleFFList_;
-    mtdevice_vector<CDihedral> devDihedralList_;
-    mtdevice_vector<CPoint> devDihedralFFList_;
+    mtdevice_vector<CBond> devBondList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CPoint> devBondFFList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CAngle> devAngleList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CPoint> devAngleFFList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CDihedral> devDihedralList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CPoint> devDihedralFFList_;                    // :TODO: Check if this is used after rewriting
     mtdevice_vector<CLastError> devLastErrorList_;
+    mtdevice_vector<CListPointer> devBondsForAtomListPointers_;
+    mtdevice_vector<CBond> devBondsForAtomLists_;
     CCellList cellList_;
     CNeighList neighList_;
 
