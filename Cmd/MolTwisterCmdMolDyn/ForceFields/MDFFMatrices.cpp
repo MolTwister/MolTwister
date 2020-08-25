@@ -99,6 +99,8 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
                       devAngleList_, devAngleFFList_,
                       devDihedralList_, devDihedralFFList_,
                       devBondsForAtomLists_, devBondsForAtomListPointers_,
+                      devAnglesForAtomLists_, devAnglesForAtomListPointers_,
+                      devDihedralsForAtomLists_, devDihedralsForAtomListPointers_,
                       cellList_, neighList_,
                       Natoms_, NatomTypes_, Nbonds_, Nangles_, Ndihedrals_);
     prepareLastErrorList(state, devLastErrorList_);
@@ -154,6 +156,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                                       mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                                       mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
                                       mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
+                                      mtdevice_vector<CAngle>& devAnglesForAtomLists, mtdevice_vector<CListPointer>& devAnglesForAtomListPointers,
+                                      mtdevice_vector<CDihedral>& devDihedralsForAtomLists, mtdevice_vector<CListPointer>& devDihedralsForAtomListPointers,
                                       CCellList& cellList, CNeighList& neighList,
                                       int& Natoms,
                                       int& NatomTypes,
@@ -352,11 +356,111 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                 globIndex++;
                 bondCount++;
             }
-            hostBondsForAtomListPointers[k].numEntries_ = bondCount;
         }
+        hostBondsForAtomListPointers[k].numEntries_ = bondCount;
     }
 
-    // :TODO: Continue from here to add angles and dihedrals per atom!!!
+    // Generate one list per atom that contains all angles connected to that atom, where all lists are stored in a single list
+    mthost_vector<CAngle> hostAnglesForAtomLists;
+    mthost_vector<CListPointer> hostAnglesForAtomListPointers(numAtoms);
+    globIndex = 0;
+    for(int k=0; k<numAtoms; k++)
+    {
+        hostAnglesForAtomListPointers[k].indexFirstEntry_ = globIndex;
+        int angleCount = 0;
+        for(int j=0; j<Nangles; j++)
+        {
+            int iBondToI = -1;
+            int iBondToJ = -1;
+            bool kIsCenterOfAngle = false;
+            if((int)hostAngleList[j].atomIndex1_ == k)
+            {
+                iBondToI = (int)hostAngleList[j].atomIndex2_;
+                iBondToJ = (int)hostAngleList[j].atomIndex3_;
+            }
+            if((int)hostAngleList[j].atomIndex2_ == k)
+            {
+                kIsCenterOfAngle = true;
+                iBondToI = (int)hostAngleList[j].atomIndex1_;
+                iBondToJ = (int)hostAngleList[j].atomIndex3_;
+            }
+            if((int)hostAngleList[j].atomIndex3_ == k)
+            {
+                iBondToI = (int)hostAngleList[j].atomIndex2_;
+                iBondToJ = (int)hostAngleList[j].atomIndex1_;
+            }
+            if((iBondToI != -1) && (iBondToJ != -1) && (hostAngleList[j].angleType_ != -1))
+            {
+                CAngle angle;
+                angle.atomIndex1_ = k;
+                angle.atomIndex2_ = iBondToI;
+                angle.atomIndex3_ = iBondToJ;
+                angle.assocAtomIsAtCenterOfAngle_ = kIsCenterOfAngle;
+
+                hostAnglesForAtomLists.push_back(angle);
+                globIndex++;
+                angleCount++;
+            }
+        }
+        hostAnglesForAtomListPointers[k].numEntries_ = angleCount;
+    }
+
+    // Generate one list per atom that contains all angles connected to that atom, where all lists are stored in a single list
+    mthost_vector<CDihedral> hostDihedralsForAtomLists;
+    mthost_vector<CListPointer> hostDihedralsForAtomListPointers(numAtoms);
+    globIndex = 0;
+    for(int k=0; k<numAtoms; k++)
+    {
+        hostDihedralsForAtomListPointers[k].indexFirstEntry_ = globIndex;
+        int dihedralCount = 0;
+        for(int j=0; j<Ndihedrals; j++)
+        {
+            int iBondToI = -1;
+            int iBondToJ = -1;
+            int iBondToL = -1;
+            bool kIsCenterOfDihedral = false;
+            if((int)hostDihedralList[j].atomIndex1_ == k)
+            {
+                iBondToI = (int)hostDihedralList[j].atomIndex2_;
+                iBondToJ = (int)hostDihedralList[j].atomIndex3_;
+                iBondToL = (int)hostDihedralList[j].atomIndex4_;
+            }
+            if((int)hostDihedralList[j].atomIndex2_ == k)
+            {
+                kIsCenterOfDihedral = true;
+                iBondToI = (int)hostDihedralList[j].atomIndex1_;
+                iBondToJ = (int)hostDihedralList[j].atomIndex3_;
+                iBondToL = (int)hostDihedralList[j].atomIndex4_;
+            }
+            if((int)hostDihedralList[j].atomIndex3_ == k)
+            {
+                kIsCenterOfDihedral = true;
+                iBondToI = (int)hostDihedralList[j].atomIndex4_;
+                iBondToJ = (int)hostDihedralList[j].atomIndex2_;
+                iBondToL = (int)hostDihedralList[j].atomIndex1_;
+            }
+            if((int)hostDihedralList[j].atomIndex4_ == k)
+            {
+                iBondToI = (int)hostDihedralList[j].atomIndex3_;
+                iBondToJ = (int)hostDihedralList[j].atomIndex2_;
+                iBondToL = (int)hostDihedralList[j].atomIndex1_;
+            }
+            if((iBondToI != -1) && (iBondToJ != -1) && (iBondToL != -1) && (hostDihedralList[j].dihedralType_ != -1))
+            {
+                CDihedral dihedral;
+                dihedral.atomIndex1_ = k;
+                dihedral.atomIndex2_ = iBondToI;
+                dihedral.atomIndex3_ = iBondToJ;
+                dihedral.atomIndex4_ = iBondToL;
+                dihedral.assocAtomIsAtCenterOfDihedral_ = kIsCenterOfDihedral;
+
+                hostDihedralsForAtomLists.push_back(dihedral);
+                globIndex++;
+                dihedralCount++;
+            }
+        }
+        hostDihedralsForAtomListPointers[k].numEntries_ = dihedralCount;
+    }
 
     // Upload results to device
     devAtomList = hostAtomList;
@@ -371,6 +475,10 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     devDihedralFFList = hostDihedralFFList;
     devBondsForAtomLists = hostBondsForAtomLists;
     devBondsForAtomListPointers = hostBondsForAtomListPointers;
+    devAnglesForAtomLists = hostAnglesForAtomLists;
+    devAnglesForAtomListPointers = hostAnglesForAtomListPointers;
+    devDihedralsForAtomLists = hostDihedralsForAtomLists;
+    devDihedralsForAtomListPointers = hostDihedralsForAtomListPointers;
 }
 
 HOSTDEV_CALLABLE size_t CMDFFMatrices::toIndexNonBond(size_t rowIndex, size_t columnIndex, size_t ffIndex, size_t pointIndex, size_t columnCount, size_t rowCount, size_t maxNumFFPerAtomicSet)

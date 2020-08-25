@@ -121,19 +121,20 @@ public:
     class CAngle
     {
     public:
-        HOSTDEV_CALLABLE CAngle() { atomIndex1_ = atomIndex2_ = atomIndex3_ = 0; angleType_ = -1; }
+        HOSTDEV_CALLABLE CAngle() { atomIndex1_ = atomIndex2_ = atomIndex3_ = 0; angleType_ = -1; assocAtomIsAtCenterOfAngle_ = false; }
 
     public:
         size_t atomIndex1_;
         size_t atomIndex2_;
         size_t atomIndex3_;
         int angleType_;
+        bool assocAtomIsAtCenterOfAngle_;
     };
 
     class CDihedral
     {
     public:
-        HOSTDEV_CALLABLE CDihedral() { atomIndex1_ = atomIndex2_ = atomIndex3_ = atomIndex4_ = 0; dihedralType_ = -1; }
+        HOSTDEV_CALLABLE CDihedral() { atomIndex1_ = atomIndex2_ = atomIndex3_ = atomIndex4_ = 0; dihedralType_ = -1; assocAtomIsAtCenterOfDihedral_ = false; }
 
     public:
         size_t atomIndex1_;
@@ -141,6 +142,7 @@ public:
         size_t atomIndex3_;
         size_t atomIndex4_;
         int dihedralType_;
+        bool assocAtomIsAtCenterOfDihedral_;
     };
 
     class CListPointer
@@ -210,6 +212,8 @@ private:
                            mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
                            mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
                            mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
+                           mtdevice_vector<CAngle>& devAnglesForAtomLists, mtdevice_vector<CListPointer>& devAnglesForAtomListPointers,
+                           mtdevice_vector<CDihedral>& devDihedralsForAtomLists, mtdevice_vector<CListPointer>& devDihedralsForAtomListPointers,
                            CCellList& cellList, CNeighList& neighList,
                            int& Natoms,
                            int& NatomTypes,
@@ -232,6 +236,10 @@ public:
     mtdevice_vector<CLastError> devLastErrorList_;
     mtdevice_vector<CListPointer> devBondsForAtomListPointers_;
     mtdevice_vector<CBond> devBondsForAtomLists_;
+    mtdevice_vector<CListPointer> devAnglesForAtomListPointers_;
+    mtdevice_vector<CAngle> devAnglesForAtomLists_;
+    mtdevice_vector<CListPointer> devDihedralsForAtomListPointers_;
+    mtdevice_vector<CDihedral> devDihedralsForAtomLists_;
     CCellList cellList_;
     CNeighList neighList_;
 

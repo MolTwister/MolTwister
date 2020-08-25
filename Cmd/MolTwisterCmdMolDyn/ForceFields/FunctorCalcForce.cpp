@@ -33,6 +33,13 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     devLastErrorList_ = nullptr;
     devNeighList_ = nullptr;
     devNeighListCount_ = nullptr;
+
+    devBondsForAtomListPointers_ = nullptr;
+    devBondsForAtomLists_ = nullptr;
+    devAnglesForAtomListPointers_ = nullptr;
+    devAnglesForAtomLists_ = nullptr;
+    devDihedralsForAtomListPointers_ = nullptr;
+    devDihedralsForAtomLists_ = nullptr;
 }
 
 void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
@@ -49,6 +56,13 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     devLastErrorList_ = mtraw_pointer_cast(&ffMatrices.devLastErrorList_[0]);
     devNeighList_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighList_[0]);
     devNeighListCount_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighListCount_[0]);
+
+    devBondsForAtomListPointers_ = mtraw_pointer_cast(&ffMatrices.devBondsForAtomListPointers_[0]);
+    devBondsForAtomLists_ = mtraw_pointer_cast(&ffMatrices.devBondsForAtomLists_[0]);
+    devAnglesForAtomListPointers_ = mtraw_pointer_cast(&ffMatrices.devAnglesForAtomListPointers_[0]);
+    devAnglesForAtomLists_ = mtraw_pointer_cast(&ffMatrices.devAnglesForAtomLists_[0]);
+    devDihedralsForAtomListPointers_ = mtraw_pointer_cast(&ffMatrices.devDihedralsForAtomListPointers_[0]);
+    devDihedralsForAtomLists_ = mtraw_pointer_cast(&ffMatrices.devDihedralsForAtomLists_[0]);
 
     Natoms_ = ffMatrices.getNumAtoms();
     Natomtypes_ = ffMatrices.getNumAtomTypes();
@@ -74,6 +88,20 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     C3DVector r_k = devAtomList_[k].r_;
 
     // Add forces from bonds on particle k
+    int firstIndex = devBondsForAtomListPointers_[k].indexFirstEntry_;
+    int numEntries = devBondsForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntries; j++)
+    {
+        CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndex + j];
+        C3DVector r_i = devAtomList_[bond.atomIndex2_].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+
+        f = calcForceBondOn_r_k(r_k, r_i, bond.bondType_);
+        Fpi+= f;
+        F+= f;
+    }
+
+    /*
     for(int j=0; j<Nbonds_; j++)
     {
         int iBondTo = -1;
@@ -95,8 +123,31 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             F+= f;
         }
     }
+    */
 
     // Add forces from angles on particle k
+    firstIndex = devAnglesForAtomListPointers_[k].indexFirstEntry_;
+    numEntries = devAnglesForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntries; j++)
+    {
+        CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndex + j];
+        C3DVector r_i = devAtomList_[angle.atomIndex2_].r_;
+        C3DVector r_j = devAtomList_[angle.atomIndex3_].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+        r_k.moveToSameSideOfPBCAsThis(r_j, pbc_);
+
+        if(angle.assocAtomIsAtCenterOfAngle_)
+        {
+            f = calcForceAngularOn_r_i(r_i, r_k, r_j, angle.angleType_);
+        }
+        else
+        {
+            f = calcForceAngularOn_r_k(r_k, r_i, r_j, angle.angleType_);
+        }
+        Fpi+= f;
+        F+= f;
+    }
+    /*
     for(int j=0; j<Nangles_; j++)
     {
         int iBondToI = -1;
@@ -137,8 +188,33 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             F+= f;
         }
     }
+    */
 
     // Add forces from dihedrals on particle k
+    firstIndex = devDihedralsForAtomListPointers_[k].indexFirstEntry_;
+    numEntries = devDihedralsForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntries; j++)
+    {
+        CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndex + j];
+        C3DVector r_i = devAtomList_[dihedral.atomIndex2_].r_;
+        C3DVector r_j = devAtomList_[dihedral.atomIndex3_].r_;
+        C3DVector r_l = devAtomList_[dihedral.atomIndex4_].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+        r_k.moveToSameSideOfPBCAsThis(r_j, pbc_);
+        r_k.moveToSameSideOfPBCAsThis(r_l, pbc_);
+
+        if(dihedral.assocAtomIsAtCenterOfDihedral_)
+        {
+            f = calcForceDihedralOn_r_i(r_i, r_k, r_j, r_l, dihedral.dihedralType_);
+        }
+        else
+        {
+            f = calcForceDihedralOn_r_k(r_k, r_i, r_j, r_l, dihedral.dihedralType_);
+        }
+        Fpi+= f;
+        F+= f;
+    }
+    /*
     for(int j=0; j<Ndihedrals_; j++)
     {
         int iBondToI = -1;
@@ -192,6 +268,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             F+= f;
         }
     }
+    */
 
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images

@@ -50,6 +50,14 @@ private:
     CMDFFMatrices::CDihedral* devDihedralList_;
     CMDFFMatrices::CPoint* devDihedralFFList_;
     CMDFFMatrices::CLastError* devLastErrorList_;
+    CMDFFMatrices::CListPointer* devBondsForAtomListPointers_;
+
+    CMDFFMatrices::CBond* devBondsForAtomLists_;
+    CMDFFMatrices::CListPointer* devAnglesForAtomListPointers_;
+    CMDFFMatrices::CAngle* devAnglesForAtomLists_;
+    CMDFFMatrices::CListPointer* devDihedralsForAtomListPointers_;
+    CMDFFMatrices::CDihedral* devDihedralsForAtomLists_;
+
     int* devNeighList_;
     int* devNeighListCount_;
     int maxNeighbours_;
