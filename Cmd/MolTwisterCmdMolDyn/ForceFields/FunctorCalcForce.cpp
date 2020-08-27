@@ -147,6 +147,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         Fpi+= f;
         F+= f;
     }
+
     /*
     for(int j=0; j<Nangles_; j++)
     {

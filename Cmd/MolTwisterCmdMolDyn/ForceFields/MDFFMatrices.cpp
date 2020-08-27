@@ -395,6 +395,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                 angle.atomIndex1_ = k;
                 angle.atomIndex2_ = iBondToI;
                 angle.atomIndex3_ = iBondToJ;
+                angle.angleType_ = hostAngleList[j].angleType_;
                 angle.assocAtomIsAtCenterOfAngle_ = kIsCenterOfAngle;
 
                 hostAnglesForAtomLists.push_back(angle);
@@ -452,6 +453,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                 dihedral.atomIndex2_ = iBondToI;
                 dihedral.atomIndex3_ = iBondToJ;
                 dihedral.atomIndex4_ = iBondToL;
+                dihedral.dihedralType_ = hostDihedralList[j].dihedralType_;
                 dihedral.assocAtomIsAtCenterOfDihedral_ = kIsCenterOfDihedral;
 
                 hostDihedralsForAtomLists.push_back(dihedral);
