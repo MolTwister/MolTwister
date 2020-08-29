@@ -95,9 +95,7 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
     prepareFFMatrices(state, stdOut, rCutoff, dShell, bondsAcrossPBC,
                       devAtomList_, devForcesList_,
                       devNonBondFFMatrix_, devNonBondFFMatrixFFCount_,
-                      devBondList_, devBondFFList_,
-                      devAngleList_, devAngleFFList_,
-                      devDihedralList_, devDihedralFFList_,
+                      devBondFFList_, devAngleFFList_, devDihedralFFList_,
                       devBondsForAtomLists_, devBondsForAtomListPointers_,
                       devAnglesForAtomLists_, devAnglesForAtomListPointers_,
                       devDihedralsForAtomLists_, devDihedralsForAtomListPointers_,
@@ -152,9 +150,7 @@ void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vecto
 void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,
                                       mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                                       mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
-                                      mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
-                                      mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
-                                      mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                                      mtdevice_vector<CPoint>& devBondFFList, mtdevice_vector<CPoint>& devAngleFFList, mtdevice_vector<CPoint>& devDihedralFFList,
                                       mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
                                       mtdevice_vector<CAngle>& devAnglesForAtomLists, mtdevice_vector<CListPointer>& devAnglesForAtomListPointers,
                                       mtdevice_vector<CDihedral>& devDihedralsForAtomLists, mtdevice_vector<CListPointer>& devDihedralsForAtomListPointers,
@@ -469,11 +465,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     devForcesList = hostForcesList;
     devNonBondFFMatrix = hostNonBondFFMatrix;
     devNonBondFFMatrixFFCount = hostNonBondFFMatrixFFCount;
-    devBondList = hostBondList;
     devBondFFList = hostBondFFList;
-    devAngleList = hostAngleList;
     devAngleFFList = hostAngleFFList;
-    devDihedralList = hostDihedralList;
     devDihedralFFList = hostDihedralFFList;
     devBondsForAtomLists = hostBondsForAtomLists;
     devBondsForAtomListPointers = hostBondsForAtomListPointers;

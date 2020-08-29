@@ -24,11 +24,8 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     devAtomList_ = nullptr;
     devNonBondFFMatrix_ = nullptr;
     devNonBondFFMatrixFFCount_ = nullptr;
-    devBondList_ = nullptr;
     devBondFFList_ = nullptr;
-    devAngleList_ = nullptr;
     devAngleFFList_ = nullptr;
-    devDihedralList_ = nullptr;
     devDihedralFFList_ = nullptr;
     devLastErrorList_ = nullptr;
     devNeighList_ = nullptr;
@@ -47,11 +44,8 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     devAtomList_ = mtraw_pointer_cast(&ffMatrices.devAtomList_[0]);
     devNonBondFFMatrix_ = mtraw_pointer_cast(&ffMatrices.devNonBondFFMatrix_[0]);
     devNonBondFFMatrixFFCount_ = mtraw_pointer_cast(&ffMatrices.devNonBondFFMatrixFFCount_[0]);
-    devBondList_ = mtraw_pointer_cast(&ffMatrices.devBondList_[0]);
     devBondFFList_ = mtraw_pointer_cast(&ffMatrices.devBondFFList_[0]);
-    devAngleList_ = mtraw_pointer_cast(&ffMatrices.devAngleList_[0]);
     devAngleFFList_ = mtraw_pointer_cast(&ffMatrices.devAngleFFList_[0]);
-    devDihedralList_ = mtraw_pointer_cast(&ffMatrices.devDihedralList_[0]);
     devDihedralFFList_ = mtraw_pointer_cast(&ffMatrices.devDihedralFFList_[0]);
     devLastErrorList_ = mtraw_pointer_cast(&ffMatrices.devLastErrorList_[0]);
     devNeighList_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighList_[0]);

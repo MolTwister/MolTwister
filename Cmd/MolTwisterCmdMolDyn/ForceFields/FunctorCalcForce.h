@@ -43,11 +43,8 @@ private:
     CMDFFMatrices::CAtom* devAtomList_;
     CMDFFMatrices::CPoint* devNonBondFFMatrix_;
     size_t* devNonBondFFMatrixFFCount_;
-    CMDFFMatrices::CBond* devBondList_;
     CMDFFMatrices::CPoint* devBondFFList_;
-    CMDFFMatrices::CAngle* devAngleList_;
     CMDFFMatrices::CPoint* devAngleFFList_;
-    CMDFFMatrices::CDihedral* devDihedralList_;
     CMDFFMatrices::CPoint* devDihedralFFList_;
     CMDFFMatrices::CLastError* devLastErrorList_;
     CMDFFMatrices::CListPointer* devBondsForAtomListPointers_;

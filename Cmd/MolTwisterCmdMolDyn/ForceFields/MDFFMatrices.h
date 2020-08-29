@@ -208,9 +208,7 @@ private:
     void prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,
                            mtdevice_vector<CAtom>& devAtomList, mtdevice_vector<CForces>& devForcesList,
                            mtdevice_vector<CPoint>& devNonBondFFMatrix, mtdevice_vector<size_t>& devNonBondFFMatrixFFCount,
-                           mtdevice_vector<CBond>& devBondList, mtdevice_vector<CPoint>& devBondFFList,
-                           mtdevice_vector<CAngle>& devAngleList, mtdevice_vector<CPoint>& devAngleFFList,
-                           mtdevice_vector<CDihedral>& devDihedralList, mtdevice_vector<CPoint>& devDihedralFFList,
+                           mtdevice_vector<CPoint>& devBondFFList, mtdevice_vector<CPoint>& devAngleFFList, mtdevice_vector<CPoint>& devDihedralFFList,
                            mtdevice_vector<CBond>& devBondsForAtomLists, mtdevice_vector<CListPointer>& devBondsForAtomListPointers,
                            mtdevice_vector<CAngle>& devAnglesForAtomLists, mtdevice_vector<CListPointer>& devAnglesForAtomListPointers,
                            mtdevice_vector<CDihedral>& devDihedralsForAtomLists, mtdevice_vector<CListPointer>& devDihedralsForAtomListPointers,
@@ -227,12 +225,9 @@ public:
     mtdevice_vector<CForces> devForcesList_;
     mtdevice_vector<CPoint> devNonBondFFMatrix_;
     mtdevice_vector<size_t> devNonBondFFMatrixFFCount_;
-    mtdevice_vector<CBond> devBondList_;                    // :TODO: Check if this is used after rewriting
-    mtdevice_vector<CPoint> devBondFFList_;                    // :TODO: Check if this is used after rewriting
-    mtdevice_vector<CAngle> devAngleList_;                    // :TODO: Check if this is used after rewriting
-    mtdevice_vector<CPoint> devAngleFFList_;                    // :TODO: Check if this is used after rewriting
-    mtdevice_vector<CDihedral> devDihedralList_;                    // :TODO: Check if this is used after rewriting
-    mtdevice_vector<CPoint> devDihedralFFList_;                    // :TODO: Check if this is used after rewriting
+    mtdevice_vector<CPoint> devBondFFList_;
+    mtdevice_vector<CPoint> devAngleFFList_;
+    mtdevice_vector<CPoint> devDihedralFFList_;
     mtdevice_vector<CLastError> devLastErrorList_;
     mtdevice_vector<CListPointer> devBondsForAtomListPointers_;
     mtdevice_vector<CBond> devBondsForAtomLists_;
