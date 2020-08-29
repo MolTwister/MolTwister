@@ -1,5 +1,6 @@
 #include "FunctorCalcForce.h"
 #include "FunctorGenNeighList.h"
+#include "../Integrators/Constants.h"
 #include <float.h>
 #include <math.h>
 
@@ -84,6 +85,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     int k = atom.index_;
     devLastErrorList_[k].reset();
     C3DVector r_k = devAtomList_[k].r_;
+    float q_k = devAtomList_[k].q_;
 
     // Add forces from bonds on particle k
     int firstIndexBonds = devBondsForAtomListPointers_[k].indexFirstEntry_;
@@ -149,17 +151,33 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
-    // :TODO: Later this will be a loop over the neighbor list only!!!
     // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
     int numNeighbors = devNeighListCount_[atom.index_];
     bool hasBondFactor, hasAngleFactor;
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
+        // Calculate the short-range forces between atom index k and its neareast neighbours, i
         int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
         C3DVector r_i = devAtomList_[i].r_;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
         f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
 
+        // Calculate the long-range forces between atom index k and its nearest neightbours, i
+        // We need to convert K = 1/(4 pi Eps0) to reduced units:
+        // K1 = (1 / (4 * pi * Eps0)) * NA  which has units N/mol C^{-2} m^2
+        // K2 = (K1 / 1.0E-20) which has units N/mol C^{-2} (Å)^2
+        // K3 = K2 * Unit_e*Unit_e which has units N/mol (Å)^2
+        // K = K2 / Conv_force which converts N/mol to reduced units. Calculating this we find K = 1389.32
+        float q_i = devAtomList_[i].q_;
+        const float K = 1389.32f;
+        C3DVector r = r_k - r_i;
+        float R3 = (float)r.norm();
+        R3 = R3 * R3 * R3;
+        if(R3 == 0.0f) R3 = 1E-10f;
+
+        f+= ( r * double(( K * q_k * q_i ) / R3) );
+
+        // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
         hasBondFactor = false;
         hasAngleFactor = false;
 
@@ -201,6 +219,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             }
         }
 
+        // Add the short-range and long-range forces between k and i
         Fpi+= f;
         F+= f;
 

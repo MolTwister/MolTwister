@@ -19,6 +19,7 @@ public:
     public:
         int index_;
         float m_;
+        float q_;
         C3DVector r_;
         C3DVector p_;
         int typeIndex_;
