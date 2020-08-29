@@ -5,7 +5,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF)
+HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float scale12, float scale13, float scale14)
 {
     Natomtypes_ = 0;
     Natoms_ = 0;
@@ -20,6 +20,10 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     pbc_ = C3DRect(C3DVector(-(double)Lx/2.0, -(double)Ly/2.0, -(double)Lz/2.0), C3DVector((double)Lx/2.0, (double)Ly/2.0, (double)Lz/2.0));
     cutF_ = cutF;
     maxNeighbours_ = 0;
+
+    scale12_ = scale12;
+    scale13_ = scale13;
+    scale14_ = scale14;
 
     devAtomList_ = nullptr;
     devNonBondFFMatrix_ = nullptr;
@@ -164,7 +168,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
             if(i == bond.atomIndex2_)
             {
-                f*= 0.0;
+                f*= double(scale12_);
                 hasBondFactor = true;
                 break;
             }
@@ -177,7 +181,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
                 CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndexAngles + j];
                 if(!angle.assocAtomIsAtCenterOfAngle_ && (i == angle.atomIndex3_))
                 {
-                    f*= 0.0;
+                    f*= double(scale13_);
                     hasAngleFactor = true;
                     break;
                 }
@@ -191,7 +195,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
                 CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndexDihedrals + j];
                 if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (i == dihedral.atomIndex4_))
                 {
-                    f*= 0.5;
+                    f*= double(scale14_);
                     break;
                 }
             }

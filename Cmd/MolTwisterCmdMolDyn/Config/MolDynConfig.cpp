@@ -12,7 +12,7 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
         "cutoffradius", "neighshell", "cutoffforce",
-             "infofile", "xyzfile"
+             "infofile", "xyzfile", "scale12", "scale13", "scale14"
            };
 }
 
@@ -37,6 +37,10 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tcutoffradius = %g AA; Desired cutoff radius.\r\n", cfg_.cutoffRadius_);
     fprintf(stdOut, "\tneighshell = %g AA; Desired neighbor list shell distance.\r\n", cfg_.neighListShell_);
     fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force (in reduced units).\r\n", cfg_.cutoffForce_);
+    fprintf(stdOut, "\r\n");
+    fprintf(stdOut, "\tscale12 = %g; Desired factor to scale 1-2 non-bonded interactions with (i.e., between bonds).\r\n", cfg_.scale12Interactions_);
+    fprintf(stdOut, "\tscale13 = %g; Desired factor to scale 1-3 non-bonded interactions with (i.e., between bonds).\r\n", cfg_.scale13Interactions_);
+    fprintf(stdOut, "\tscale14 = %g; Desired factor to scale 1-4 non-bonded interactions with (i.e., between bonds).\r\n", cfg_.scale14Interactions_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
     fprintf(stdOut, "\txyzfile = %s; Filename of XYZ file.\r\n", cfg_.outXYZFile_.data());
@@ -116,6 +120,18 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.outXYZFile_ = value.data();
     }
+    else if(parameter == "scale12")
+    {
+        cfg_.scale12Interactions_ = std::atof(value.data());
+    }
+    else if(parameter == "scale13")
+    {
+        cfg_.scale13Interactions_ = std::atof(value.data());
+    }
+    else if(parameter == "scale14")
+    {
+        cfg_.scale14Interactions_ = std::atof(value.data());
+    }
     else
     {
         return "Error: unknown parameter!";
@@ -143,4 +159,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
+    cfg_.scale12Interactions_ = 0.0;
+    cfg_.scale13Interactions_ = 0.0;
+    cfg_.scale14Interactions_ = 0.5;
 }

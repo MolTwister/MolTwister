@@ -7,7 +7,7 @@ BEGIN_CUDA_COMPATIBLE()
 class CFunctorCalcForce
 {
 public:
-    HOSTDEV_CALLABLE CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF);
+    HOSTDEV_CALLABLE CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float scale12, float scale13, float scale14);
 
 public:
     void setForceFieldMatrices(CMDFFMatrices& ffMatrices);
@@ -40,6 +40,9 @@ private:
     float Lz_;
     C3DRect pbc_;
     float cutF_;
+    float scale12_;
+    float scale13_;
+    float scale14_;
     CMDFFMatrices::CAtom* devAtomList_;
     CMDFFMatrices::CPoint* devNonBondFFMatrix_;
     size_t* devNonBondFFMatrixFFCount_;

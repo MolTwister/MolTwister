@@ -15,6 +15,10 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, do
     W = 1.0;
     Fcut = fCutoff;
 
+    scale12_ = 0.0f;
+    scale13_ = 0.0f;
+    scale14_ = 0.5f;
+
     mdFFMatrices_ = new CMDFFMatrices(state, stdOut, (float)rCutoff, (float)dShell);
 }
 
@@ -126,6 +130,13 @@ void CVelVerlet::SetRandMom(double tau)
     if(p_eps == 0.0) p_eps = (W / tau);
 }
 
+void CVelVerlet::setNonBondedScaleFactors(float scale12, float scale13, float scale14)
+{
+    scale12_ = scale12;
+    scale13_ = scale13;
+    scale14_ = scale14;
+}
+
 double CVelVerlet::GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
 {
     if(ensemble == SMolDynConfigStruct::ensembleNPT) return V0 * exp(3.0 * eps);
@@ -137,7 +148,7 @@ void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, co
 {
     mdFFMatrices_->updateAtomList(aParticles);
     mdFFMatrices_->genNeighList((float)Lx, (float)Ly, (float)Lz);
-    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut);
+    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut, scale12_, scale13_, scale14_);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     mtcudaDeviceSynchronize();

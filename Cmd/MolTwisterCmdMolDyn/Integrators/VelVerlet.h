@@ -21,6 +21,7 @@ public:
     void Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble);
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles);
     void SetRandMom(double tau);
+    void setNonBondedScaleFactors(float scale12, float scale13, float scale14);
     double GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
 
 private:
@@ -39,6 +40,9 @@ public:
 private:
     double eps;
     CMDFFMatrices* mdFFMatrices_;
+    float scale12_;
+    float scale13_;
+    float scale14_;
 };
 
 END_CUDA_COMPATIBLE()

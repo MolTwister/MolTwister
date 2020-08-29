@@ -10,6 +10,8 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
     state_ = state;
     molDynConfig_ = config;
 
+    VelVerlet.setNonBondedScaleFactors((float)molDynConfig_.scale12Interactions_, (float)molDynConfig_.scale13Interactions_, (float)molDynConfig_.scale14Interactions_);
+
     N = 100;
     C3DRect pbc = state->view3D_->getPBC();
     LmaxX_ = pbc.getWidthX(); // [Å]

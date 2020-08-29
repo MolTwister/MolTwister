@@ -22,4 +22,7 @@ struct SMolDynConfigStruct
     int outputStride_;
     std::string outInfoFile_;
     std::string outXYZFile_;
+    double scale12Interactions_;
+    double scale13Interactions_;
+    double scale14Interactions_;
 };
