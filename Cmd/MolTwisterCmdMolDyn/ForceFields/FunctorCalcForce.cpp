@@ -88,49 +88,25 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     C3DVector r_k = devAtomList_[k].r_;
 
     // Add forces from bonds on particle k
-    int firstIndex = devBondsForAtomListPointers_[k].indexFirstEntry_;
-    int numEntries = devBondsForAtomListPointers_[k].numEntries_;
-    for(int j=0; j<numEntries; j++)
+    int firstIndexBonds = devBondsForAtomListPointers_[k].indexFirstEntry_;
+    int numEntriesBonds = devBondsForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntriesBonds; j++)
     {
-        CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndex + j];
+        CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
         C3DVector r_i = devAtomList_[bond.atomIndex2_].r_;
-        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);                
 
         f = calcForceBondOn_r_k(r_k, r_i, bond.bondType_);
         Fpi+= f;
         F+= f;
     }
 
-    /*
-    for(int j=0; j<Nbonds_; j++)
-    {
-        int iBondTo = -1;
-        if((int)devBondList_[j].atomIndex1_ == k)
-        {
-            iBondTo = (int)devBondList_[j].atomIndex2_;
-        }
-        if((int)devBondList_[j].atomIndex2_ == k)
-        {
-            iBondTo = (int)devBondList_[j].atomIndex1_;
-        }
-        if((iBondTo != -1) && (devBondList_[j].bondType_ != -1))
-        {
-            C3DVector r_i = devAtomList_[iBondTo].r_;
-            r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
-
-            f = calcForceBondOn_r_k(r_k, r_i, devBondList_[j].bondType_);
-            Fpi+= f;
-            F+= f;
-        }
-    }
-    */
-
     // Add forces from angles on particle k
-    firstIndex = devAnglesForAtomListPointers_[k].indexFirstEntry_;
-    numEntries = devAnglesForAtomListPointers_[k].numEntries_;
-    for(int j=0; j<numEntries; j++)
+    int firstIndexAngles = devAnglesForAtomListPointers_[k].indexFirstEntry_;
+    int numEntriesAngles = devAnglesForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntriesAngles; j++)
     {
-        CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndex + j];
+        CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndexAngles + j];
         C3DVector r_i = devAtomList_[angle.atomIndex2_].r_;
         C3DVector r_j = devAtomList_[angle.atomIndex3_].r_;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
@@ -148,55 +124,12 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= f;
     }
 
-    /*
-    for(int j=0; j<Nangles_; j++)
-    {
-        int iBondToI = -1;
-        int iBondToJ = -1;
-        bool kIsCenterOfAngle = false;
-        if((int)devAngleList_[j].atomIndex1_ == k)
-        {
-            iBondToI = (int)devAngleList_[j].atomIndex2_;
-            iBondToJ = (int)devAngleList_[j].atomIndex3_;
-        }
-        if((int)devAngleList_[j].atomIndex2_ == k)
-        {
-            kIsCenterOfAngle = true;
-            iBondToI = (int)devAngleList_[j].atomIndex1_;
-            iBondToJ = (int)devAngleList_[j].atomIndex3_;
-        }
-        if((int)devAngleList_[j].atomIndex3_ == k)
-        {
-            iBondToI = (int)devAngleList_[j].atomIndex2_;
-            iBondToJ = (int)devAngleList_[j].atomIndex1_;
-        }
-        if((iBondToI != -1) && (iBondToJ != -1) && (devAngleList_[j].angleType_ != -1))
-        {
-            C3DVector r_i = devAtomList_[iBondToI].r_;
-            C3DVector r_j = devAtomList_[iBondToJ].r_;
-            r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
-            r_k.moveToSameSideOfPBCAsThis(r_j, pbc_);
-
-            if(kIsCenterOfAngle)
-            {
-                f = calcForceAngularOn_r_i(r_i, r_k, r_j, devAngleList_[j].angleType_);
-            }
-            else
-            {
-                f = calcForceAngularOn_r_k(r_k, r_i, r_j, devAngleList_[j].angleType_);
-            }
-            Fpi+= f;
-            F+= f;
-        }
-    }
-    */
-
     // Add forces from dihedrals on particle k
-    firstIndex = devDihedralsForAtomListPointers_[k].indexFirstEntry_;
-    numEntries = devDihedralsForAtomListPointers_[k].numEntries_;
-    for(int j=0; j<numEntries; j++)
+    int firstIndexDihedrals = devDihedralsForAtomListPointers_[k].indexFirstEntry_;
+    int numEntriesDihedrals = devDihedralsForAtomListPointers_[k].numEntries_;
+    for(int j=0; j<numEntriesDihedrals; j++)
     {
-        CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndex + j];
+        CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndexDihedrals + j];
         C3DVector r_i = devAtomList_[dihedral.atomIndex2_].r_;
         C3DVector r_j = devAtomList_[dihedral.atomIndex3_].r_;
         C3DVector r_l = devAtomList_[dihedral.atomIndex4_].r_;
@@ -215,74 +148,61 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         Fpi+= f;
         F+= f;
     }
-    /*
-    for(int j=0; j<Ndihedrals_; j++)
-    {
-        int iBondToI = -1;
-        int iBondToJ = -1;
-        int iBondToL = -1;
-        bool kIsCenterOfDihedral = false;
-        if((int)devDihedralList_[j].atomIndex1_ == k)
-        {
-            iBondToI = (int)devDihedralList_[j].atomIndex2_;
-            iBondToJ = (int)devDihedralList_[j].atomIndex3_;
-            iBondToL = (int)devDihedralList_[j].atomIndex4_;
-        }
-        if((int)devDihedralList_[j].atomIndex2_ == k)
-        {
-            kIsCenterOfDihedral = true;
-            iBondToI = (int)devDihedralList_[j].atomIndex1_;
-            iBondToJ = (int)devDihedralList_[j].atomIndex3_;
-            iBondToL = (int)devDihedralList_[j].atomIndex4_;
-        }
-        if((int)devDihedralList_[j].atomIndex3_ == k)
-        {
-            kIsCenterOfDihedral = true;
-            iBondToI = (int)devDihedralList_[j].atomIndex4_;
-            iBondToJ = (int)devDihedralList_[j].atomIndex2_;
-            iBondToL = (int)devDihedralList_[j].atomIndex1_;
-        }
-        if((int)devDihedralList_[j].atomIndex4_ == k)
-        {
-            iBondToI = (int)devDihedralList_[j].atomIndex3_;
-            iBondToJ = (int)devDihedralList_[j].atomIndex2_;
-            iBondToL = (int)devDihedralList_[j].atomIndex1_;
-        }
-        if((iBondToI != -1) && (iBondToJ != -1) && (iBondToL != -1) && (devDihedralList_[j].dihedralType_ != -1))
-        {
-            C3DVector r_i = devAtomList_[iBondToI].r_;
-            C3DVector r_j = devAtomList_[iBondToJ].r_;
-            C3DVector r_l = devAtomList_[iBondToL].r_;
-            r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
-            r_k.moveToSameSideOfPBCAsThis(r_j, pbc_);
-            r_k.moveToSameSideOfPBCAsThis(r_l, pbc_);
-
-            if(kIsCenterOfDihedral)
-            {
-                f = calcForceDihedralOn_r_i(r_i, r_k, r_j, r_l, devDihedralList_[j].dihedralType_);
-            }
-            else
-            {
-                f = calcForceDihedralOn_r_k(r_k, r_i, r_j, r_l, devDihedralList_[j].dihedralType_);
-            }
-            Fpi+= f;
-            F+= f;
-        }
-    }
-    */
 
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
     // :TODO: Later this will be a loop over the neighbor list only!!!
     // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
     int numNeighbors = devNeighListCount_[atom.index_];
+    bool hasBondFactor, hasAngleFactor;
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
         int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
         C3DVector r_i = devAtomList_[i].r_;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
-
         f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
+
+        hasBondFactor = false;
+        hasAngleFactor = false;
+
+        for(int j=0; j<numEntriesBonds; j++)
+        {
+            CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
+            if(i == bond.atomIndex2_)
+            {
+                f*= 0.0;
+                hasBondFactor = true;
+                break;
+            }
+        }
+
+        if(!hasBondFactor)
+        {
+            for(int j=0; j<numEntriesAngles; j++)
+            {
+                CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndexAngles + j];
+                if(!angle.assocAtomIsAtCenterOfAngle_ && (i == angle.atomIndex3_))
+                {
+                    f*= 0.0;
+                    hasAngleFactor = true;
+                    break;
+                }
+            }
+        }
+
+        if(!hasAngleFactor)
+        {
+            for(int j=0; j<numEntriesDihedrals; j++)
+            {
+                CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndexDihedrals + j];
+                if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (i == dihedral.atomIndex4_))
+                {
+                    f*= 0.5;
+                    break;
+                }
+            }
+        }
+
         Fpi+= f;
         F+= f;
 
