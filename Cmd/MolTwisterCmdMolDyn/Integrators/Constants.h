@@ -11,3 +11,10 @@
 #define Conv_v 1.0E-2               // Divide to -> reduced unit, velocity
 #define Conv_press 16388.2461       // Divide to -> reduced unit, pressure (from atm)
 #define Conv_force 1.0E13f          // Divide to -> reduced unit, force (from N/mol)
+
+// We need to convert K = 1/(4 pi Eps0) to reduced units:
+// K1 = (1 / (4 * pi * Eps0)) * NA  which has units N/mol C^{-2} m^2
+// K2 = (K1 / 1.0E-20) which has units N/mol C^{-2} (Å)^2
+// K3 = K2 * Unit_e*Unit_e which has units N/mol (Å)^2
+// K = K2 / Conv_force which converts N/mol to reduced units. Calculating this we find K = 1389.32
+#define Coulomb_K 1389.32f
