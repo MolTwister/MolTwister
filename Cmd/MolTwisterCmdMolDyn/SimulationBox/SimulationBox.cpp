@@ -19,7 +19,6 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
     LmaxZ_ = pbc.getWidthZ(); // [Å]
     dt = 1.0 / Conv_t;   // [fs]
     dim = dim3D;
-    bNegMomHalfWay = false;
     ResizeArrays();
 
     InitSystem();

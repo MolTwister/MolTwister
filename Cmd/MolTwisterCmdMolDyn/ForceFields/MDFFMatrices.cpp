@@ -1,6 +1,7 @@
 #include "MDFFMatrices.h"
 #include "FunctorGenCellList.h"
 #include "FunctorGenNeighList.h"
+#include "../../Tools/MolecularSystemTools.h"
 #include <functional>
 
 BEGIN_CUDA_COMPATIBLE()
@@ -180,12 +181,33 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
         hostAtomList[i].index_ = (int)i;
     }
 
+    // Obtain bonds specified by MD force field
+    std::vector<std::vector<int>> bondDestIndices;
+    std::vector<int> molIndices;
+    bondDestIndices.resize(state_->atoms_.size());
+
+    std::vector<int> mdBondsFromFF[2];
+    std::vector<int> mdTypeIndex;
+    CMolTwisterStateTools(state_, stdOut).getAllMDBondsInSystem(mdBondsFromFF[0], mdBondsFromFF[1], mdTypeIndex, bondsAcrossPBC);
+    for(int i=0; i<mdBondsFromFF[0].size(); i++)
+    {
+        if(mdBondsFromFF[0][i] < bondDestIndices.size())
+            bondDestIndices[mdBondsFromFF[0][i]].emplace_back(mdBondsFromFF[1][i]);
+        if(mdBondsFromFF[1][i] < bondDestIndices.size())
+            bondDestIndices[mdBondsFromFF[1][i]].emplace_back(mdBondsFromFF[0][i]);
+    }
+
+    CMolecularSystemTools(state_, stdOut).genMolIndices(bondDestIndices, molIndices);
+    size_t sizeMolIndicesList = molIndices.size();
+
     // Assign atom-type indices to each atom in the atom list
     std::vector<std::string> atomTypes;
     state->searchForAtomTypes(atomTypes);
     for(size_t i=0; i<numAtoms; i++)
     {
         hostAtomList[i].typeIndex_ = CMolTwisterState::atomTypeToTypeIndex(atomTypes, state->atoms_[i]->getID());
+        if(i < sizeMolIndicesList) hostAtomList[i].molIndex_ = molIndices[i];
+        else hostAtomList[i].molIndex_ = -1;
     }
 
     // Prepare cell list vectors and associated properties

@@ -53,7 +53,6 @@ public:
     int N;                                          // Number of particles
     double dt;                                      // Time-step in reduced units
     EDim dim;                                       // System dimension
-    bool bNegMomHalfWay;                            // If true, p=-p for all p, midway the simulation
 
 private:
     double LmaxX_;                                   // Box side length in Å

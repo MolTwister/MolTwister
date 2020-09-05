@@ -23,6 +23,7 @@ public:
         C3DVector r_;
         C3DVector p_;
         int typeIndex_;
+        int molIndex_;
     };
 
     class CCellListIndex

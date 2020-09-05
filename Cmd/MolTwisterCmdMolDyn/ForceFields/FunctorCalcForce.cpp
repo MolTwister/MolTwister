@@ -80,12 +80,13 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     C3DVector PBCz = C3DVector( 0.0,         0.0,          (double)Lz_ );
 
     // Clear forces from primary image (pi = primary image)
-    C3DVector Fpi(0.0, 0.0, 0.0);
+    C3DVector Fpi;
 
     int k = atom.index_;
     devLastErrorList_[k].reset();
     C3DVector r_k = devAtomList_[k].r_;
     float q_k = devAtomList_[k].q_;
+    int molOf_k = devAtomList_[k].molIndex_;
 
     // Add forces from bonds on particle k
     int firstIndexBonds = devBondsForAtomListPointers_[k].indexFirstEntry_;
@@ -152,12 +153,18 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     // Add non-bonded forces to particle, as well as
     // non-bonded forces from first PBC images
     // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
-    int numNeighbors = devNeighListCount_[atom.index_];
-    bool hasBondFactor, hasAngleFactor;
+    int numNeighbors = devNeighListCount_[k];
+    bool hasBondFactor, hasAngleFactor, hasDihedralFactor;
+    if(numNeighbors != 9) // :TODO: Remove!!!
+    {
+        printf("numneigh\r\n");
+        exit(0);
+    }
+    printf("%.2i: N=%.2i ->", k, numNeighbors); // :TODO: Remove
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
         // Calculate the short-range forces between atom index k and its neareast neighbours, i
-        int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(atom.index_, neighIndex, maxNeighbours_)];
+        int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(k, neighIndex, maxNeighbours_)];
         C3DVector r_i = devAtomList_[i].r_;
         C3DVector r_i_pbc = r_i;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
@@ -165,17 +172,20 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
         // Calculate the long-range forces between atom index k and its nearest neightbours, i
         float q_i = devAtomList_[i].q_;
-        C3DVector r = r_i_pbc - r_k; // :TODO: Check if this should be r_k - r_i!!!
+        C3DVector r = r_k - r_i; // :TODO: Check if this should be r_k - r_i!!!
         float R3 = (float)r.norm();
         R3 = R3 * R3 * R3;
         if(R3 != 0.0f)
         {
+            C3DVector ff = ( r * double(( Coulomb_K * q_k * q_i ) / R3) );
             f+= ( r * double(( Coulomb_K * q_k * q_i ) / R3) );
+            printf(" %i (% -10.6f, % -10.6f, % -10.6f) ", i, f.x_, f.y_, f.z_); // :TODO: Remove
         }
 
         // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
         hasBondFactor = false;
         hasAngleFactor = false;
+        hasDihedralFactor = false;
 
         for(int j=0; j<numEntriesBonds; j++)
         {
@@ -210,10 +220,21 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
                 if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (i == dihedral.atomIndex4_))
                 {
                     f*= double(scale14_);
+                    hasDihedralFactor = true;
                     break;
                 }
             }
         }
+
+        if(!hasBondFactor && !hasAngleFactor && !hasDihedralFactor)
+        {
+            int molOf_i = devAtomList_[i].molIndex_;
+            if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k)) f = C3DVector();
+        }
+
+        // :TODO: In general, no interactions are to take place between non-bonded atoms. Hence, we should also have a tag on each atom
+        // to identify their molecular ID. Thus, we can check (afer employing 1-2, 1-3 and 1-4 scaling) if atoms belong to the same
+        // molecule or not. If they do, no non-bonded interactions should be applied.
 
         // Add the short-range and long-range forces between k and i
         Fpi+= f;
@@ -232,10 +253,12 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
     }
+    printf("\r\n"); // :TODO: Remove!!
 
-    if(fabs(F.x_) > double(cutF_)) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
-    if(fabs(F.y_) > double(cutF_)) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
-    if(fabs(F.z_) > double(cutF_)) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+    // :TODO: Move this test out to the MD loop, and rather test this within the loop, s.t., we can ensure a Fsum_all_atoms=0!!!
+//    if(fabs(F.x_) > double(cutF_)) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+//    if(fabs(F.y_) > double(cutF_)) { F.y_ = ((F.y_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
+//    if(fabs(F.z_) > double(cutF_)) { F.z_ = ((F.z_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
 
     return CMDFFMatrices::CForces(F, Fpi);
 }
