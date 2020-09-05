@@ -94,25 +94,9 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
         SimBox.NHPPropagator(FctP);
         SimBox.NHTPropagator(FctT);
         SimBox.VelVerPropagator(F);
-        // :TODO: Remove
-        C3DVector Ftot;
-        C3DVector FtotPi;
-        for(auto item : F)
-        {
-            Ftot+= item.F_;
-            FtotPi+= item.Fpi_;
-            printf("F=(%.6f, %.6f, %.6f) Fpi=(%.6f, %.6f, %.6f)\r\n", item.F_.x_, item.F_.y_, item.F_.z_, item.Fpi_.x_, item.Fpi_.y_, item.Fpi_.z_);
-        }
-        printf("Ftot=(%.6f, %.6f, %.6f) Fpitot=(%.6f, %.6f, %.6f)\r\n", Ftot.x_, Ftot.y_, Ftot.z_, FtotPi.x_, FtotPi.y_, FtotPi.z_);
-        if(fabs(Ftot.x_) > 0.000001 || fabs(Ftot.y_) > 0.000001 || fabs(Ftot.z_) > 0.000001)
-        {
-            printf("Ohh boy\r\n");
-            exit(0);
-        }
-        // :TODO: Remove end
         SimBox.NHTPropagator(FctT);
         SimBox.NHPPropagator(FctP);
-//        SimBox.PBCWrap();
+        SimBox.PBCWrap();
 
         UpdateOutput(t, iEquilibSteps, iOutputEvery, SimBox, F, aMomentumDistr, aVolumeDistr);
     }
@@ -264,12 +248,6 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
         double T = SimBox.CalcTemp() * Conv_T;
         COut::Printf("\t%-15i%-15g%-15g%-20g\r\n", t, T,
                SimBox.CalcPress(F) * Conv_press, SimBox.CalcV());
-        if(T > 1000.0)
-        {
-            printf("Ooops"); // :TODO: Remove
-//            exit(0);
-        }
-
     }
 }
 

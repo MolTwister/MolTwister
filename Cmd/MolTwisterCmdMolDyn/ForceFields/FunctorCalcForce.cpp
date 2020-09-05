@@ -155,12 +155,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     // :TODO: Here, Coulomb is combined into short range. Should make sure that only Coulomb go past PBC!!!
     int numNeighbors = devNeighListCount_[k];
     bool hasBondFactor, hasAngleFactor, hasDihedralFactor;
-    if(numNeighbors != 9) // :TODO: Remove!!!
-    {
-        printf("numneigh\r\n");
-        exit(0);
-    }
-    printf("%.2i: N=%.2i ->", k, numNeighbors); // :TODO: Remove
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
         // Calculate the short-range forces between atom index k and its neareast neighbours, i
@@ -177,9 +171,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         R3 = R3 * R3 * R3;
         if(R3 != 0.0f)
         {
-            C3DVector ff = ( r * double(( Coulomb_K * q_k * q_i ) / R3) );
             f+= ( r * double(( Coulomb_K * q_k * q_i ) / R3) );
-            printf(" %i (% -10.6f, % -10.6f, % -10.6f) ", i, f.x_, f.y_, f.z_); // :TODO: Remove
         }
 
         // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
@@ -226,15 +218,13 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             }
         }
 
+        // If we do not find any 1-2, 1-3 or 1-4 links, then check if i and k belong to the same molecule. If so, scale to zero.
+        // :TODO: Make this into an option!!!
         if(!hasBondFactor && !hasAngleFactor && !hasDihedralFactor)
         {
             int molOf_i = devAtomList_[i].molIndex_;
             if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k)) f = C3DVector();
         }
-
-        // :TODO: In general, no interactions are to take place between non-bonded atoms. Hence, we should also have a tag on each atom
-        // to identify their molecular ID. Thus, we can check (afer employing 1-2, 1-3 and 1-4 scaling) if atoms belong to the same
-        // molecule or not. If they do, no non-bonded interactions should be applied.
 
         // Add the short-range and long-range forces between k and i
         Fpi+= f;
@@ -253,7 +243,6 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= calcForceNonBondedOn_r_k(r_k, r_i + PBCz, k, i);
         F+= calcForceNonBondedOn_r_k(r_k, r_i - PBCz, k, i);*/
     }
-    printf("\r\n"); // :TODO: Remove!!
 
     // :TODO: Move this test out to the MD loop, and rather test this within the loop, s.t., we can ensure a Fsum_all_atoms=0!!!
 //    if(fabs(F.x_) > double(cutF_)) { F.x_ = ((F.x_ >= 0.0) ? 1.0 : -1.0) * double(cutF_); devLastErrorList_[k].lastWarningCode_ = CMDFFMatrices::CLastError::warnForcesWereCut; }
