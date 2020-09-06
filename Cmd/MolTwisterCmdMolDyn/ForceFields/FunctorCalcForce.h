@@ -7,7 +7,7 @@ BEGIN_CUDA_COMPATIBLE()
 class CFunctorCalcForce
 {
 public:
-    HOSTDEV_CALLABLE CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float scale12, float scale13, float scale14);
+    HOSTDEV_CALLABLE CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float scale12, float scale13, float scale14, float scale1N);
 
 public:
     void setForceFieldMatrices(CMDFFMatrices& ffMatrices);
@@ -22,6 +22,7 @@ private:
     HOSTDEV_CALLABLE C3DVector calcDihedralForceCoeffs23(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3, const C3DVector& r4) const;
 
     HOSTDEV_CALLABLE C3DVector calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i);
+    HOSTDEV_CALLABLE C3DVector calcForceCoulombOn_r_k(const C3DVector& r_k, const C3DVector& r_i, int k, int i);
     HOSTDEV_CALLABLE C3DVector calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType);
     HOSTDEV_CALLABLE C3DVector calcForceAngularOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType);
     HOSTDEV_CALLABLE C3DVector calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType);
@@ -43,13 +44,13 @@ private:
     float scale12_;
     float scale13_;
     float scale14_;
+    float scale1N_;
     CMDFFMatrices::CAtom* devAtomList_;
     CMDFFMatrices::CPoint* devNonBondFFMatrix_;
     size_t* devNonBondFFMatrixFFCount_;
     CMDFFMatrices::CPoint* devBondFFList_;
     CMDFFMatrices::CPoint* devAngleFFList_;
     CMDFFMatrices::CPoint* devDihedralFFList_;
-    CMDFFMatrices::CLastError* devLastErrorList_;
     CMDFFMatrices::CListPointer* devBondsForAtomListPointers_;
 
     CMDFFMatrices::CBond* devBondsForAtomLists_;

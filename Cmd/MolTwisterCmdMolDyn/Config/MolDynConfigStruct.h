@@ -25,4 +25,5 @@ struct SMolDynConfigStruct
     double scale12Interactions_;
     double scale13Interactions_;
     double scale14Interactions_;
+    double scaleAbove14BondedInteractions_;
 };

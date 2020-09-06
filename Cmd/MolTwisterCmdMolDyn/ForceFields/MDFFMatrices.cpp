@@ -102,7 +102,6 @@ CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutof
                       devDihedralsForAtomLists_, devDihedralsForAtomListPointers_,
                       cellList_, neighList_,
                       Natoms_, NatomTypes_, Nbonds_, Nangles_, Ndihedrals_);
-    prepareLastErrorList(state, devLastErrorList_);
 }
 
 void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
@@ -138,14 +137,6 @@ void CMDFFMatrices::genNeighList(float Lx, float Ly, float Lz)
     genNeighList.setForceFieldMatrices(*this);
     mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), neighList_.devNeighListCount_.begin(), genNeighList);
     mtcudaDeviceSynchronize();
-}
-
-void CMDFFMatrices::prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const
-{
-    size_t numAtoms = state->atoms_.size();
-    mthost_vector<CLastError> hostLastErrorList = mthost_vector<CLastError>(numAtoms);
-
-    devLastErrorList = hostLastErrorList;
 }
 
 void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,

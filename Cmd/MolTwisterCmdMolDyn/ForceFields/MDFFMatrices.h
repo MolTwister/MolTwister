@@ -168,27 +168,6 @@ public:
         float y_;
     };
 
-    class CLastError
-    {
-    public:
-        enum EErrorCode { errNone = 0 };
-        enum EWarningCode { warnNone = 0, warnForcesWereCut };
-
-    public:
-        HOSTDEV_CALLABLE CLastError() { reset(); }
-
-    public:
-        HOSTDEV_CALLABLE void reset()
-        {
-            lastErrorCode_ = errNone;
-            lastWarningCode_ = warnNone;
-        }
-
-    public:
-        unsigned char lastErrorCode_;
-        unsigned char lastWarningCode_;
-    };
-
 public:
     CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell);
 
@@ -220,7 +199,6 @@ private:
                            int& Nbonds,
                            int& Nangles,
                            int& Ndihedrals) const;
-    void prepareLastErrorList(CMolTwisterState* state, mtdevice_vector<CLastError>& devLastErrorList) const;
 
 public:
     mtdevice_vector<CAtom> devAtomList_;
@@ -230,7 +208,6 @@ public:
     mtdevice_vector<CPoint> devBondFFList_;
     mtdevice_vector<CPoint> devAngleFFList_;
     mtdevice_vector<CPoint> devDihedralFFList_;
-    mtdevice_vector<CLastError> devLastErrorList_;
     mtdevice_vector<CListPointer> devBondsForAtomListPointers_;
     mtdevice_vector<CBond> devBondsForAtomLists_;
     mtdevice_vector<CListPointer> devAnglesForAtomListPointers_;

@@ -4,6 +4,7 @@
 #include <math.h>
 #include <algorithm>
 #include "../ForceFields/FunctorCalcForce.h"
+#include "../MDLoop/Printf.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -18,6 +19,7 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, do
     scale12_ = 0.0f;
     scale13_ = 0.0f;
     scale14_ = 0.5f;
+    scale1N_ = 0.0f;
 
     mdFFMatrices_ = new CMDFFMatrices(state, stdOut, (float)rCutoff, (float)dShell);
 }
@@ -62,10 +64,39 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double Lmax
         }
 
         CalcParticleForces(dim, LmaxX, LmaxY, LmaxZ, aParticles, F);
+        if(Fcut > 0) cutForces(F);
 
         for(int k=0; k<N; k++)
         {
             aParticles[k].p+= F[k].F_*dt_2;
+        }
+    }
+}
+
+void CVelVerlet::cutForces(mthost_vector<CMDFFMatrices::CForces>& F)
+{
+    for(size_t i=0; i<F.size(); i++)
+    {
+        if(fabs(F[i].F_.x_) > Fcut)
+        {
+            double sign = ((F[i].F_.x_ >= 0.0) ? 1.0 : -1.0);
+            double cutF = sign * Fcut;
+            COut::Printf("Warning: x-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.x_, cutF);
+            F[i].Fpi_.x_ = F[i].F_.x_ = cutF;
+        }
+        if(fabs(F[i].F_.y_) > Fcut)
+        {
+            double sign = ((F[i].F_.y_ >= 0.0) ? 1.0 : -1.0);
+            double cutF = sign * Fcut;
+            COut::Printf("Warning: y-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.y_, cutF);
+            F[i].Fpi_.y_ = F[i].F_.y_ = cutF;
+        }
+        if(fabs(F[i].F_.z_) > Fcut)
+        {
+            double sign = ((F[i].F_.z_ >= 0.0) ? 1.0 : -1.0);
+            double cutF = sign * Fcut;
+            COut::Printf("Warning: z-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.z_, cutF);
+            F[i].Fpi_.z_ = F[i].F_.z_ = cutF;
         }
     }
 }
@@ -130,11 +161,12 @@ void CVelVerlet::SetRandMom(double tau)
     if(p_eps == 0.0) p_eps = (W / tau);
 }
 
-void CVelVerlet::setNonBondedScaleFactors(float scale12, float scale13, float scale14)
+void CVelVerlet::setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N)
 {
     scale12_ = scale12;
     scale13_ = scale13;
     scale14_ = scale14;
+    scale1N_ = scale1N;
 }
 
 double CVelVerlet::GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
@@ -148,7 +180,7 @@ void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, co
 {
     mdFFMatrices_->updateAtomList(aParticles);
     mdFFMatrices_->genNeighList((float)Lx, (float)Ly, (float)Lz);
-    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut, scale12_, scale13_, scale14_);
+    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut, scale12_, scale13_, scale14_, scale1N_);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     mtcudaDeviceSynchronize();

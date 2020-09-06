@@ -113,7 +113,7 @@ void CMDLoop::PrintHeading(CSimulationBox& SimBox)
 {
     COut::Printf("\r\n");
     COut::Printf("\t----------------------------\r\n");
-    COut::Printf("\tSmall MD V1.0 - Run\r\n");
+    COut::Printf("\tMolecular dynamics simulation\r\n");
     COut::Printf("\t----------------------------\r\n");
     COut::Printf("\t Ensemble = %s\r\n", (SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT) ? "NPT" : ((SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNVT) ? "NVT" : "NVE"));
     if(SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNPT || SimBox.getEnsemble() == SMolDynConfigStruct::ensembleNVT) COut::Printf("\t Temperature, T = %g K\r\n", SimBox.NH_T.T*Conv_T);
