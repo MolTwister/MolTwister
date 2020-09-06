@@ -1,6 +1,7 @@
 #include "MDLoop.h"
 #include "Printf.h"
 #include "../Integrators/Constants.h"
+#include "../../../Utilities/DCDFile.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -67,6 +68,7 @@ void CFctP::ScaleMomentum(double coeff)
 CMDLoop::CMDLoop(std::string fileNameXYZ)
 {
     fileNameXYZ_ = fileNameXYZ;
+    fileNameDCD_ = "traj.dcd";
 
     const double dMaxV = 0.3; // Max v[Å/fs]in distr.
     m_dMaxP = dMaxV / Conv_P; // m*v_max, m = 1g/mol
@@ -80,6 +82,7 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     const int                 iEquilibSteps = 1000;
     std::vector<int>          aMomentumDistr[4];
     std::vector<int>          aVolumeDistr;
+    C3DVector                 boxSizeOut;
     mthost_vector<CMDFFMatrices::CForces>  F;
     
     
@@ -93,12 +96,12 @@ void CMDLoop::RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery
     {
         SimBox.NHPPropagator(FctP);
         SimBox.NHTPropagator(FctT);
-        SimBox.VelVerPropagator(F);
+        SimBox.VelVerPropagator(F, boxSizeOut);
         SimBox.NHTPropagator(FctT);
         SimBox.NHPPropagator(FctP);
         SimBox.PBCWrap();
 
-        UpdateOutput(t, iEquilibSteps, iOutputEvery, SimBox, F, aMomentumDistr, aVolumeDistr);
+        UpdateOutput(t, iEquilibSteps, iOutputEvery, SimBox, F, aMomentumDistr, aVolumeDistr, boxSizeOut);
     }
     
     FinalizeOutput(SimBox, aMomentumDistr, aVolumeDistr);
@@ -149,8 +152,67 @@ void CMDLoop::AppendToXYZFile(mthost_vector<CParticle3D>& aParticles, int t, CSi
     fclose(pFile);
 }
 
-void CMDLoop::ResizeDistrArrays(std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr,
-                                      int iSize, int iNArrays)
+void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& aParticles, CSimulationBox& SimBox, const C3DVector& boxSize)
+{
+    FILE* file = fopen(fileNameDCD_.data(), "r");
+
+    // Check if DCD file exists. If not, create it and add an appropriate header
+    if(!file)
+    {
+        file = fopen(fileNameDCD_.data(), "w");
+        if(file)
+        {
+            int numTimeSteps = SimBox.getNumTimeSteps();
+            int outputStride = SimBox.getOutputStride();
+
+            CDCDFile::CMainHeader mainHeader;
+            mainHeader.ID_ = "CORD";
+            mainHeader.nSets_ = numTimeSteps / outputStride;
+            mainHeader.initStep_ = 0;
+            mainHeader.wrtFreq_ = outputStride;
+            mainHeader.timeStep_ = (float)SimBox.getTimeStep();
+            mainHeader.descriptA_ = "Written by MolTwister";
+            mainHeader.descriptB_ = "---";
+            mainHeader.nAtoms_ = (int)aParticles.size();
+
+            int numBytesWritten = 0;
+            mainHeader.write(file, numBytesWritten);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        fclose(file);
+    }
+
+    // Open the DCD file and place the file pointer at the end of the file
+    file = fopen(fileNameDCD_.data(), "a+");
+    if(!file) return;
+
+    // Write a DCD record, starting at the end of the file
+    CDCDFile::CRecordHeader recordHeader;
+    recordHeader.boxX_ = boxSize.x_;
+    recordHeader.boxY_ = boxSize.y_;
+    recordHeader.boxZ_ = boxSize.z_;
+
+    CDCDFile::CRecord record;
+    record.setRecordHeader(recordHeader);
+
+    int numBytesWritten = 0;
+    record.init((int)aParticles.size(), true);
+
+    for(size_t i=0; i<aParticles.size(); i++)
+    {
+        C3DVector r = aParticles[i].x;
+        record.setPos((int)i, r.x_, r.y_, r.z_);
+    }
+    record.write(file, numBytesWritten);
+
+    fclose(file);
+}
+
+void CMDLoop::ResizeDistrArrays(std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr, int iSize, int iNArrays)
 {
     for(int iAxis=0; iAxis<iNArrays; iAxis++)
         aMomentumDistr[iAxis].resize(iSize, 0);
@@ -225,7 +287,8 @@ void CMDLoop::StoreVolumeDistribution(std::string szFileName, std::vector<int>& 
 }
 
 void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulationBox& SimBox,
-                           const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr)
+                           const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* aMomentumDistr, std::vector<int>& aVolumeDistr,
+                           const C3DVector& boxSize)
 {
     // Perform calculations on MD trajectories and output data
     if(t > iEquilibSteps)
@@ -244,7 +307,10 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
     
     if((t % iOutputEvery) == 0)
     {
+        // :TODO: Should have an option to choose either XYZ, DCD or both
+        //        also remember to make the DCD name configurable
         AppendToXYZFile(SimBox.aParticles, t, SimBox);
+        appendToDCDFile(SimBox.aParticles, SimBox, boxSize);
         double T = SimBox.CalcTemp() * Conv_T;
         COut::Printf("\t%-15i%-15g%-15g%-20g\r\n", t, T,
                SimBox.CalcPress(F) * Conv_press, SimBox.CalcV());

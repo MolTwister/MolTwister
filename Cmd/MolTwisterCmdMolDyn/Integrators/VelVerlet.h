@@ -18,7 +18,7 @@ public:
     virtual ~CVelVerlet();
 
 public:
-    void Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble);
+    void Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut);
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles);
     void SetRandMom(double tau);
     void setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N);

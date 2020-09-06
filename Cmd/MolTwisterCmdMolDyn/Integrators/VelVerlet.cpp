@@ -29,7 +29,7 @@ CVelVerlet::~CVelVerlet()
     if(mdFFMatrices_) delete mdFFMatrices_;
 }
 
-void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble)
+void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut)
 {
     // This is the implementation for NPT
     if(ensemble == SMolDynConfigStruct::ensembleNPT)
@@ -42,11 +42,11 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double Lmax
         double etaCube = GetV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
         etaCube = pow(etaCube, 1.0/3.0);
 
-        double LmX = etaCube * LmaxX;
-        double LmY = etaCube * LmaxY;
-        double LmZ = etaCube * LmaxZ;
+        boxSizeOut.x_ = etaCube * LmaxX;
+        boxSizeOut.y_ = etaCube * LmaxY;
+        boxSizeOut.z_ = etaCube * LmaxZ;
 
-        CalcParticleForces(dim, LmX, LmY, LmZ, aParticles, F);
+        CalcParticleForces(dim, boxSizeOut.x_, boxSizeOut.y_, boxSizeOut.z_, aParticles, F);
 
         Prop_p(N, dt, aParticles, F);                    // Step 3.5
         p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
@@ -62,6 +62,10 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double Lmax
             aParticles[k].p+= F[k].F_*dt_2;
             aParticles[k].x+= aParticles[k].p*(dt / m_k);
         }
+
+        boxSizeOut.x_ = LmaxX;
+        boxSizeOut.y_ = LmaxY;
+        boxSizeOut.z_ = LmaxZ;
 
         CalcParticleForces(dim, LmaxX, LmaxY, LmaxZ, aParticles, F);
         if(Fcut > 0) cutForces(F);

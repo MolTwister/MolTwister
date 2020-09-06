@@ -5,6 +5,8 @@
 #include "3DVector.h"
 #include "3DRect.h"
 
+BEGIN_CUDA_COMPATIBLE()
+
 #ifndef _UINT32_T
 #define _UINT32_T
 typedef unsigned int uint32_t;
@@ -65,7 +67,7 @@ public:
     public:
         bool read(FILE* handle, int& numBytesRead);
         bool write(FILE* handle, int& numBytesWritten) const;
-        void init(uint32_t numCoordinates);
+        void init(uint32_t numCoordinates, bool resizeArray=false);
         void setPos(uint32_t coordIndex, double x, double y, double z);
         void setXPos(uint32_t coordIndex, double x) { xPositions_[coordIndex] = (float)x; }
         void setYPos(uint32_t coordIndex, double y) { yPositions_[coordIndex] = (float)y; }
@@ -122,3 +124,5 @@ private:
     CRecord currentRecord_;
     long ptToFirstRecord_;
 };
+
+END_CUDA_COMPATIBLE()

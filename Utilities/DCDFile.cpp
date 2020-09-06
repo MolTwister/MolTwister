@@ -2,6 +2,7 @@
 #include <float.h>
 #include "DCDFile.h"
 
+BEGIN_CUDA_COMPATIBLE()
 
 ////////////////////////////////////////////////////////////////////////
 // CDCDFile::CMainHeader
@@ -9,9 +10,10 @@
 
 CDCDFile::CMainHeader::CMainHeader()
 {
-    for(int i=0; i<4; i++) ID_[i] = ' ';
-    for(int i=0; i<80; i++) descriptA_[i] = ' ';
-    for(int i=0; i<80; i++) descriptB_[i] = ' ';
+    ID_ = "    ";
+    descriptA_.resize(80, ' ');
+    descriptB_.resize(80, ' ');
+
     nSets_ = 0;
     initStep_ = 0;
     wrtFreq_ = 0;
@@ -442,9 +444,15 @@ bool CDCDFile::CRecord::write(FILE* handle, int& numBytesWritten) const
     return true;
 }
 
-void CDCDFile::CRecord::init(uint32_t numCoordinates)
+void CDCDFile::CRecord::init(uint32_t numCoordinates, bool resizeArray)
 {
     numCoordinates_ = numCoordinates;
+    if(resizeArray)
+    {
+        xPositions_.resize(numCoordinates);
+        yPositions_.resize(numCoordinates);
+        zPositions_.resize(numCoordinates);
+    }
 }
 
 void CDCDFile::CRecord::setPos(uint32_t coordIndex, double x, double y, double z)
@@ -649,3 +657,5 @@ void CDCDFile::setCoordinate(int coordinateIndex, int coordinate, double val)
     if((coordinate == 1) && (coordinate < (int)yPositions.second))  currentRecord_.setYPos(coordinateIndex, val);
     if((coordinate == 2) && (coordinate < (int)zPositions.second))  currentRecord_.setZPos(coordinateIndex, val);
 }
+
+END_CUDA_COMPATIBLE()

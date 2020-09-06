@@ -26,13 +26,16 @@ public:
     double getLmaxY() { return LmaxY_; }
     double getLmaxZ() { return LmaxZ_; }
     SMolDynConfigStruct::Ensemble getEnsemble() { return molDynConfig_.ensemble_; }
+    double getTimeStep() { return molDynConfig_.timeStep_; }
+    int getOutputStride() { return molDynConfig_.outputStride_; }
+    int getNumTimeSteps() { return molDynConfig_.numberOfTimeSteps_; }
 
     void NHTPropagator(CFct& Fct)
         { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT || molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNVT) NH_T.Propagator(N, dim, dt, Fct); }
     void NHPPropagator(CFct& Fct)
         { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT) NH_P.Propagator(N, dim, dt, Fct); }
-    void VelVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F)
-        { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, molDynConfig_.ensemble_); }
+    void VelVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F, C3DVector& boxSizeOut)
+        { VelVerlet.Propagator(N, dim, dt, LmaxX_, LmaxY_, LmaxZ_, aParticles, F, molDynConfig_.ensemble_, boxSizeOut); }
     mthost_vector<CMDFFMatrices::CForces> CalcParticleForces()
         { return VelVerlet.CalcParticleForces(dim, LmaxX_, LmaxY_, LmaxZ_, aParticles); }
     std::string getAtomType(int index);
