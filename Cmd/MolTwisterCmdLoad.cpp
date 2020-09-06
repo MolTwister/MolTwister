@@ -6,6 +6,7 @@
 #include "MolTwisterCommandPool.h"
 #include "MolTwisterCmdLoad.h"
 #include "Tools/MolTwisterStateTools.h"
+#include "Tools/ProgressBar.h"
 
 void CCmdLoad::onAddKeywords()
 {
@@ -30,7 +31,8 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\r\n";
     szText+= "\txyz :        XYZ-coordinate files (including XYZ files containing\r\n";
     szText+= "\t             several frames). Bonds can be ignored using 'ignore',\r\n";
-    szText+= "\t             see genbonds.\r\n";
+    szText+= "\t             see genbonds. Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
     szText+= "\tpdb :        PDB-coordinate files. Bonds can be ignored using 'ignore'.\r\n";
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
@@ -57,6 +59,7 @@ void CCmdLoad::execute(std::string commandLine)
     std::vector<std::string> bondAtomsToIgnore;
     bool genBonds = true;
     bool ignoreAllBonds = false;
+    int baseFrameIndex = 0;
     int arg = 1;
     
     if(!state_) return;
@@ -80,31 +83,31 @@ void CCmdLoad::execute(std::string commandLine)
     
     if(text == "xyz")
     {
-        parseXYZCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseXYZCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "pdb")
     {
-        parsePDBCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parsePDBCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "mtt")
     {
-        parseMTTCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseMTTCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "script")
     {
-        parseScriptCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseScriptCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "python")
     {
-        parsePythonCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parsePythonCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "masscharge")
     {
-        parseMasschargeCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseMasschargeCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "qepos")
     {
-        parseQeposCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseQeposCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else
     {
@@ -115,15 +118,21 @@ void CCmdLoad::execute(std::string commandLine)
     {
         if(ignoreAllBonds)
             state_->searchForAtomTypes(bondAtomsToIgnore);
-        
-        for(int i=0; i<state_->atoms_[0]->r_.size(); i++)
-            CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, i, nullptr, &bondAtomsToIgnore);
+        if((baseFrameIndex < 0) || (baseFrameIndex >= state_->atoms_[0]->r_.size()))
+        {
+            for(int i=0; i<state_->atoms_[0]->r_.size(); i++)
+                CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, i, nullptr, &bondAtomsToIgnore);
+        }
+        else
+        {
+            CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, baseFrameIndex, nullptr, &bondAtomsToIgnore);
+        }
     }
     
     if(state_->view3D_) state_->view3D_->requestUpdate(true);    
 }
 
-void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&)
+void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&, int& baseFrameIndex)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -133,15 +142,28 @@ void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<st
     }
     else
     {
-        std::string typeString;
-
-        typeString = CASCIIUtility::getWord(commandLine, arg++);
-        CASCIIUtility::removeWhiteSpace(typeString);
-        if(typeString == "ignore")
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
         {
-            typeString = CASCIIUtility::getWord(commandLine, arg++);
-            CASCIIUtility::removeWhiteSpace(typeString);
-            bondAtomsToIgnore = CASCIIUtility::getWords(typeString, ",");
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
         }
 
         if(text[0] == '/')
@@ -159,7 +181,7 @@ void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<st
     }
 }
 
-void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds)
+void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -202,7 +224,7 @@ void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<st
     }
 }
 
-void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -229,7 +251,7 @@ void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<st
     genBonds = false;
 }
 
-void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -256,7 +278,7 @@ void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector
     genBonds = false;
 }
 
-void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -283,7 +305,7 @@ void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector
     genBonds = false;
 }
 
-void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -311,7 +333,7 @@ void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::ve
     genBonds = false;
 }
 
-void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool&, bool&)
+void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool&, bool&, int&)
 {
     std::string text1 = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text1);
@@ -344,6 +366,7 @@ void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<
 
 bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
 {
+    CProgressBar progBar;
     double X, Y, Z;
     std::string ID, line, text;
     FILE* fileHandle = fopen(xyzFileName.data(), "r");
@@ -371,14 +394,31 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
     else if(action == "del")   state_->purgeAtomsList();
     else                       return true;
 
+
+    // Count lines in the file
+    int numLinesInFile = 0;
+    do
+    {
+        line = CFileUtility::readLine(fileHandle, lastLineInFile);
+        numLinesInFile++;
+
+    } while(!lastLineInFile);
+    fseek(fileHandle, 0, SEEK_SET);
+
     
     // Read coordinates from file
+    progBar.beginProgress("Loading XYZ file contents");
+    int lineIndex = 0;
     do
     {
         // Read num coordinates in XYZ file
         line = CFileUtility::readLine(fileHandle, lastLineInFile);
+        lineIndex++;
+
         CASCIIUtility::removeWhiteSpace(line);
         numCoordinates = atoi(line.data());
+
+        // Read comment line and positions of XYZ file
         if(!lastLineInFile && (numCoordinates > 0))
         {
             int indexFrame=0;
@@ -387,11 +427,13 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
             
             // Read comment line of XYZ file
             line = CFileUtility::readLine(fileHandle, lastLineInFile);
+            lineIndex++;
             
             // Read positions
             for(int i=0; i<numCoordinates; i++)
             {
                 line = CFileUtility::readLine(fileHandle, lastLineInFile);
+                lineIndex++;
                 
                 ID = CASCIIUtility::getWord(line, 0);
                 
@@ -416,8 +458,11 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
 
             firstFrameAdded = true;
         }
+
+        progBar.updateProgress(lineIndex, numLinesInFile);
    
     } while(!lastLineInFile);
+    progBar.endProgress();
 
     genBonds = true;
     fclose(fileHandle);
