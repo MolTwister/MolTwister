@@ -8,7 +8,7 @@ CMolDynConfig::CMolDynConfig()
 std::vector<std::string> CMolDynConfig::getKeyWords()
 {
     return {
-             "timestep", "outstride", "ensemble", "NVT", "NPT",
+             "timestep", "timesteps", "outstride", "ensemble", "NVT", "NPT",
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
         "cutoffradius", "neighshell", "cutoffforce",
@@ -20,6 +20,7 @@ void CMolDynConfig::print(FILE* stdOut)
 {
     fprintf(stdOut, "\r\n\tMD configuration parameters\r\n\t------------------------------------------\r\n\r\n");
 
+    fprintf(stdOut, "\ttimesteps = %i; Number of MD timesteps to perform.\r\n", cfg_.numberOfTimeSteps_);
     fprintf(stdOut, "\ttimestep = %g fs; Time step between each MD integration.\r\n", cfg_.timeStep_);
     fprintf(stdOut, "\toutstride = %i; Number of time steps between each trajectory output.\r\n", cfg_.outputStride_);
     fprintf(stdOut, "\tensemble {nve, nvt, npt} = %s; Ensemble, where n, v, p, e and t are atom count, volume, pressure, energy and temperature, respectivley.\r\n", (cfg_.ensemble_ == SMolDynConfigStruct::ensembleNVT) ? "NVT" : ((cfg_.ensemble_ == SMolDynConfigStruct::ensembleNPT) ? "NPT" : (cfg_.ensemble_ == SMolDynConfigStruct::ensembleNVE) ? "NVE" : "Unknown"));
@@ -51,7 +52,11 @@ void CMolDynConfig::print(FILE* stdOut)
 
 std::string CMolDynConfig::set(std::string parameter, std::string value)
 {
-    if(parameter == "timestep")
+    if(parameter == "timesteps")
+    {
+        cfg_.numberOfTimeSteps_ = std::atoi(value.data());
+    }
+    else if(parameter == "timestep")
     {
         cfg_.timeStep_ = std::atof(value.data());
     }
