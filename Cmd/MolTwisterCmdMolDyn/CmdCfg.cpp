@@ -31,7 +31,12 @@ std::string CCmdCfg::getCmdFreetextHelp()
 {
     std::string text;
 
-    text+= "\t\r\n";
+    text+= "\tThis command can be used both to set and get configurations for the molecular\r\n";
+    text+= "\tdynamics (MD) simulator. If 'get' is called, the available parameters are listed\r\n";
+    text+= "\ttogether with their current values. The first word in each listed line (followed\r\n";
+    text+= "\tby '=') is the value to be handed to <parameter> when calling 'set'. In the list\r\n";
+    text+= "\tobtained from 'get' it has also been made clear how <value> for the corresponding\r\n";
+    text+= "\tparameter should be formatted.";
 
     return text;
 }

@@ -22,7 +22,7 @@ std::vector<std::string> CCmdRun::getCmdLineKeywords()
 std::vector<std::string> CCmdRun::getCmdHelpLines()
 {
     return {
-        "run <atom ID to change> <atom ID to change to> [within <domain>]"
+        "run [cpu]"
     };
 }
 
@@ -30,12 +30,10 @@ std::string CCmdRun::getCmdFreetextHelp()
 {
     std::string text;
 
-    text+= "\t\r\n";
-    text+= "\t\r\n";
-    text+= "\t\r\n";
-    text+= "\t\r\n";
-    text+= "\t\r\n";
-    text+= "\t\r\n";
+    text+= "\tThis command will run a molecular dynamics (MD) simulation. If the 'cpu' keyword is included, the\r\n";
+    text+= "\tsimulation will be forced to be executed on the CPU. If not, an attempt will be made to run the\r\n";
+    text+= "\tsimulation on GPU. If this does not succeed (e.g., if the software is not compiled to run on GPU)\r\n";
+    text+= "\tthe simulation will be executed on CPU.";
 
     return text;
 }
@@ -119,45 +117,6 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     {
         CMDSimulator::run(molDynConfig_->cfg_, stdOut_, (CMolTwisterState*)state_);
     }
-
-/*    CConditionalOnXYZ cond;
-    std::string fromName, toName, text;
-    bool within = false;
-
-    fromName = CASCIIUtility::getArg(arguments, arg++);
-    toName = CASCIIUtility::getArg(arguments, arg++);
-
-    text = CASCIIUtility::getArg(arguments, arg++);
-    if(text == "within")
-    {
-        // Domain specifier of the form x<5&x>8|y<=4&y>3...
-        // without any space in-between
-        text = CASCIIUtility::getArg(arguments, arg++);
-        cond.parse(text);
-        within = true;
-    }
-
-    for(int i=0; i<state_->atoms_.size(); i++)
-    {
-        std::string ID = state_->atoms_[i]->getID();
-
-        if(ID == fromName)
-        {
-            if(!within)
-            {
-                state_->atoms_[i]->setID(toName.data());
-            }
-            else
-            {
-                if(state_->currentFrame_ >= state_->atoms_[i]->r_.size()) continue;
-                C3DVector v = state_->atoms_[i]->r_[state_->currentFrame_];
-                if(cond.isFulfilled(v.x_, v.y_, v.z_))
-                {
-                    state_->atoms_[i]->setID(toName.data());
-                }
-            }
-        }
-    }*/
 
     return lastError_;
 }

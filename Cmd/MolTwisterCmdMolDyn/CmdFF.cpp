@@ -25,7 +25,16 @@ std::string CCmdFF::getCmdFreetextHelp()
 {
     std::string text;
 
+    text+= "\tThe molecular dynamics algorithm will first create a list of points based on the force-field\r\n";
+    text+= "\tpotential expressions. This list of points will be interpolated during the simulations to\r\n";
+    text+= "\tcalculate the forces that need to be appiled to each atom in the system.\r\n";
     text+= "\t\r\n";
+    text+= "\tThis command will output the list of points that make up both the potential (in kJ/mol) and\r\n";
+    text+= "\tthe force (in kJ/(mol*AA)). Depending on the type of potential we query (bond, angle, dihedral\r\n";
+    text+= "\tor non-boned), the start and end points to output must be specified, together with the desired\r\n";
+    text+= "\tnumber of points. The units for bond and non-bonded profiles are in Angstrom, while for angle\r\n";
+    text+= "\tand dihedral profiles they are in degrees. The force-field index, <ff index>, can be found\r\n";
+    text+= "\tthrough the 'list ff' command.";
 
     return text;
 }

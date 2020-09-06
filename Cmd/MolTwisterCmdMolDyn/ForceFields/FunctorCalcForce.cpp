@@ -383,7 +383,6 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
         int idx = int((r - p_first.x_) / delta);
 
         // Interpolate the function value between i and (i+1)
-        // :TODO: We should not include forced beteen same atoms (i.e., if r_k=r_i).
         if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
         {
             CMDFFMatrices::CPoint p1 = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
