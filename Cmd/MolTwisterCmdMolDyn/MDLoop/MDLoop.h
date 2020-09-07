@@ -43,6 +43,8 @@ public:
 
 public:
     void runSimulation(CSimulationBox& simBox, int NStep, int outputEvery);
+    void setPDistrOutput(bool includePDistrOutput, double maxPDistrOutput, std::string fileNamePDistr);
+    void setVDistrOutput(bool includeVDistrOutput, double setVDistrOutput, std::string fileNameVDistr);
     
 private:
     void calcInitialForces(CSimulationBox& simBox, mthost_vector<CMDFFMatrices::CForces>& F);
@@ -56,13 +58,19 @@ private:
     void storeVolumeDistribution(std::string fileName, std::vector<int>& volumeDistr, double maxV);
     void updateOutput(int t, int equilibSteps, int outputEvery, CSimulationBox& simBox, const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, const C3DVector& boxSize);
     void finalizeOutput(CSimulationBox& simBox, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr);
-    
+    double calcMaxPetaDistrOutput(CSimulationBox& simBox);
+
 private:
-    double maxP_;
+    double maxPDistrOutput_;
+    double maxVDistrOutput_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includePDistrOutput_;
+    bool includeVDistrOutput_;
     std::string fileNameXYZ_;
     std::string fileNameDCD_;
+    std::string fileNamePDistr_;
+    std::string fileNameVDistr_;
 };
 
 END_CUDA_COMPATIBLE()

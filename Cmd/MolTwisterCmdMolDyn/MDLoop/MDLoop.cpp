@@ -7,11 +7,10 @@ BEGIN_CUDA_COMPATIBLE()
 
 double CFctT::G(int j, std::vector<double>& p_eta, std::vector<double>& Q, double beta)
 {
-    const double    g = double(SB_->dim_ * SB_->N_);
-    const double    g_tilde = 1.0;
-    double          ret = 0.0;
-    
-    
+    const double g = double(SB_->dim_ * SB_->N_);
+    const double g_tilde = 1.0;
+    double ret = 0.0;
+
     if(j == 0)
     {
         double Sum_p2_m = 0.0;
@@ -68,11 +67,17 @@ CMDLoop::CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFi
 {
     includeXYZFile_ = includeXYZFile;
     includeDCDFile_ = includeDCDFile;
+    includePDistrOutput_ = false;
+    includeVDistrOutput_ = false;
     fileNameXYZ_ = fileNameXYZ;
     fileNameDCD_ = fileNameDCD;
 
-    const double maxV = 0.3; // Max v[AA/fs]in distr.
-    maxP_ = maxV / Conv_P; // m*v_max, m = 1g/mol
+    const double maxVelocity = 0.3; // Max v[AA/fs] in distr.
+    maxPDistrOutput_ = maxVelocity / Conv_P; // m*v_max, m = 1g/mol
+    maxVDistrOutput_ = 1000.0E3; // AA^3
+
+    fileNamePDistr_ = "distr";
+    fileNameVDistr_ = "distr";
 }
 
 void CMDLoop::runSimulation(CSimulationBox& simBox, int NStep, int outputEvery)
@@ -105,6 +110,20 @@ void CMDLoop::runSimulation(CSimulationBox& simBox, int NStep, int outputEvery)
     }
     
     finalizeOutput(simBox, momentumDistr, volumeDistr);
+}
+
+void CMDLoop::setPDistrOutput(bool includePDistrOutput, double maxPDistrOutput, std::string fileNamePDistr)
+{
+    maxPDistrOutput_ = maxPDistrOutput / Conv_P;
+    includePDistrOutput_ = includePDistrOutput;
+    fileNamePDistr_ = fileNamePDistr;
+}
+
+void CMDLoop::setVDistrOutput(bool includeVDistrOutput, double maxVDistrOutput, std::string fileNameVDistr)
+{
+    maxVDistrOutput_ = maxVDistrOutput;
+    includeVDistrOutput_ = includeVDistrOutput;
+    fileNameVDistr_ = fileNameVDistr;
 }
 
 void CMDLoop::calcInitialForces(CSimulationBox& simBox, mthost_vector<CMDFFMatrices::CForces>& F)
@@ -233,7 +252,7 @@ void CMDLoop::appendToMomentumDistribution(CSimulationBox& simBox,
         else if(axis == 1) p = simBox.particles_[k].p_.y_;
         else if(axis == 2) p = simBox.particles_[k].p_.z_;
         else if(axis == 3) p = simBox.NH_T_.p_eta_[0];
-        else                p = 0.0;
+        else               p = 0.0;
         
         int i = int(((p+maxP) / (2.0*maxP)) * double(momentumDistr.size()));
         if((i >=0) && (i < (int)momentumDistr.size())) momentumDistr[i]++;
@@ -256,7 +275,7 @@ void CMDLoop::storeMomentumDistribution(std::string fileName,
     
     if(!file) return;
 
-    std::string szUnit = (axis < 3) ? "p[gAA/(mol*fs)]" : "p[kJ*fs/mol]";
+    std::string szUnit = (axis < 3) ? "p[g*AA/(mol*fs)]" : "p[kJ*fs/mol]";
     fprintf(file, "%-20s%-20s\r\n", szUnit.data(), "P");
     for(int i=0; i<N; i++)
     {
@@ -293,16 +312,18 @@ void CMDLoop::updateOutput(int t, int equilibSteps, int outputEvery, CSimulation
     // Perform calculations on MD trajectories and output data
     if(t > equilibSteps)
     {
-        for(int axis=0; axis<3; axis++)
+        if(includePDistrOutput_)
         {
-            appendToMomentumDistribution(simBox, momentumDistr[axis], maxP_, axis);
+            for(int axis=0; axis<3; axis++)
+            {
+                appendToMomentumDistribution(simBox, momentumDistr[axis], maxPDistrOutput_, axis);
+            }
+            appendToMomentumDistribution(simBox, momentumDistr[3], calcMaxPetaDistrOutput(simBox), 3);
         }
-        
-        double maxPeta  = 2.0*simBox.NH_T_.Q_[0]/simBox.NH_T_.tau_;
-        appendToMomentumDistribution(simBox, momentumDistr[3], maxPeta, 3);
-
-        double maxV = 1000.0E3;
-        appendToVolumeDistribution(simBox.calcV(), volumeDistr, maxV);
+        if(includeVDistrOutput_)
+        {
+            appendToVolumeDistribution(simBox.calcV(), volumeDistr, maxVDistrOutput_);
+        }
     }
     
     if((t % outputEvery) == 0)
@@ -319,13 +340,28 @@ void CMDLoop::updateOutput(int t, int equilibSteps, int outputEvery, CSimulation
 void CMDLoop::finalizeOutput(CSimulationBox& simBox, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr)
 {
     // Output final momentum distribution
-    double maxPeta = 2.0*simBox.NH_T_.Q_[0]/simBox.NH_T_.tau_;
-    double maxV = 1000.0E3;
-    storeMomentumDistribution("gas_distr_x.dat", momentumDistr[0], maxP_, 0);
-    storeMomentumDistribution("gas_distr_y.dat", momentumDistr[1], maxP_, 1);
-    storeMomentumDistribution("gas_distr_z.dat", momentumDistr[2], maxP_, 2);
-    storeMomentumDistribution("gas_distr_p_eta0.dat", momentumDistr[3], maxPeta, 3);
-    storeVolumeDistribution("gas_distr_v.dat", volumeDistr, maxV);
+    if(includePDistrOutput_)
+    {
+        std::string fileX = fileNamePDistr_ + "_p_x.dat";
+        std::string fileY = fileNamePDistr_ + "_p_y.dat";
+        std::string fileZ = fileNamePDistr_ + "_p_z.dat";
+        std::string filePeta = fileNamePDistr_ + "_p_eta.dat";
+
+        storeMomentumDistribution(fileX, momentumDistr[0], maxPDistrOutput_, 0);
+        storeMomentumDistribution(fileY, momentumDistr[1], maxPDistrOutput_, 1);
+        storeMomentumDistribution(fileZ, momentumDistr[2], maxPDistrOutput_, 2);
+        storeMomentumDistribution(filePeta, momentumDistr[3], calcMaxPetaDistrOutput(simBox), 3);
+    }
+    if(includeVDistrOutput_)
+    {
+        std::string fileV = fileNameVDistr_ + "_v.dat";
+        storeVolumeDistribution(fileV, volumeDistr, maxVDistrOutput_);
+    }
+}
+
+double CMDLoop::calcMaxPetaDistrOutput(CSimulationBox& simBox)
+{
+    return 2.0*simBox.NH_T_.Q_[0]/simBox.NH_T_.tau_;
 }
 
 END_CUDA_COMPATIBLE()

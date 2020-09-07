@@ -12,7 +12,9 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
              "cutoffradius", "neighshell", "cutoffforce",
-             "infofile", "xyzfile", "dcdfile", "includexyzfile", "includedcdfile",
+             "infofile", "xyzfile", "dcdfile", "pdistrfile", "vdistrfile",
+             "includexyzfile", "includedcdfile", "includepdistrfile", "includevdistrfile",
+             "maxpdistr", "maxvdistr",
              "scale12", "scale13", "scale14", "scale1N"
            };
 }
@@ -48,8 +50,14 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
     fprintf(stdOut, "\txyzfile = %s; Filename of XYZ file.\r\n", cfg_.outXYZFile_.data());
     fprintf(stdOut, "\tdcdfile = %s; Filename of DCD file.\r\n", cfg_.outDCDFile_.data());
+    fprintf(stdOut, "\tpdistrfile = %s; Filename of momentum distribution file.\r\n", cfg_.outPDistrFile_.data());
+    fprintf(stdOut, "\tvdistrfile = %s; Filename of volume distribution file.\r\n", cfg_.outVDistrFile_.data());
     fprintf(stdOut, "\tincludexyzfile {yes, no} = %s; Include XYZ file as output.\r\n", cfg_.includeXYZFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludedcdfile {yes, no} = %s; Include DCD file as output.\r\n", cfg_.includeDCDFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\tincludepdistrfile {yes, no} = %s; Include momentum distribution file as output.\r\n", cfg_.includePDistrFile_? "Yes" : "No");
+    fprintf(stdOut, "\tincludevdistrfile {yes, no} = %s; Include volume distribution file as output.\r\n", cfg_.includeVDistrFile_? "Yes" : "No");
+    fprintf(stdOut, "\tmaxpdistr = %g AA*g/(fs*mol); Desired maximum momentum to use for momentum distribution output.\r\n", cfg_.maxPDistrOutput_);
+    fprintf(stdOut, "\tmaxvdistr = %g AA^3; Desired maximum volume to use for volume distribution output.\r\n", cfg_.maxVDistrOutput_);
 
     fprintf(stdOut, "\r\n\t------------------------------------------\r\n");
 }
@@ -134,6 +142,14 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.outDCDFile_ = value.data();
     }
+    else if(parameter == "pdistrfile")
+    {
+        cfg_.outPDistrFile_ = value.data();
+    }
+    else if(parameter == "vdistrfile")
+    {
+        cfg_.outVDistrFile_ = value.data();
+    }
     else if(parameter == "includexyzfile")
     {
         if(value == "yes") cfg_.includeXYZFile_ = true;
@@ -151,6 +167,32 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
         {
             return "Error: 'includedcdfile' parameter should be either 'yes' or 'no'!";
         }
+    }
+    else if(parameter == "includepdistrfile")
+    {
+        if(value == "yes") cfg_.includePDistrFile_ = true;
+        else if(value == "no") cfg_.includePDistrFile_ = false;
+        else
+        {
+            return "Error: 'includepdistrfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
+    else if(parameter == "includevdistrfile")
+    {
+        if(value == "yes") cfg_.includeVDistrFile_ = true;
+        else if(value == "no") cfg_.includeVDistrFile_ = false;
+        else
+        {
+            return "Error: 'includevdistrfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
+    else if(parameter == "maxpdistr")
+    {
+        cfg_.maxPDistrOutput_ = std::atof(value.data());
+    }
+    else if(parameter == "maxvdistr")
+    {
+        cfg_.maxVDistrOutput_ = std::atof(value.data());
     }
     else if(parameter == "scale12")
     {
@@ -196,8 +238,14 @@ void CMolDynConfig::resetToDefaults()
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
     cfg_.outDCDFile_ = "traj.dcd";
+    cfg_.outPDistrFile_ = "distr";
+    cfg_.outVDistrFile_ = "distr";
     cfg_.includeXYZFile_ = false;
     cfg_.includeDCDFile_ = true;
+    cfg_.includePDistrFile_ = false;
+    cfg_.includeVDistrFile_ = false;
+    cfg_.maxPDistrOutput_ = 0.3; // AA*g/(fs*mol)
+    cfg_.maxVDistrOutput_ = 100.0E3; // AA^3
     cfg_.scale12Interactions_ = 0.0;
     cfg_.scale13Interactions_ = 0.0;
     cfg_.scale14Interactions_ = 0.5;

@@ -23,8 +23,14 @@ struct SMolDynConfigStruct
     std::string outInfoFile_;
     std::string outXYZFile_;
     std::string outDCDFile_;
+    std::string outPDistrFile_;
+    std::string outVDistrFile_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includePDistrFile_;
+    bool includeVDistrFile_;
+    double maxPDistrOutput_;
+    double maxVDistrOutput_;
     double scale12Interactions_;
     double scale13Interactions_;
     double scale14Interactions_;
