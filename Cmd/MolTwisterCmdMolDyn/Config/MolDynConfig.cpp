@@ -11,8 +11,9 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "timestep", "timesteps", "outstride", "ensemble", "NVT", "NPT",
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
-        "cutoffradius", "neighshell", "cutoffforce",
-             "infofile", "xyzfile", "scale12", "scale13", "scale14", "scale1N"
+             "cutoffradius", "neighshell", "cutoffforce",
+             "infofile", "xyzfile", "dcdfile", "includexyzfile", "includedcdfile",
+             "scale12", "scale13", "scale14", "scale1N"
            };
 }
 
@@ -46,6 +47,9 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
     fprintf(stdOut, "\txyzfile = %s; Filename of XYZ file.\r\n", cfg_.outXYZFile_.data());
+    fprintf(stdOut, "\tdcdfile = %s; Filename of DCD file.\r\n", cfg_.outDCDFile_.data());
+    fprintf(stdOut, "\tincludexyzfile {yes, no} = %s; Include XYZ file as output.\r\n", cfg_.includeXYZFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\tincludedcdfile {yes, no} = %s; Include DCD file as output.\r\n", cfg_.includeDCDFile_ ? "Yes" : "No");
 
     fprintf(stdOut, "\r\n\t------------------------------------------\r\n");
 }
@@ -126,6 +130,28 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.outXYZFile_ = value.data();
     }
+    else if(parameter == "dcdfile")
+    {
+        cfg_.outDCDFile_ = value.data();
+    }
+    else if(parameter == "includexyzfile")
+    {
+        if(value == "yes") cfg_.includeXYZFile_ = true;
+        else if(value == "no") cfg_.includeXYZFile_ = false;
+        else
+        {
+            return "Error: 'includexyzfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
+    else if(parameter == "includedcdfile")
+    {
+        if(value == "yes") cfg_.includeDCDFile_ = true;
+        else if(value == "no") cfg_.includeDCDFile_ = false;
+        else
+        {
+            return "Error: 'includedcdfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
     else if(parameter == "scale12")
     {
         cfg_.scale12Interactions_ = std::atof(value.data());
@@ -169,6 +195,9 @@ void CMolDynConfig::resetToDefaults()
     cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
+    cfg_.outDCDFile_ = "traj.dcd";
+    cfg_.includeXYZFile_ = false;
+    cfg_.includeDCDFile_ = true;
     cfg_.scale12Interactions_ = 0.0;
     cfg_.scale13Interactions_ = 0.0;
     cfg_.scale14Interactions_ = 0.5;

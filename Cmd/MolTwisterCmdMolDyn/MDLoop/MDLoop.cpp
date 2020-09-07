@@ -65,10 +65,12 @@ void CFctP::ScaleMomentum(double coeff)
 
 
 
-CMDLoop::CMDLoop(std::string fileNameXYZ)
+CMDLoop::CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD)
 {
+    includeXYZFile_ = includeXYZFile;
+    includeDCDFile_ = includeDCDFile;
     fileNameXYZ_ = fileNameXYZ;
-    fileNameDCD_ = "traj.dcd";
+    fileNameDCD_ = fileNameDCD;
 
     const double dMaxV = 0.3; // Max v[Å/fs]in distr.
     m_dMaxP = dMaxV / Conv_P; // m*v_max, m = 1g/mol
@@ -307,10 +309,9 @@ void CMDLoop::UpdateOutput(int t, int iEquilibSteps, int iOutputEvery, CSimulati
     
     if((t % iOutputEvery) == 0)
     {
-        // :TODO: Should have an option to choose either XYZ, DCD or both
-        //        also remember to make the DCD name configurable
-        AppendToXYZFile(SimBox.aParticles, t, SimBox);
-        appendToDCDFile(SimBox.aParticles, SimBox, boxSize);
+        if(includeXYZFile_) AppendToXYZFile(SimBox.aParticles, t, SimBox);
+        if(includeDCDFile_) appendToDCDFile(SimBox.aParticles, SimBox, boxSize);
+
         double T = SimBox.CalcTemp() * Conv_T;
         COut::Printf("\t%-15i%-15g%-15g%-20g\r\n", t, T,
                SimBox.CalcPress(F) * Conv_press, SimBox.CalcV());

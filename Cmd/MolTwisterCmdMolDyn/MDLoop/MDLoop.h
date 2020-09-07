@@ -39,7 +39,7 @@ class CMDLoop
 {
 public:
     CMDLoop() = delete;
-    CMDLoop(std::string fileNameXYZ);
+    CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD);
 
 public:
     void RunSimulation(CSimulationBox& SimBox, int iNStep, int iOutputEvery);
@@ -60,6 +60,8 @@ private:
     
 private:
     double m_dMaxP;
+    bool includeXYZFile_;
+    bool includeDCDFile_;
     std::string fileNameXYZ_;
     std::string fileNameDCD_;
 };
