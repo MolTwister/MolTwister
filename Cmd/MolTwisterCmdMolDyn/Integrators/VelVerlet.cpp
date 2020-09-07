@@ -10,11 +10,11 @@ BEGIN_CUDA_COMPATIBLE()
 
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, double dShell, double fCutoff)
 {
-    P = 1.0 / Conv_press;
-    p_eps = 1.0;
-    eps = 0.0;
-    W = 1.0;
-    Fcut = fCutoff;
+    P_ = 1.0 / Conv_press;
+    p_eps_ = 1.0;
+    eps_ = 0.0;
+    W_ = 1.0;
+    Fcut_ = fCutoff;
 
     scale12_ = 0.0f;
     scale13_ = 0.0f;
@@ -29,27 +29,27 @@ CVelVerlet::~CVelVerlet()
     if(mdFFMatrices_) delete mdFFMatrices_;
 }
 
-void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut)
+void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut)
 {
     // This is the implementation for NPT
     if(ensemble == SMolDynConfigStruct::ensembleNPT)
     {
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.1
-        Prop_p(N, dt, aParticles, F);                    // Step 3.2
-        Prop_r(N, dt, aParticles, F);                    // Step 3.3
-        eps+= (dt * p_eps / W);                          // Step 3.4
+        p_eps_+= ((dt / 2.0) * G_eps(N, particles, F));  // Step 3.1
+        prop_p(N, dt, particles, F);                    // Step 3.2
+        prop_r(N, dt, particles, F);                    // Step 3.3
+        eps_+= (dt * p_eps_ / W_);                          // Step 3.4
         double Vmax = LmaxX * LmaxY * LmaxZ;
-        double etaCube = GetV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
+        double etaCube = getV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
         etaCube = pow(etaCube, 1.0/3.0);
 
         boxSizeOut.x_ = etaCube * LmaxX;
         boxSizeOut.y_ = etaCube * LmaxY;
         boxSizeOut.z_ = etaCube * LmaxZ;
 
-        CalcParticleForces(dim, boxSizeOut.x_, boxSizeOut.y_, boxSizeOut.z_, aParticles, F);
+        calcParticleForces(dim, boxSizeOut.x_, boxSizeOut.y_, boxSizeOut.z_, particles, F);
 
-        Prop_p(N, dt, aParticles, F);                    // Step 3.5
-        p_eps+= ((dt / 2.0) * G_eps(N, aParticles, F));  // Step 3.6
+        prop_p(N, dt, particles, F);                    // Step 3.5
+        p_eps_+= ((dt / 2.0) * G_eps(N, particles, F));  // Step 3.6
     }
 
     // This is the same implementation for both NVT and NVE
@@ -58,21 +58,21 @@ void CVelVerlet::Propagator(int N, int dim, double dt, double LmaxX, double Lmax
         double dt_2 = dt / 2.0;
         for(int k=0; k<N; k++)
         {
-            double m_k = aParticles[k].m;
-            aParticles[k].p+= F[k].F_*dt_2;
-            aParticles[k].x+= aParticles[k].p*(dt / m_k);
+            double m_k = particles[k].m_;
+            particles[k].p_+= F[k].F_*dt_2;
+            particles[k].x_+= particles[k].p_*(dt / m_k);
         }
 
         boxSizeOut.x_ = LmaxX;
         boxSizeOut.y_ = LmaxY;
         boxSizeOut.z_ = LmaxZ;
 
-        CalcParticleForces(dim, LmaxX, LmaxY, LmaxZ, aParticles, F);
-        if(Fcut > 0) cutForces(F);
+        calcParticleForces(dim, LmaxX, LmaxY, LmaxZ, particles, F);
+        if(Fcut_ > 0) cutForces(F);
 
         for(int k=0; k<N; k++)
         {
-            aParticles[k].p+= F[k].F_*dt_2;
+            particles[k].p_+= F[k].F_*dt_2;
         }
     }
 }
@@ -81,88 +81,88 @@ void CVelVerlet::cutForces(mthost_vector<CMDFFMatrices::CForces>& F)
 {
     for(size_t i=0; i<F.size(); i++)
     {
-        if(fabs(F[i].F_.x_) > Fcut)
+        if(fabs(F[i].F_.x_) > Fcut_)
         {
             double sign = ((F[i].F_.x_ >= 0.0) ? 1.0 : -1.0);
-            double cutF = sign * Fcut;
-            COut::Printf("Warning: x-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.x_, cutF);
+            double cutF = sign * Fcut_;
+            COut::printf("Warning: x-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.x_, cutF);
             F[i].Fpi_.x_ = F[i].F_.x_ = cutF;
         }
-        if(fabs(F[i].F_.y_) > Fcut)
+        if(fabs(F[i].F_.y_) > Fcut_)
         {
             double sign = ((F[i].F_.y_ >= 0.0) ? 1.0 : -1.0);
-            double cutF = sign * Fcut;
-            COut::Printf("Warning: y-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.y_, cutF);
+            double cutF = sign * Fcut_;
+            COut::printf("Warning: y-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.y_, cutF);
             F[i].Fpi_.y_ = F[i].F_.y_ = cutF;
         }
-        if(fabs(F[i].F_.z_) > Fcut)
+        if(fabs(F[i].F_.z_) > Fcut_)
         {
             double sign = ((F[i].F_.z_ >= 0.0) ? 1.0 : -1.0);
-            double cutF = sign * Fcut;
-            COut::Printf("Warning: z-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.z_, cutF);
+            double cutF = sign * Fcut_;
+            COut::printf("Warning: z-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.z_, cutF);
             F[i].Fpi_.z_ = F[i].F_.z_ = cutF;
         }
     }
 }
 
-void CVelVerlet::Prop_p(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F)
+void CVelVerlet::prop_p(int N, double dt, mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>& F)
 {
-    double u_eps = p_eps / W;
+    double u_eps = p_eps_ / W_;
     double alpha = (1.0 + 1.0/double(N));
     double parm = alpha*u_eps*dt / 4.0;
-    double coeff = CMt::Exp(-parm);
+    double coeff = CMt::exp(-parm);
     double coeff2 = coeff*coeff;
-    double coeff3 = CMt::SinhXoverX(parm); // sinh(parm) / parm;
+    double coeff3 = CMt::sinhXoverX(parm); // sinh(parm) / parm;
     for(int k=0; k<N; k++)
     {
-        aParticles[k].p = aParticles[k].p*coeff2 + F[k].F_*((dt/2.0)*coeff*coeff3);
+        particles[k].p_ = particles[k].p_*coeff2 + F[k].F_*((dt/2.0)*coeff*coeff3);
     }
 }
 
-void CVelVerlet::Prop_r(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>&)
+void CVelVerlet::prop_r(int N, double dt, mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>&)
 {
-    double u_eps = p_eps / W;
+    double u_eps = p_eps_ / W_;
     double parm = u_eps*dt / 2.0;
-    double coeff = CMt::Exp(parm);
+    double coeff = CMt::exp(parm);
     double coeff2 = coeff*coeff;
-    double coeff3 = CMt::SinhXoverX(parm) * coeff;
+    double coeff3 = CMt::sinhXoverX(parm) * coeff;
     for(int k=0; k<N; k++)
     {
-        C3DVector u_k = aParticles[k].p * (1.0 / aParticles[k].m);
-        aParticles[k].x = aParticles[k].x*coeff2 + u_k*(dt*coeff3);
+        C3DVector u_k = particles[k].p_ * (1.0 / particles[k].m_);
+        particles[k].x_ = particles[k].x_*coeff2 + u_k*(dt*coeff3);
     }
 }
 
-mthost_vector<CMDFFMatrices::CForces> CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles)
+mthost_vector<CMDFFMatrices::CForces> CVelVerlet::calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles)
 {
-    mthost_vector<CMDFFMatrices::CForces> F(aParticles.size());
-    CalcParticleForces(dim, Lx, Ly, Lz, aParticles, F);
+    mthost_vector<CMDFFMatrices::CForces> F(particles.size());
+    calcParticleForces(dim, Lx, Ly, Lz, particles, F);
 
     return F;
 }
 
-double CVelVerlet::G_eps(int N, const mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F)
+double CVelVerlet::G_eps(int N, const mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>& F)
 {
-    double V = V0 * exp(3.0 * eps);
+    double V = V0_ * exp(3.0 * eps_);
 
     double sum_p = 0.0;
     double sum_f = 0.0;
     for(int k=0; k<N; k++)
     {
-        double p2 = aParticles[k].p * aParticles[k].p;
-        sum_p+= (p2 / aParticles[k].m);
-        sum_f+= (F[k].Fpi_ * aParticles[k].x);
+        double p2 = particles[k].p_ * particles[k].p_;
+        sum_p+= (p2 / particles[k].m_);
+        sum_f+= (F[k].Fpi_ * particles[k].x_);
     }
 
-    return (1.0 + 1.0 / double(N))*sum_p + sum_f - 3.0*P*V;
+    return (1.0 + 1.0 / double(N))*sum_p + sum_f - 3.0*P_*V;
 }
 
-void CVelVerlet::SetRandMom(double tau)
+void CVelVerlet::setRandMom(double tau)
 {
     double a = 2.0 / double(RAND_MAX);
 
-    p_eps = (a*double(rand()) - 1.0) * (W / tau);
-    if(p_eps == 0.0) p_eps = (W / tau);
+    p_eps_ = (a*double(rand()) - 1.0) * (W_ / tau);
+    if(p_eps_ == 0.0) p_eps_ = (W_ / tau);
 }
 
 void CVelVerlet::setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N)
@@ -173,18 +173,18 @@ void CVelVerlet::setNonBondedScaleFactors(float scale12, float scale13, float sc
     scale1N_ = scale1N;
 }
 
-double CVelVerlet::GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
+double CVelVerlet::getV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
 {
-    if(ensemble == SMolDynConfigStruct::ensembleNPT) return V0 * exp(3.0 * eps);
+    if(ensemble == SMolDynConfigStruct::ensembleNPT) return V0_ * exp(3.0 * eps_);
 
     return LmaxX*LmaxY*LmaxZ;
 }
 
-void CVelVerlet::CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F)
+void CVelVerlet::calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F)
 {
-    mdFFMatrices_->updateAtomList(aParticles);
+    mdFFMatrices_->updateAtomList(particles);
     mdFFMatrices_->genNeighList((float)Lx, (float)Ly, (float)Lz);
-    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut, scale12_, scale13_, scale14_, scale1N_);
+    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut_, scale12_, scale13_, scale14_, scale1N_);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     mtcudaDeviceSynchronize();

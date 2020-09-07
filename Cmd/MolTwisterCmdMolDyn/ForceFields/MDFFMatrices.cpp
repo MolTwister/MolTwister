@@ -113,8 +113,8 @@ void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
     size_t numAtoms = atomList.size();
     for(size_t i=0; i<numAtoms; i++)
     {
-        hostAtomList[i].r_ = atomList[i].x;
-        hostAtomList[i].p_ = atomList[i].p;
+        hostAtomList[i].r_ = atomList[i].x_;
+        hostAtomList[i].p_ = atomList[i].p_;
     }
 
     devAtomList_ = hostAtomList;

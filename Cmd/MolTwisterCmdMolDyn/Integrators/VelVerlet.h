@@ -18,28 +18,28 @@ public:
     virtual ~CVelVerlet();
 
 public:
-    void Propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut);
-    mthost_vector<CMDFFMatrices::CForces> CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles);
-    void SetRandMom(double tau);
+    void propagator(int N, int dim, double dt, double LmaxX, double LmaxY, double LmaxZ, mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F, SMolDynConfigStruct::Ensemble ensemble, C3DVector& boxSizeOut);
+    mthost_vector<CMDFFMatrices::CForces> calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles);
+    void setRandMom(double tau);
     void setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N);
-    double GetV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
+    double getV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
 
 private:
-    void CalcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& aParticles, mthost_vector<CMDFFMatrices::CForces>& F);
-    double G_eps(int N, const mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F);
+    void calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F);
+    double G_eps(int N, const mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>& F);
     void cutForces(mthost_vector<CMDFFMatrices::CForces>& F);
-    void Prop_p(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F);
-    void Prop_r(int N, double dt, mthost_vector<CParticle3D>& aParticles, const mthost_vector<CMDFFMatrices::CForces>& F);
+    void prop_p(int N, double dt, mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>& F);
+    void prop_r(int N, double dt, mthost_vector<CParticle3D>& particles, const mthost_vector<CMDFFMatrices::CForces>& F);
 
 public:
-    double Fcut;
-    double P;
-    double V0;
-    double W;
-    double p_eps;
+    double Fcut_;
+    double P_;
+    double V0_;
+    double W_;
+    double p_eps_;
 
 private:
-    double eps;
+    double eps_;
     CMDFFMatrices* mdFFMatrices_;
     float scale12_;
     float scale13_;

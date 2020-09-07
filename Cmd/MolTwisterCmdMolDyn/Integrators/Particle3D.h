@@ -14,9 +14,9 @@ public:
     CParticle3D();
 
 public:
-    double m;
-    C3DVector x;
-    C3DVector p;
+    double m_;
+    C3DVector x_;
+    C3DVector p_;
 };
 
 END_CUDA_COMPATIBLE()

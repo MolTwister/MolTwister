@@ -9,11 +9,11 @@ BEGIN_CUDA_COMPATIBLE()
 class CMt
 {
 public:
-    static double Exp(double x);
-    static double SinhXoverX(double x);
+    static double exp(double x);
+    static double sinhXoverX(double x);
     
 private:
-    static double a[6];
+    static double a_[6];
 };
 
 END_CUDA_COMPATIBLE()
