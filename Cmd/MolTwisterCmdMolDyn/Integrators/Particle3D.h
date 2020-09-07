@@ -15,7 +15,7 @@ public:
 
 public:
     double m_;
-    C3DVector x_;
+    C3DVector r_;
     C3DVector p_;
 };
 

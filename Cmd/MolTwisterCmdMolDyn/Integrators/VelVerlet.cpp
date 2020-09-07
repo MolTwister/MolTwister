@@ -60,7 +60,7 @@ void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double Lmax
         {
             double m_k = particles[k].m_;
             particles[k].p_+= F[k].F_*dt_2;
-            particles[k].x_+= particles[k].p_*(dt / m_k);
+            particles[k].r_+= particles[k].p_*(dt / m_k);
         }
 
         boxSizeOut.x_ = LmaxX;
@@ -129,7 +129,7 @@ void CVelVerlet::prop_r(int N, double dt, mthost_vector<CParticle3D>& particles,
     for(int k=0; k<N; k++)
     {
         C3DVector u_k = particles[k].p_ * (1.0 / particles[k].m_);
-        particles[k].x_ = particles[k].x_*coeff2 + u_k*(dt*coeff3);
+        particles[k].r_ = particles[k].r_*coeff2 + u_k*(dt*coeff3);
     }
 }
 
@@ -151,7 +151,7 @@ double CVelVerlet::G_eps(int N, const mthost_vector<CParticle3D>& particles, con
     {
         double p2 = particles[k].p_ * particles[k].p_;
         sum_p+= (p2 / particles[k].m_);
-        sum_f+= (F[k].Fpi_ * particles[k].x_);
+        sum_f+= (F[k].Fpi_ * particles[k].r_);
     }
 
     return (1.0 + 1.0 / double(N))*sum_p + sum_f - 3.0*P_*V;

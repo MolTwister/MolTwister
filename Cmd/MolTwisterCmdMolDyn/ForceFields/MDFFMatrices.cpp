@@ -113,7 +113,7 @@ void CMDFFMatrices::updateAtomList(const mthost_vector<CParticle3D>& atomList)
     size_t numAtoms = atomList.size();
     for(size_t i=0; i<numAtoms; i++)
     {
-        hostAtomList[i].r_ = atomList[i].x_;
+        hostAtomList[i].r_ = atomList[i].r_;
         hostAtomList[i].p_ = atomList[i].p_;
     }
 
@@ -212,10 +212,11 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     mthost_vector<size_t> hostNonBondFFMatrixFFCount = mthost_vector<size_t>(numAtomTypes * numAtomTypes);
 
     // Set up lambda to convert from pair based plots to CFuncPoint plots
-    std::function<std::vector<CPoint>(const std::vector<std::pair<float, float>>&)> toFuncPtPlot = [](const std::vector<std::pair<float, float>>& fctIn)
+    std::function<std::vector<CPoint>(const std::vector<std::pair<float, float>>&, const std::vector<std::pair<float, float>>&)> toFuncPtPlot
+            = [](const std::vector<std::pair<float, float>>& fctInF, const std::vector<std::pair<float, float>>& fctInE)
     {
-        std::vector<CPoint> fctOut(fctIn.size());
-        for(size_t i=0; i<fctIn.size(); i++) fctOut[i] = CPoint(fctIn[i].first, fctIn[i].second);
+        std::vector<CPoint> fctOut(fctInF.size());
+        for(size_t i=0; i<fctInF.size(); i++) fctOut[i] = CPoint(fctInF[i].first, fctInF[i].second, fctInE[i].second);
         return fctOut;
     };
 
@@ -237,7 +238,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                     if(ffIndex >= 0)
                     {
                         CMDFFNonBonded* forceField = state->mdFFNonBondedList_.get(ffIndex);
-                        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles));
+                        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles),
+                                                                forceField->calc1DPotentialProfile(0.01f, rCutoff, numPointsInForceProfiles));
                         for(size_t j=0; j<plot.size(); j++)
                         {
                             hostNonBondFFMatrix[toIndexNonBond(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
@@ -269,7 +271,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     for(int i=0; i<state->mdFFBondList_.size(); i++)
     {
         CMDFFBond* forceField = state->mdFFBondList_.get(i);
-        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles));
+        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.01f, rCutoff, numPointsInForceProfiles),
+                                                forceField->calc1DPotentialProfile(0.01f, rCutoff, numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             hostBondFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
@@ -298,7 +301,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     for(int i=0; i<state->mdFFAngleList_.size(); i++)
     {
         CMDFFAngle* forceField = state->mdFFAngleList_.get(i);
-        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
+        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles),
+                                                forceField->calc1DPotentialProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             hostAngleFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];
@@ -329,7 +333,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     for(int i=0; i<state->mdFFDihList_.size(); i++)
     {
         CMDFFDih* forceField = state->mdFFDihList_.get(i);
-        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
+        std::vector<CPoint> plot = toFuncPtPlot(forceField->calc1DForceProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles),
+                                                forceField->calc1DPotentialProfile(0.0, float(2.0*M_PI), numPointsInForceProfiles));
         for(size_t j=0; j<plot.size(); j++)
         {
             hostDihedralFFList[toIndexBonded(i, j, numPointsInForceProfiles)] = plot[j];

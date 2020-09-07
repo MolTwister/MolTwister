@@ -76,6 +76,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     // Let F be the force from all image contributions and let Fpi be the force from the primary image.
     // This distinction only differs if we consider methods such as Ewald summation for electrostatic forces
     C3DVector f, F, Fpi;
+    float U = 0.0f;
 
     // Obtain common parameters to use throught the force calcualtions
     int k = atom.index_;
@@ -91,7 +92,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         C3DVector r_i = devAtomList_[bond.atomIndex2_].r_;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);                
 
-        f = calcForceBondOn_r_k(r_k, r_i, bond.bondType_);
+        f = calcForceBondOn_r_k(r_k, r_i, bond.bondType_, k, (int)bond.atomIndex2_, U);
         Fpi+= f;
         F+= f;
     }
@@ -109,7 +110,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
         if(angle.assocAtomIsAtCenterOfAngle_)
         {
-            f = calcForceAngularOn_r_i(r_i, r_k, r_j, angle.angleType_);
+            f = calcForceAngularOn_r_i(r_i, r_k, r_j, angle.angleType_, U);
         }
         else
         {
@@ -134,7 +135,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
         if(dihedral.assocAtomIsAtCenterOfDihedral_)
         {
-            f = calcForceDihedralOn_r_i(r_i, r_k, r_j, r_l, dihedral.dihedralType_);
+            f = calcForceDihedralOn_r_i(r_i, r_k, r_j, r_l, dihedral.dihedralType_, U);
         }
         else
         {
@@ -156,10 +157,10 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
         // Calculate the short-range forces between atom index k and its neareast neighbours, i
-        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i);
+        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i, U);
 
         // Calculate the long-range forces between atom index k and its nearest neightbours, i
-        f+= calcForceCoulombOn_r_k(r_k, r_i, k, i);
+        f+= calcForceCoulombOn_r_k(r_k, r_i, k, i, U);
 
         // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
         hasBondFactor = false;
@@ -217,7 +218,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= f;
     }
 
-    return CMDFFMatrices::CForces(F, Fpi);
+    return CMDFFMatrices::CForces(F, Fpi, U);
 }
 
 HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const
@@ -359,7 +360,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcDihedralForceCoeffs23(const C3
     return dTheta_dr3;
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i, float& U)
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
@@ -389,9 +390,19 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
             CMDFFMatrices::CPoint p2 = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, idx+1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
             float denom = p1.x_ - p2.x_;
             if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-            float a = (p1.y_ - p2.y_) / denom;
-            float b = p1.y_ - a*p1.x_;
+
+            // Add the interpolated force, working on k
+            float a = (p1.f_ - p2.f_) / denom;
+            float b = p1.f_ - a*p1.x_;
             mdU_dr_Sum+= (a*r + b);
+
+            if(i > k)
+            {
+                // We only add the potentials for interactions i>k, thus not overcounting
+                a = (p1.e_ - p2.e_) / denom;
+                b = p1.e_ - a*p1.x_;
+                U+= (a*r + b);
+            }
         }
     }
 
@@ -403,22 +414,30 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
     return c*double(mdU_dr_Sum);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVector& r_k, const C3DVector& r_i, int k, int i)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVector& r_k, const C3DVector& r_i, int k, int i, float& U)
 {
     C3DVector r = r_k - r_i;
     float q_i = devAtomList_[i].q_;
     float q_k = devAtomList_[k].q_;
-    float R3 = (float)r.norm();
-    R3 = R3 * R3 * R3;
-    if(R3 != 0.0f)
+    float R = (float)r.norm();
+    double R3 = double(R*R*R);
+
+    double K = double( Coulomb_K * q_k * q_i );
+    if(R3 != 0.0)
     {
-        return  ( r * double(( Coulomb_K * q_k * q_i ) / R3) );
+        return  ( r * (K / R3) );
+    }
+
+    if((i > k) && (R != 0.0f))
+    {
+        // We only add the potential for interactions i>k, thus not overcounting
+        U+= -float(K) / R;
     }
 
     return C3DVector();
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType, const int& k, const int& i, float&  U)
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
@@ -442,9 +461,19 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
         CMDFFMatrices::CPoint p2 = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, idx+1, NUM_POINTS_IN_PROFILES)];
         float denom = p1.x_ - p2.x_;
         if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.y_ - p2.y_) / denom;
-        float b = p1.y_ - a*p1.x_;
+
+        // Add the interpolated force, working on k
+        float a = (p1.f_ - p2.f_) / denom;
+        float b = p1.f_ - a*p1.x_;
         mdU_dr+= (a*r + b);
+
+        if(i > k)
+        {
+            // We only add the potential for interactions i>k, thus not overcounting
+            a = (p1.e_ - p2.e_) / denom;
+            b = p1.e_ - a*p1.x_;
+            U+= (a*r + b);
+        }
     }
 
     // Now that we have (-dU/dr) at r, we find the analytic calculation
@@ -484,8 +513,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVe
         CMDFFMatrices::CPoint p2 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx+1,NUM_POINTS_IN_PROFILES)];
         float denom = p1.x_ - p2.x_;
         if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.y_ - p2.y_) / denom;
-        float b = p1.y_ - a*p1.x_;
+        float a = (p1.f_ - p2.f_) / denom;
+        float b = p1.f_ - a*p1.x_;
         mdU_dtheta+= (a*theta + b);
     }
 
@@ -496,7 +525,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVe
     return c*double(mdU_dtheta);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType, float& U)
 {
     // We know that
     // F_i=-grad_2 U = (-dU/dtheta) * (dtheta/dx_i, dtheta/dy_i, dtheta/dz_i)
@@ -525,9 +554,16 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVe
         CMDFFMatrices::CPoint p2 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx+1,NUM_POINTS_IN_PROFILES)];
         float denom = p1.x_ - p2.x_;
         if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.y_ - p2.y_) / denom;
-        float b = p1.y_ - a*p1.x_;
+
+        // Add the interpolated force, working on i
+        float a = (p1.f_ - p2.f_) / denom;
+        float b = p1.f_ - a*p1.x_;
         mdU_dtheta+= (a*theta + b);
+
+        // We always add the potential here since i is in the center of the angle and is counted exactly once per angle in the system
+        a = (p1.e_ - p2.e_) / denom;
+        b = p1.e_ - a*p1.x_;
+        U+= (a*theta + b);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation
@@ -569,8 +605,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DV
         CMDFFMatrices::CPoint p2 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx+1,NUM_POINTS_IN_PROFILES)];
         float denom = p1.x_ - p2.x_;
         if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.y_ - p2.y_) / denom;
-        float b = p1.y_ - a*p1.x_;
+        float a = (p1.f_ - p2.f_) / denom;
+        float b = p1.f_ - a*p1.x_;
         mdU_dtheta+= (a*theta + b);
     }
 
@@ -581,7 +617,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DV
     return c*double(mdU_dtheta);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType, float& U)
 {
     // We know that
     // F_i=-grad_1 U = (-dU/dtheta) * (dtheta/dx_i, dtheta/dy_i, dtheta/dz_i)
@@ -613,9 +649,16 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DV
         CMDFFMatrices::CPoint p2 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx+1,NUM_POINTS_IN_PROFILES)];
         float denom = p1.x_ - p2.x_;
         if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.y_ - p2.y_) / denom;
-        float b = p1.y_ - a*p1.x_;
+
+        // Add the interpolated force, working on i
+        float a = (p1.f_ - p2.f_) / denom;
+        float b = p1.f_ - a*p1.x_;
         mdU_dtheta+= (a*theta + b);
+
+        // We always add the potential here since i is in the center of the dihedral and is counted exactly twice per angle in the system, hence leading to the factor of 1/2.
+        a = (p1.e_ - p2.e_) / denom;
+        b = p1.e_ - a*p1.x_;
+        U+= 0.5f*(a*theta + b);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation

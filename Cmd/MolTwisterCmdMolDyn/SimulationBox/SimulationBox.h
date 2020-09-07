@@ -39,6 +39,7 @@ public:
     mthost_vector<CMDFFMatrices::CForces> calcParticleForces()
         { return velVerlet_.calcParticleForces(dim_, LmaxX_, LmaxY_, LmaxZ_, particles_); }
     std::string getAtomType(int index);
+    double calcCurrentKineticEnergy();
     
 private:
     void initSystem();

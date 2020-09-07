@@ -68,7 +68,7 @@ void CSimulationBox::copyPosFromState()
     {
         if(state_->atoms_[i]->r_.size() == 0) continue;
         particles_[i].m_ = state_->atoms_[i]->m_;
-        particles_[i].x_ = state_->atoms_[i]->r_[0];
+        particles_[i].r_ = state_->atoms_[i]->r_[0];
     }
 }
 
@@ -117,16 +117,16 @@ void CSimulationBox::pbcWrap()
 
     for(int k=0; k<N_; k++)
     {
-        if(particles_[k].x_.x_ >= Lmax_2) pbcAdd(particles_[k].x_.x_,  Lmax_2, Lm);
-        if(particles_[k].x_.x_ < -Lmax_2) pbcAdd(particles_[k].x_.x_, -Lmax_2, Lm);
+        if(particles_[k].r_.x_ >= Lmax_2) pbcAdd(particles_[k].r_.x_,  Lmax_2, Lm);
+        if(particles_[k].r_.x_ < -Lmax_2) pbcAdd(particles_[k].r_.x_, -Lmax_2, Lm);
 
         if(dim_ < 2) continue;
-        if(particles_[k].x_.y_ >= Lmax_2) pbcAdd(particles_[k].x_.y_,  Lmax_2, Lm);
-        if(particles_[k].x_.y_ < -Lmax_2) pbcAdd(particles_[k].x_.y_, -Lmax_2, Lm);
+        if(particles_[k].r_.y_ >= Lmax_2) pbcAdd(particles_[k].r_.y_,  Lmax_2, Lm);
+        if(particles_[k].r_.y_ < -Lmax_2) pbcAdd(particles_[k].r_.y_, -Lmax_2, Lm);
 
         if(dim_ < 3) continue;
-        if(particles_[k].x_.z_ >= Lmax_2) pbcAdd(particles_[k].x_.z_,  Lmax_2, Lm);
-        if(particles_[k].x_.z_ < -Lmax_2) pbcAdd(particles_[k].x_.z_, -Lmax_2, Lm);
+        if(particles_[k].r_.z_ >= Lmax_2) pbcAdd(particles_[k].r_.z_,  Lmax_2, Lm);
+        if(particles_[k].r_.z_ < -Lmax_2) pbcAdd(particles_[k].r_.z_, -Lmax_2, Lm);
     }
 }
 
@@ -152,7 +152,7 @@ double CSimulationBox::calcPress(const mthost_vector<CMDFFMatrices::CForces>& F)
     for(int k=0; k<N_; k++)
     {
         double p2 = (particles_[k].p_*particles_[k].p_) / particles_[k].m_;
-        double f = F[k].Fpi_*particles_[k].x_;
+        double f = F[k].Fpi_*particles_[k].r_;
         sum+= (p2 + f);
     }
     
@@ -162,6 +162,17 @@ double CSimulationBox::calcPress(const mthost_vector<CMDFFMatrices::CForces>& F)
 std::string CSimulationBox::getAtomType(int index)
 {
     return state_->atoms_[index]->getID();
+}
+
+double CSimulationBox::calcCurrentKineticEnergy()
+{
+    double K = 0.0;
+    for(CParticle3D& particle : particles_)
+    {
+        K+= particle.p_*particle.p_ / particle.m_;
+    }
+
+    return 0.5*K;
 }
 
 END_CUDA_COMPATIBLE()

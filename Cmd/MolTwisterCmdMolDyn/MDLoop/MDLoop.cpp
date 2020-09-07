@@ -149,7 +149,7 @@ void CMDLoop::printHeading(CSimulationBox& simBox)
     COut::printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g AA\r\n", simBox.getLmaxX(), simBox.getLmaxY(), simBox.getLmaxZ());
     COut::printf("\t Dimension, d = %i\r\n", simBox.dim_);
     COut::printf("\t----------------------------\r\n\r\n");
-    COut::printf("\t%-15s%-15s%-15s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[AA^3]");
+    COut::printf("\t%-15s%-15s%-15s%-20s%-15s%-15s%-15s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[AA^3]", "U[kJ/mol]", "K[kJ/mol]", "Etot[kJ/mol]");
 }
 
 void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox)
@@ -161,9 +161,9 @@ void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSim
     fprintf(filePtr, "%i\r\nFrame %u\r\n", (int)particles.size(), t);
     for(int k=0; k<(int)particles.size(); k++)
     {
-        double x = particles[k].x_.x_;
-        double y = particles[k].x_.y_;
-        double z = particles[k].x_.z_;
+        double x = particles[k].r_.x_;
+        double y = particles[k].r_.y_;
+        double z = particles[k].r_.z_;
         
         fprintf(filePtr, "%-15s% -15g%-15g%-15g\r\n", simBox.getAtomType(k).data(), x, y, z);
     }
@@ -223,7 +223,7 @@ void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulation
 
     for(size_t i=0; i<particles.size(); i++)
     {
-        C3DVector r = particles[i].x_;
+        C3DVector r = particles[i].r_;
         record.setPos((int)i, r.x_, r.y_, r.z_);
     }
     record.write(file, numBytesWritten);
@@ -328,12 +328,18 @@ void CMDLoop::updateOutput(int t, int equilibSteps, int outputEvery, CSimulation
     
     if((t % outputEvery) == 0)
     {
+        double Utot = 0.0;
+        for(size_t i=0; i<F.size(); i++) Utot+= (double)F[i].U_;
+
+        double Ktot = simBox.calcCurrentKineticEnergy();
+        double Etot = Utot + Ktot;
+
         if(includeXYZFile_) appendToXYZFile(simBox.particles_, t, simBox);
         if(includeDCDFile_) appendToDCDFile(simBox.particles_, simBox, boxSize);
 
         double T = simBox.calcTemp() * Conv_T;
-        COut::printf("\t%-15i%-15g%-15g%-20g\r\n", t, T,
-               simBox.calcPress(F) * Conv_press, simBox.calcV());
+        COut::printf("\t%-15i%-15g%-15g%-20g%-15g%-15g%-15g\r\n", t, T,
+               simBox.calcPress(F) * Conv_press, simBox.calcV(), Utot, Ktot, Etot);
     }
 }
 

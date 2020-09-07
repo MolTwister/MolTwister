@@ -101,12 +101,14 @@ public:
     class CForces
     {
     public:
-        HOSTDEV_CALLABLE CForces() {}
-        HOSTDEV_CALLABLE CForces(const C3DVector& F, const C3DVector& Fpi) { F_ = F; Fpi_ = Fpi; }
+        HOSTDEV_CALLABLE CForces() { U_ = 0.0f; }
+        HOSTDEV_CALLABLE CForces(const C3DVector& F, const C3DVector& Fpi) { F_ = F; Fpi_ = Fpi; U_ = 0.0f; }
+        HOSTDEV_CALLABLE CForces(const C3DVector& F, const C3DVector& Fpi, const float& U) { F_ = F; Fpi_ = Fpi; U_ = U; }
 
     public:
         C3DVector F_;
         C3DVector Fpi_;
+        float U_;
     };
 
     class CBond
@@ -160,12 +162,13 @@ public:
     class CPoint
     {
     public:
-        HOSTDEV_CALLABLE CPoint() { x_ = y_ = 0.0f; }
-        HOSTDEV_CALLABLE CPoint(float x, float y) { x_ = x; y_ = y; }
+        HOSTDEV_CALLABLE CPoint() { x_ = f_ = e_ = 0.0f; }
+        HOSTDEV_CALLABLE CPoint(float x, float f, float e) { x_ = x; f_ = f; e_ = e; }
 
     public:
         float x_;
-        float y_;
+        float f_;
+        float e_;
     };
 
 public:
