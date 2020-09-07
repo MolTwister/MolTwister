@@ -7,11 +7,13 @@
 #include "MolTwisterCmdLoad.h"
 #include "Tools/MolTwisterStateTools.h"
 #include "Tools/ProgressBar.h"
+#include "../Utilities/DCDFile.h"
 
 void CCmdLoad::onAddKeywords()
 {
     addKeyword("load");
     addKeyword("xyz");
+    addKeyword("dcd");
     addKeyword("pdb");
     addKeyword("mtt");
     addKeyword("script");
@@ -19,6 +21,7 @@ void CCmdLoad::onAddKeywords()
     addKeyword("qepos");
     addKeyword("ignore");
     addKeyword("all");
+    addKeyword("frame");
 }
 
 std::string CCmdLoad::getHelpString() const
@@ -30,9 +33,15 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\tLoad data into MolTwister. The allowed data types are:\r\n";
     szText+= "\r\n";
     szText+= "\txyz :        XYZ-coordinate files (including XYZ files containing\r\n";
-    szText+= "\t             several frames). Bonds can be ignored using 'ignore',\r\n";
-    szText+= "\t             see genbonds. Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             several frames). Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
     szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame'.\r\n";
+    szText+= "\tdcd :        DCD-coordinate files. Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
     szText+= "\tpdb :        PDB-coordinate files. Bonds can be ignored using 'ignore'.\r\n";
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
@@ -66,6 +75,7 @@ void CCmdLoad::execute(std::string commandLine)
     
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     if((text != "xyz") &&
+       (text != "dcd") &&
        (text != "pdb") &&
        (text != "mtt") &&
        (text != "script") &&
@@ -75,6 +85,7 @@ void CCmdLoad::execute(std::string commandLine)
         // and not a specification of file type
         std::string ext = CFileUtility::getExtension(text);
         if(ext == "xyz") { text = "xyz"; arg--; }
+        if(ext == "dcd") { text = "dcd"; arg--; }
         if(ext == "pdb") { text = "pdb"; arg--; }
         if(ext == "mtt") { text = "mtt"; arg--; }
         if(ext == "script") { text = "script"; arg--; }
@@ -84,6 +95,10 @@ void CCmdLoad::execute(std::string commandLine)
     if(text == "xyz")
     {
         parseXYZCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
+    }
+    else if(text == "dcd")
+    {
+        parseDCDCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "pdb")
     {
@@ -177,6 +192,64 @@ void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<st
 
             if(!readXYZFile(filePath.data(), genBonds))
                 printf("Error loading XYZ file!");
+        }
+    }
+}
+
+void CCmdLoad::parseDCDCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&, int& baseFrameIndex)
+{
+    std::string text = CASCIIUtility::getWord(commandLine, arg++);
+    CASCIIUtility::removeWhiteSpace(text);
+    if(text.length() == 0)
+    {
+        printf("Syntax Error: Second argument should be the filename!");
+    }
+    else
+    {
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
+        {
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
+        }
+
+        int stride = 1;
+        std::string strideString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(strideString);
+        if(strideString == "stride")
+        {
+            stride = atoi(CASCIIUtility::getWord(commandLine, arg++).data());
+        }
+        else arg++;
+
+        if(text[0] == '/')
+        {
+            if(!readDCDFile(text.data(), genBonds, stride))
+                printf("Error loading DCD file!");
+        }
+        else
+        {
+            std::string filePath = CFileUtility::getCWD() + text;
+
+            if(!readDCDFile(filePath.data(), genBonds, stride))
+                printf("Error loadingDCD file!");
         }
     }
 }
@@ -378,7 +451,7 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", xyzFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", xyzFileName.data());
         return false;
     }
 
@@ -469,6 +542,64 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
     return true;
 }
 
+bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
+{
+    CProgressBar progBar;
+    double X, Y, Z;
+    std::string ID;
+
+    genBonds = false;
+    CDCDFile dcdFile;
+
+    if(!dcdFile.open(dcdFileName.data(), stride))
+    {
+        printf("\r\nCould not open file: %s!\r\n", dcdFileName.data());
+        return false;
+    }
+
+    int numAtoms = dcdFile.getNumCoordinatesInRecord();
+    if((int)state_->atoms_.size() !=  numAtoms)
+    {
+        printf("\r\nThe file, %s! It was found to have %i atoms per record (based on first record in file), while the loaded system has %i atoms. The number of atoms much match!\r\n", dcdFileName.data(), numAtoms, (int)state_->atoms_.size());
+        return false;
+    }
+
+    progBar.beginProgress("Loading XYZ file contents");
+    int numRecords = dcdFile.getNumRecords();
+    bool firstFrameAdded = false;
+    for(int i=0; i<numRecords; i++)
+    {
+        dcdFile.gotoRecord(i);
+
+        int indexFrame=0;
+        if(firstFrameAdded) indexFrame = state_->addFrame();
+
+        numAtoms = dcdFile.getNumCoordinatesInRecord();
+        const float* coordDataX = dcdFile.getCoordinateDataX();
+        const float* coordDataY = dcdFile.getCoordinateDataY();
+        const float* coordDataZ = dcdFile.getCoordinateDataZ();
+        for(int j=0; j<numAtoms; j++)
+        {
+            X = (double)coordDataX[j];
+            Y = (double)coordDataY[j];
+            Z = (double)coordDataZ[j];
+
+            ID = state_->atoms_[j]->getID();
+
+            if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, X, Y, Z);
+            if(j < (int)state_->atoms_.size())
+                state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
+        }
+
+        firstFrameAdded = true;
+        progBar.updateProgress(i+1, numRecords);
+    }
+    progBar.endProgress();
+
+    genBonds = true;
+    return true;
+}
+
 bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
 {
     std::string stringPart;
@@ -483,7 +614,7 @@ bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", pdbFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", pdbFileName.data());
         return false;
     }
     
@@ -560,7 +691,7 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", mttFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", mttFileName.data());
         return false;
     }
     
@@ -797,7 +928,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
 
     if(!fileHandle)
     {
-        printf("\r\nError, could not open file: %s!!!\r\n", scriptFileName.data());
+        printf("\r\nError, could not open file: %s!\r\n", scriptFileName.data());
         return false;
     }
     
@@ -869,7 +1000,7 @@ bool CCmdLoad::readPythonFile(std::string scriptFileName)
     
     if(!fileHandle)
     {
-        printf("\r\nError, could not open file: %s!!!\r\n", scriptFileName.data());
+        printf("\r\nError, could not open file: %s!\r\n", scriptFileName.data());
         return false;
     }
     
@@ -971,7 +1102,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
     
     if(!fileHandlePos || !fileHandleInput)
     {
-        printf("\r\nCould not open files: %s, %s!!!\r\n", qePosFileName.data(), qeInputFileName.data());
+        printf("\r\nCould not open files: %s, %s!\r\n", qePosFileName.data(), qeInputFileName.data());
         return false;
     }
     

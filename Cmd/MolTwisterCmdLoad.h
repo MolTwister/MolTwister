@@ -18,6 +18,7 @@ protected:
 
 private:
     void parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
+    void parseDCDCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
@@ -26,6 +27,7 @@ private:
     void parseQeposCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
 
     bool readXYZFile(std::string xyzFileName, bool& genBonds);
+    bool readDCDFile(std::string dcdFileName, bool& genBonds, int stride);
     bool readPDBFile(std::string pdbFileName, bool& genBonds);
     bool readMTTFile(std::string mttFileName);
     bool readScriptFile(std::string scriptFileName);
