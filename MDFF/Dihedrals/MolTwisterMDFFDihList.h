@@ -11,7 +11,7 @@ class CMDFFDihList : public CMDFFList<CMDFFDih>
 {
 public:
     CMDFFDihList();
-    ~CMDFFDihList();
+    virtual ~CMDFFDihList();
     
 public:
     virtual void serialize(CSerializer& io, bool saveToStream);

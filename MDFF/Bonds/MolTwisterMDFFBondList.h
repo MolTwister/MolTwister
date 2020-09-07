@@ -12,7 +12,7 @@ class CMDFFBondList : public CMDFFList<CMDFFBond>
 {
 public:
     CMDFFBondList();
-    ~CMDFFBondList();
+    virtual ~CMDFFBondList();
     
 public:
     virtual void serialize(CSerializer& io, bool saveToStream);

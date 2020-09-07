@@ -11,7 +11,7 @@ class CMDFFAngleList : public CMDFFList<CMDFFAngle>
 {
 public:
     CMDFFAngleList();
-    ~CMDFFAngleList();
+    virtual ~CMDFFAngleList();
     
 public:
     virtual void serialize(CSerializer& io, bool saveToStream);

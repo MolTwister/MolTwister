@@ -13,7 +13,7 @@ class CMDFFNonBondedList : public CMDFFList<CMDFFNonBonded>
 {
 public:
     CMDFFNonBondedList();
-    ~CMDFFNonBondedList();
+    virtual ~CMDFFNonBondedList();
     
 public:
     virtual void serialize(CSerializer& io, bool saveToStream);

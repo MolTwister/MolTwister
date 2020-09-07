@@ -14,7 +14,7 @@ double CMt::exp(double x)
     if(x > 1.0)
         return EXP1 * x;
     
-    return exp(x);
+    return ::exp(x);
 }
 
 double CMt::sinhXoverX(double x)
