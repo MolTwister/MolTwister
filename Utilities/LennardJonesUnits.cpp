@@ -7,18 +7,18 @@ void CLJUnits::defineUnits()
     // Units into and out of a program using LJ like units are in number of units of for example
     // m_dTimeUnit or m_dVelocity units.
     massUnit_ = 1.0;                      // [g/mol]
-    distanceUnit_ = 1.0;                  // [Å]
+    distanceUnit_ = 1.0;                  // [AA]
     energyUnit_ = 1.0;                    // [kJ/mol]
     timeUnit_ = 100.0;                    // => [fs]
-    velocityUnit_ = 0.01;                 // => [Å/fs]
+    velocityUnit_ = 0.01;                 // => [AA/fs]
     forceUnit_ = 1.0E10;                  // => [kN/mol]
-    torqueUnit_ = energyUnit_;          // => [kJ/mol]
+    torqueUnit_ = energyUnit_;            // => [kJ/mol]
     tempUnit_ = 120.272;                  // => [K]
     pressUnit_ = 16388.2461;              // => [atm]
     chargeUnit_ = 0.0268283;              // => [units of |e|]
-    volumeUnit_ = 1.0;                    // => [Å^3]
-    buckinghamC_ = 1.0;                   // => [Å^6kJ/mol]
-    harmonicBondK_ = 1.0;                 // => [(kJ/mol)/Å^2]
+    volumeUnit_ = 1.0;                    // => [AA^3]
+    buckinghamC_ = 1.0;                   // => [AA^6kJ/mol]
+    harmonicBondK_ = 1.0;                 // => [(kJ/mol)/AA^2]
     
     /////////////////////////////////////////////////////////////////////////////////////////////////
     // Theory / Derivation (in LaTeX code)

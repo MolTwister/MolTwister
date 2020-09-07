@@ -175,7 +175,7 @@ std::string CCmdPotenEnergyMap::execute(std::vector<std::string> arguments)
 
 
     // Create map using minimum image convention
-    const double K = 1389.35; // [(kJ/mol)Å]
+    const double K = 1389.35; // [(kJ/mol)AA]
     const double q_i = 1.0; // Partial charge of test particle
     int numFrames = dcdFile.getNumRecords();
     int count = 0;

@@ -6,7 +6,7 @@ double CDCDTools::CHBondCriteria::calcSizeOfGridToFitHBondPairs() const
 
     // To estimate, we will find the longest lenght (not equal to DBL_MAX)
     // and double that length to estimate the minumum length of a d-h...a pair.
-    // If all lenghts are DBL_MAX, then return a generic length of 3Å
+    // If all lenghts are DBL_MAX, then return a generic length of 3AA
     if(fabs((double)maxLenR_dh_ - DBL_MAX) > double(FLT_MIN) ) distances.emplace_back(maxLenR_dh_);
     if(fabs((double)maxLenR_ha_ - DBL_MAX) > double(FLT_MIN)) distances.emplace_back(maxLenR_ha_);
     if(fabs((double)maxLenR_da_ - DBL_MAX) > double(FLT_MIN)) distances.emplace_back(maxLenR_da_);

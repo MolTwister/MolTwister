@@ -525,7 +525,7 @@ void CCmdHoomdblue::parseGendataCommand(std::string commandLine, int& arg)
         if((iCurrFrame >= 0) && (iCurrFrame < (int)atomPtr->r_.size()))
             pos = atomPtr->r_[iCurrFrame];
         
-        // [Pos] = Å, need input in m, so multimly with 10^{-10} before div. by dist units in m
+        // [Pos] = AA, need input in m, so multimly with 10^{-10} before div. by dist units in m
         fprintf(stdOut_, "\t\t\t\t%.6f %.6f %.6f\r\n", pos.x_ / lju.distanceUnit(), pos.y_ / lju.distanceUnit(), pos.z_ / lju.distanceUnit());
     }
     fprintf(stdOut_, "\t\t\t</position>\r\n");

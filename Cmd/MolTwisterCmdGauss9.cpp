@@ -481,7 +481,7 @@ void CCmdGauss9::parseBondstretchCommand(std::string commandLine, int& arg)
                             // (i.e. relaxed scan)
                             std::string str;
                             str.resize(512);
-                            sprintf((char*)str.data(), "Relaxed bond length scan in range R=[%g, %g]Å, Step=%g", startDist, endDist, step);
+                            sprintf((char*)str.data(), "Relaxed bond length scan in range R=[%g, %g]AA, Step=%g", startDist, endDist, step);
                             printGaussianModRedScript(baseSetSpec.data(), charge, spinMul, str.data(),
                                                       atomIndex1, atomIndex2, startDist, endDist, step);
                         }
@@ -500,7 +500,7 @@ void CCmdGauss9::parseBondstretchCommand(std::string commandLine, int& arg)
                                     index++;
                                     std::string str;
                                     str.resize(512);
-                                    sprintf((char*)str.data(), "Single point energy calculation R=%g Å", dDist);
+                                    sprintf((char*)str.data(), "Single point energy calculation R=%g AA", dDist);
                                     printGaussianSPScript(baseSetSpec.data(), charge, spinMul, str.data());
                                 }
                                 state_->retrieveSavedCoordinates(state_->getCurrFrameIndex());

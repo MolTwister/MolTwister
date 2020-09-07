@@ -239,6 +239,9 @@ bool CMolTwister::_run()
                 printf("\t              Alt, Shift+Alt, respectively\r\n");
                 printf("\t   * <-:      Go back one frame or 10, 100, 1000, with Shift,\r\n");
                 printf("\t              Alt, Shift+Alt, respectively\r\n");
+                printf("\r\n");
+                printf("\tNotes on units and conventions:\r\n");
+                printf("\t   * The Angstrom unit is denoted as AA\r\n");
             }
             else
             {

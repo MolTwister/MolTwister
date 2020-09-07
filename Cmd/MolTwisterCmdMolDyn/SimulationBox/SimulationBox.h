@@ -58,9 +58,9 @@ public:
     EDim dim_;                                       // System dimension
 
 private:
-    double LmaxX_;                                   // Box side length in Å
-    double LmaxY_;                                   // Box side length in Å
-    double LmaxZ_;                                   // Box side length in Å
+    double LmaxX_;                                   // Box side length in AA
+    double LmaxY_;                                   // Box side length in AA
+    double LmaxZ_;                                   // Box side length in AA
     CMolTwisterState* state_;
     SMolDynConfigStruct molDynConfig_;
 };

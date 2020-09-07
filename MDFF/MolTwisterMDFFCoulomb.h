@@ -6,7 +6,7 @@
 class CMDFFCoulomb
 {
 public:
-    CMDFFCoulomb(CMolTwisterState* molTwisterState) { state_ = molTwisterState; coulombConst_ = 1389.3545752702225; /*[kJÅ/mol]*/ }
+    CMDFFCoulomb(CMolTwisterState* molTwisterState) { state_ = molTwisterState; coulombConst_ = 1389.3545752702225; /*[kJAA/mol]*/ }
     
 public:
     double calcPotentialBetween(C3DVector r1, C3DVector r2, double q1, double q2) const;

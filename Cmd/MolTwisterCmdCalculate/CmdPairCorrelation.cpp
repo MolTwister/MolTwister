@@ -187,7 +187,7 @@ std::string CCmdPairCorrelation::execute(std::vector<std::string> arguments)
         dist[i] = 0.5 * double(2*i+1) * (maxDist - minDist) / double(size) + minDist;
         idGasPairCorr[i] = 4.0 * M_PI * dist[i]*dist[i] * avgNumDens;
 
-        pairCorr[i] = double(profile[i]) / qvgVol; // [#/Å^3]
+        pairCorr[i] = double(profile[i]) / qvgVol; // [#/AA^3]
         rdf[i] = pairCorr[i] / idGasPairCorr[i]; // Unitless
     }
 

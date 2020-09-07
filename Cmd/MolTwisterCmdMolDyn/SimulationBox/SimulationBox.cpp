@@ -17,9 +17,9 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
 
     N_ = 100;
     C3DRect pbc = state->view3D_->getPBC();
-    LmaxX_ = pbc.getWidthX(); // [Å]
-    LmaxY_ = pbc.getWidthY(); // [Å]
-    LmaxZ_ = pbc.getWidthZ(); // [Å]
+    LmaxX_ = pbc.getWidthX(); // [AA]
+    LmaxY_ = pbc.getWidthY(); // [AA]
+    LmaxZ_ = pbc.getWidthZ(); // [AA]
     dt_ = 1.0 / Conv_t;   // [fs]
     dim_ = dim3D;
     resizeArrays();

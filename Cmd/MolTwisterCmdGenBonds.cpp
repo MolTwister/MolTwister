@@ -23,7 +23,7 @@ std::string CCmdGenBonds::getHelpString() const
     text+= "\tGenerate bonds between atoms. A bond is defined as any bond length R that\r\n";
     text+= "\tsatisfies 'minimum R' < r < r1+r2+0.4. In addition, the number of bonds that\r\n";
     text+= "\tare connected to C, N, P, S atoms are restricted to 4. The default minimum\r\n";
-    text+= "\tbond length limit is 0.8Å. The parmeters inside square brackets are optional.\r\n";
+    text+= "\tbond length limit is 0.8AA. The parmeters inside square brackets are optional.\r\n";
     text+= "\tIf the verbose keyword is used, then each detected bond will be displayed as\r\n";
     text+= "\tthey are detected.\r\n";
     text+= "\r\n";

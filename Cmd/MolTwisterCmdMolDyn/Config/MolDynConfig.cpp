@@ -189,8 +189,8 @@ void CMolDynConfig::resetToDefaults()
     cfg_.pressureRelaxationTime_ = 5000.0 * cfg_.timeStep_; // fs
     cfg_.pressureNHChainLength_ = 4;
     cfg_.pressureRESPASteps_ = 4;
-    cfg_.cutoffRadius_ = 10.0; // Å
-    cfg_.neighListShell_ = 2.0; // Å
+    cfg_.cutoffRadius_ = 10.0; // AA
+    cfg_.neighListShell_ = 2.0; // AA
     cfg_.cutoffForce_ = 1000.0; // Reduced units
     cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";

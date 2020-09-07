@@ -172,9 +172,9 @@ std::string CCmdVACF::execute(std::vector<std::string> arguments)
                         C3DVector vel;
 
                         if(j >= r1.size()) continue;
-                        vel.x_ = (r2[j].x_ - r1[j].x_) / timeStep; // [Å/fs]
-                        vel.y_ = (r2[j].y_ - r1[j].y_) / timeStep; // [Å/fs]
-                        vel.z_ = (r2[j].z_ - r1[j].z_) / timeStep; // [Å/fs]
+                        vel.x_ = (r2[j].x_ - r1[j].x_) / timeStep; // [AA/fs]
+                        vel.y_ = (r2[j].y_ - r1[j].y_) / timeStep; // [AA/fs]
+                        vel.z_ = (r2[j].z_ - r1[j].z_) / timeStep; // [AA/fs]
 
                         v0.emplace_back(vel);
                     }
@@ -190,9 +190,9 @@ std::string CCmdVACF::execute(std::vector<std::string> arguments)
                         C3DVector vel;
 
                         if(j >= r1.size()) continue;
-                        vel.x_ = (r2[j].x_ - r1[j].x_) / timeStep; // [Å/fs]
-                        vel.y_ = (r2[j].y_ - r1[j].y_) / timeStep; // [Å/fs]
-                        vel.z_ = (r2[j].z_ - r1[j].z_) / timeStep; // [Å/fs]
+                        vel.x_ = (r2[j].x_ - r1[j].x_) / timeStep; // [AA/fs]
+                        vel.y_ = (r2[j].y_ - r1[j].y_) / timeStep; // [AA/fs]
+                        vel.z_ = (r2[j].z_ - r1[j].z_) / timeStep; // [AA/fs]
 
                         vi.emplace_back(vel);
                     }

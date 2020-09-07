@@ -71,7 +71,7 @@ CMDLoop::CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFi
     fileNameXYZ_ = fileNameXYZ;
     fileNameDCD_ = fileNameDCD;
 
-    const double maxV = 0.3; // Max v[Å/fs]in distr.
+    const double maxV = 0.3; // Max v[AA/fs]in distr.
     maxP_ = maxV / Conv_P; // m*v_max, m = 1g/mol
 }
 
@@ -127,10 +127,10 @@ void CMDLoop::printHeading(CSimulationBox& simBox)
     COut::printf("\t Particles, N = %i\r\n", simBox.N_);
     COut::printf("\t NH RESPA, n = %i\r\n", simBox.NH_T_.n_);
     COut::printf("\t NH Chain length, M = %i\r\n", simBox.NH_T_.M_);
-    COut::printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g Å\r\n", simBox.getLmaxX(), simBox.getLmaxY(), simBox.getLmaxZ());
+    COut::printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g AA\r\n", simBox.getLmaxX(), simBox.getLmaxY(), simBox.getLmaxZ());
     COut::printf("\t Dimension, d = %i\r\n", simBox.dim_);
     COut::printf("\t----------------------------\r\n\r\n");
-    COut::printf("\t%-15s%-15s%-15s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[Å^3]");
+    COut::printf("\t%-15s%-15s%-15s%-20s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[AA^3]");
 }
 
 void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox)
@@ -256,7 +256,7 @@ void CMDLoop::storeMomentumDistribution(std::string fileName,
     
     if(!file) return;
 
-    std::string szUnit = (axis < 3) ? "p[gÅ/(mol*fs)]" : "p[kJ*fs/mol]";
+    std::string szUnit = (axis < 3) ? "p[gAA/(mol*fs)]" : "p[kJ*fs/mol]";
     fprintf(file, "%-20s%-20s\r\n", szUnit.data(), "P");
     for(int i=0; i<N; i++)
     {
