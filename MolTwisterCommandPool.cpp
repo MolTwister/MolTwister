@@ -2,6 +2,7 @@
 
 #include "Cmd/MolTwisterCmdCd.h"
 #include "Cmd/MolTwisterCmdLs.h"
+#include "Cmd/MolTwisterCmdLl.h"
 #include "Cmd/MolTwisterCmdGenBonds.h"
 #include "Cmd/MolTwisterCmdList.h"
 #include "Cmd/MolTwisterCmdAutoscale.h"
@@ -30,6 +31,7 @@ void CMolTwisterCommandPool::generateCmdList(CMolTwisterState* mtState, std::vec
 {
     cmdList.emplace_back(std::make_shared<CCmdCd>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdLs>(mtState));
+    cmdList.emplace_back(std::make_shared<CCmdLl>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdLoad>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdGenBonds>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdList>(mtState));

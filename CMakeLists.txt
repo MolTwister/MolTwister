@@ -205,6 +205,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLoad.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLs.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLs.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLl.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLl.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMmol.h
