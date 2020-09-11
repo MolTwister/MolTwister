@@ -34,10 +34,10 @@ void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double Lmax
     // This is the implementation for NPT
     if(ensemble == SMolDynConfigStruct::ensembleNPT)
     {
-        p_eps_+= ((dt / 2.0) * G_eps(N, particles, F));  // Step 3.1
+        p_eps_+= ((dt / 2.0) * G_eps(N, particles, F)); // Step 3.1
         prop_p(N, dt, particles, F);                    // Step 3.2
         prop_r(N, dt, particles, F);                    // Step 3.3
-        eps_+= (dt * p_eps_ / W_);                          // Step 3.4
+        eps_+= (dt * p_eps_ / W_);                      // Step 3.4
         double Vmax = LmaxX * LmaxY * LmaxZ;
         double etaCube = getV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
         etaCube = pow(etaCube, 1.0/3.0);
@@ -48,7 +48,7 @@ void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double Lmax
 
         calcParticleForces(dim, boxSizeOut.x_, boxSizeOut.y_, boxSizeOut.z_, particles, F);
 
-        prop_p(N, dt, particles, F);                    // Step 3.5
+        prop_p(N, dt, particles, F);                     // Step 3.5
         p_eps_+= ((dt / 2.0) * G_eps(N, particles, F));  // Step 3.6
     }
 

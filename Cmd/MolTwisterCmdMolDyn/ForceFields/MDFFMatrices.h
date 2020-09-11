@@ -4,7 +4,7 @@
 #include "../../../Utilities/CUDAGeneralizations.h"
 
 #define MAX_FF_PER_ATOMIC_SET 5
-#define NUM_POINTS_IN_PROFILES 100
+#define NUM_POINTS_IN_PROFILES 1000
 
 BEGIN_CUDA_COMPATIBLE()
 

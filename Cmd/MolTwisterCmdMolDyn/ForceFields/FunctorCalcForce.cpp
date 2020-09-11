@@ -90,7 +90,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     {
         CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
         C3DVector r_i = devAtomList_[bond.atomIndex2_].r_;
-        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);                
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
         f = calcForceBondOn_r_k(r_k, r_i, bond.bondType_, k, (int)bond.atomIndex2_, U);
         Fpi+= f;
@@ -360,6 +360,45 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcDihedralForceCoeffs23(const C3
     return dTheta_dr3;
 }
 
+int HOSTDEV_CALLABLE CFunctorCalcForce::calcIndexOfLowerPointOfInterpolationLine(const float& x, const CMDFFMatrices::CPoint& firstPointInList, const CMDFFMatrices::CPoint& lastPointInList)
+{
+    float delta = (lastPointInList.x_ - firstPointInList.x_) / float(NUM_POINTS_IN_PROFILES-1);
+    return int((x - firstPointInList.x_) / delta);
+}
+
+HOSTDEV_CALLABLE float CFunctorCalcForce::calcAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j)
+{
+    C3DVector r_ik = r_k - r_i;
+    C3DVector r_ij = r_j - r_i;
+    float dotProd = float(r_ik * r_ij);
+    float R_ikR_ij = (float)r_ik.norm() * (float)r_ij.norm();
+    float cosAngle = (R_ikR_ij != 0.0f) ? dotProd / R_ikR_ij : 1.0f;
+    return  (float)acos(double(cosAngle));
+}
+
+HOSTDEV_CALLABLE float CFunctorCalcForce::calcDihedral(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l)
+{
+    C3DVector r_ik = r_k - r_i;
+    C3DVector r_ij = r_j - r_i;
+    C3DVector r_jl = r_l - r_j;
+    C3DVector n1 = r_ik.cross(r_ij);
+    C3DVector n2 = r_ij.cross(r_jl);
+    float dotProd = float(n1 * n2);
+    float n1n2 = (float)n1.norm() * (float)n2.norm();
+    float cosAngle = (n1n2 != 0.0f) ? dotProd / n1n2 : 1.0f;
+    return (float)acos(double(cosAngle));
+}
+
+HOSTDEV_CALLABLE float CFunctorCalcForce::interpolateLinear(const float& r, const float& x1, const float& y1, const float& x2, const float& y2)
+{
+    float denom = x1 - x2;
+    if(denom == 0.0f) denom = 3.0f*FLT_MIN;
+
+    float a = (y1 - y2) / denom;
+    float b = y1 - a*x1;
+    return (a*r + b);
+}
+
 HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i, float& U)
 {
     // We know that
@@ -380,28 +419,21 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
         // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
         CMDFFMatrices::CPoint p_first = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, 0, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
         CMDFFMatrices::CPoint p_last = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, NUM_POINTS_IN_PROFILES-1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-        float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-        int idx = int((r - p_first.x_) / delta);
+        int idx = calcIndexOfLowerPointOfInterpolationLine(r, p_first, p_last);
 
         // Interpolate the function value between i and (i+1)
         if((idx >= 0) && (idx < (NUM_POINTS_IN_PROFILES-1)))
         {
             CMDFFMatrices::CPoint p1 = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, idx, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
             CMDFFMatrices::CPoint p2 = devNonBondFFMatrix_[CMDFFMatrices::toIndexNonBond(devAtomList_[k].typeIndex_, devAtomList_[i].typeIndex_, ffIndex, idx+1, Natomtypes_, Natomtypes_, MAX_FF_PER_ATOMIC_SET)];
-            float denom = p1.x_ - p2.x_;
-            if(denom == 0.0f) denom = 3.0f*FLT_MIN;
 
             // Add the interpolated force, working on k
-            float a = (p1.f_ - p2.f_) / denom;
-            float b = p1.f_ - a*p1.x_;
-            mdU_dr_Sum+= (a*r + b);
+            mdU_dr_Sum+= interpolateLinear(r, p1.x_, p1.f_, p2.x_, p2.f_);
 
             if(i > k)
             {
                 // We only add the potentials for interactions i>k, thus not overcounting
-                a = (p1.e_ - p2.e_) / denom;
-                b = p1.e_ - a*p1.x_;
-                U+= (a*r + b);
+                U+= interpolateLinear(r, p1.x_, p1.e_, p2.x_, p2.e_);
             }
         }
     }
@@ -423,21 +455,21 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVe
     double R3 = double(R*R*R);
 
     double K = double( Coulomb_K * q_k * q_i );
+    if((i > k) && (R != 0.0f))
+    {
+        // We only add the potential for interactions i>k, thus not overcounting
+        U+= float(K) / R;
+    }
+
     if(R3 != 0.0)
     {
         return  ( r * (K / R3) );
     }
 
-    if((i > k) && (R != 0.0f))
-    {
-        // We only add the potential for interactions i>k, thus not overcounting
-        U+= -float(K) / R;
-    }
-
     return C3DVector();
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType, const int& k, const int& i, float&  U)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType, const int& k, const int& i, float& U) // :TODO: Remember to make const again!!!
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
@@ -449,9 +481,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
     // is to be used to estimate delta_r, hence enabling calculation of the closest index, j, below r
     CMDFFMatrices::CPoint p_first = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, 0, NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, NUM_POINTS_IN_PROFILES-1, NUM_POINTS_IN_PROFILES)];
-    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
     float r = (float)(r_k - r_i).norm();
-    int idx = int((r - p_first.x_) / delta);
+    int idx = calcIndexOfLowerPointOfInterpolationLine(r, p_first, p_last);
 
     // Interpolate the function value between i and (i+1)
     float mdU_dr = 0.0f;
@@ -459,20 +490,14 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
     {
         CMDFFMatrices::CPoint p1 = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, idx, NUM_POINTS_IN_PROFILES)];
         CMDFFMatrices::CPoint p2 = devBondFFList_[CMDFFMatrices::toIndexBonded(bondType, idx+1, NUM_POINTS_IN_PROFILES)];
-        float denom = p1.x_ - p2.x_;
-        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
 
         // Add the interpolated force, working on k
-        float a = (p1.f_ - p2.f_) / denom;
-        float b = p1.f_ - a*p1.x_;
-        mdU_dr+= (a*r + b);
+        mdU_dr+= interpolateLinear(r, p1.x_, p1.f_, p2.x_, p2.f_);
 
         if(i > k)
         {
             // We only add the potential for interactions i>k, thus not overcounting
-            a = (p1.e_ - p2.e_) / denom;
-            b = p1.e_ - a*p1.x_;
-            U+= (a*r + b);
+            U+= interpolateLinear(r, p1.x_, p1.e_, p2.x_, p2.e_);
         }
     }
 
@@ -496,14 +521,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVe
     // is to be used to estimate delta_theta, hence enabling calculation of the closest index, j, below theta
     CMDFFMatrices::CPoint p_first = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, 0, NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, NUM_POINTS_IN_PROFILES-1, NUM_POINTS_IN_PROFILES)];
-    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-    C3DVector r_ik = r_k - r_i;
-    C3DVector r_ij = r_j - r_i;
-    float dotProd = float(r_ik * r_ij);
-    float R_ikR_ij = (float)r_ik.norm() * (float)r_ij.norm();
-    float cosAngle = (R_ikR_ij != 0.0f) ? dotProd / R_ikR_ij : 1.0f;
-    float theta = (float)acos(double(cosAngle));
-    int idx = int((theta - p_first.x_) / delta);
+    float theta = calcAngle(r_k, r_i, r_j);
+    int idx = calcIndexOfLowerPointOfInterpolationLine(theta, p_first, p_last);
 
     // Interpolate the function value between i and (i+1)
     float mdU_dtheta = 0.0f;
@@ -511,11 +530,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVe
     {
         CMDFFMatrices::CPoint p1 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx,NUM_POINTS_IN_PROFILES)];
         CMDFFMatrices::CPoint p2 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx+1,NUM_POINTS_IN_PROFILES)];
-        float denom = p1.x_ - p2.x_;
-        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.f_ - p2.f_) / denom;
-        float b = p1.f_ - a*p1.x_;
-        mdU_dtheta+= (a*theta + b);
+        mdU_dtheta+= interpolateLinear(theta, p1.x_, p1.f_, p2.x_, p2.f_);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation
@@ -537,14 +552,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVe
     // is to be used to estimate delta_theta, hence enabling calculation of the closest index, j, below theta
     CMDFFMatrices::CPoint p_first = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, 0, NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, NUM_POINTS_IN_PROFILES-1, NUM_POINTS_IN_PROFILES)];
-    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-    C3DVector r_ik = r_k - r_i;
-    C3DVector r_ij = r_j - r_i;
-    float dotProd = float(r_ik * r_ij);
-    float R_ikR_ij = (float)r_ik.norm() * (float)r_ij.norm();
-    float cosAngle = (R_ikR_ij != 0.0f) ? dotProd / R_ikR_ij : 1.0f;
-    float theta = (float)acos(double(cosAngle));
-    int idx = int((theta - p_first.x_) / delta);
+    float theta = calcAngle(r_k, r_i, r_j);
+    int idx = calcIndexOfLowerPointOfInterpolationLine(theta, p_first, p_last);
 
     // Interpolate the function value between i and (i+1)
     float mdU_dtheta = 0.0f;
@@ -552,18 +561,12 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVe
     {
         CMDFFMatrices::CPoint p1 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx,NUM_POINTS_IN_PROFILES)];
         CMDFFMatrices::CPoint p2 = devAngleFFList_[CMDFFMatrices::toIndexBonded(angleType, idx+1,NUM_POINTS_IN_PROFILES)];
-        float denom = p1.x_ - p2.x_;
-        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
 
         // Add the interpolated force, working on i
-        float a = (p1.f_ - p2.f_) / denom;
-        float b = p1.f_ - a*p1.x_;
-        mdU_dtheta+= (a*theta + b);
+        mdU_dtheta+= interpolateLinear(theta, p1.x_, p1.f_, p2.x_, p2.f_);
 
         // We always add the potential here since i is in the center of the angle and is counted exactly once per angle in the system
-        a = (p1.e_ - p2.e_) / denom;
-        b = p1.e_ - a*p1.x_;
-        U+= (a*theta + b);
+        U+= interpolateLinear(theta, p1.x_, p1.e_, p2.x_, p2.e_);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation
@@ -585,17 +588,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DV
     // is to be used to estimate delta_theta, hence enabling calculation of the closest index, j, below theta
     CMDFFMatrices::CPoint p_first = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, 0, NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, NUM_POINTS_IN_PROFILES-1, NUM_POINTS_IN_PROFILES)];
-    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-    C3DVector r_ik = r_k - r_i;
-    C3DVector r_ij = r_j - r_i;
-    C3DVector r_jl = r_l - r_j;
-    C3DVector n1 = r_ik.cross(r_ij);
-    C3DVector n2 = r_ij.cross(r_jl);
-    float dotProd = float(n1 * n2);
-    float n1n2 = (float)n1.norm() * (float)n2.norm();
-    float cosAngle = (n1n2 != 0.0f) ? dotProd / n1n2 : 1.0f;
-    float theta = (float)acos(double(cosAngle));
-    int idx = int((theta - p_first.x_) / delta);
+    float theta = calcDihedral(r_k, r_i, r_j, r_l);
+    int idx = calcIndexOfLowerPointOfInterpolationLine(theta, p_first, p_last);
 
     // Interpolate the function value between i and (i+1)
     float mdU_dtheta = 0.0f;
@@ -603,11 +597,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DV
     {
         CMDFFMatrices::CPoint p1 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx,NUM_POINTS_IN_PROFILES)];
         CMDFFMatrices::CPoint p2 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx+1,NUM_POINTS_IN_PROFILES)];
-        float denom = p1.x_ - p2.x_;
-        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
-        float a = (p1.f_ - p2.f_) / denom;
-        float b = p1.f_ - a*p1.x_;
-        mdU_dtheta+= (a*theta + b);
+        mdU_dtheta+= interpolateLinear(theta, p1.x_, p1.f_, p2.x_, p2.f_);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation
@@ -629,17 +619,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DV
     // is to be used to estimate delta_theta, hence enabling calculation of the closest index, j, below theta
     CMDFFMatrices::CPoint p_first = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, 0, NUM_POINTS_IN_PROFILES)];
     CMDFFMatrices::CPoint p_last = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, NUM_POINTS_IN_PROFILES-1, NUM_POINTS_IN_PROFILES)];
-    float delta = (p_last.x_ - p_first.x_) / float(NUM_POINTS_IN_PROFILES);
-    C3DVector r_ik = r_k - r_i;
-    C3DVector r_ij = r_j - r_i;
-    C3DVector r_jl = r_l - r_j;
-    C3DVector n1 = r_ik.cross(r_ij);
-    C3DVector n2 = r_ij.cross(r_jl);
-    float dotProd = float(n1 * n2);
-    float n1n2 = (float)n1.norm() * (float)n2.norm();
-    float cosAngle = (n1n2 != 0.0f) ? dotProd / n1n2 : 1.0f;
-    float theta = (float)acos(double(cosAngle));
-    int idx = int((theta - p_first.x_) / delta);
+    float theta = calcDihedral(r_k, r_i, r_j, r_l);
+    int idx = calcIndexOfLowerPointOfInterpolationLine(theta, p_first, p_last);
 
     // Interpolate the function value between i and (i+1)
     float mdU_dtheta = 0.0f;
@@ -647,18 +628,12 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DV
     {
         CMDFFMatrices::CPoint p1 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx,NUM_POINTS_IN_PROFILES)];
         CMDFFMatrices::CPoint p2 = devDihedralFFList_[CMDFFMatrices::toIndexBonded(dihedralType, idx+1,NUM_POINTS_IN_PROFILES)];
-        float denom = p1.x_ - p2.x_;
-        if(denom == 0.0f) denom = 3.0f*FLT_MIN;
 
         // Add the interpolated force, working on i
-        float a = (p1.f_ - p2.f_) / denom;
-        float b = p1.f_ - a*p1.x_;
-        mdU_dtheta+= (a*theta + b);
+        mdU_dtheta+= interpolateLinear(theta, p1.x_, p1.f_, p2.x_, p2.f_);
 
         // We always add the potential here since i is in the center of the dihedral and is counted exactly twice per angle in the system, hence leading to the factor of 1/2.
-        a = (p1.e_ - p2.e_) / denom;
-        b = p1.e_ - a*p1.x_;
-        U+= 0.5f*(a*theta + b);
+        U+= 0.5f * interpolateLinear(theta, p1.x_, p1.e_, p2.x_, p2.e_);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation
