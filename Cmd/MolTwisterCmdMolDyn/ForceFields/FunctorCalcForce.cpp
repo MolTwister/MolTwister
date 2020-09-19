@@ -150,6 +150,8 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
     bool hasBondFactor, hasAngleFactor, hasDihedralFactor;
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
+        float u = 0.0f;
+
         // Obtain the central particle pos., r_k, the neigh. particle pos., r_i, which are both located
         // on the same side of the PBC, where r_k dictates the PBC side to use.
         int i = devNeighList_[CFunctorGenNeighList::neighIndexToFlatIndex(k, neighIndex, maxNeighbours_)];
@@ -157,10 +159,10 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
         // Calculate the short-range forces between atom index k and its neareast neighbours, i
-        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i, U);
+        f = calcForceNonBondedOn_r_k(r_k, r_i, k, i, u);
 
         // Calculate the long-range forces between atom index k and its nearest neightbours, i
-        f+= calcForceCoulombOn_r_k(r_k, r_i, k, i, U);
+        f+= calcForceCoulombOn_r_k(r_k, r_i, k, i, u);
 
         // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
         hasBondFactor = false;
@@ -173,6 +175,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
             if(i == bond.atomIndex2_)
             {
                 f*= double(scale12_);
+                u*= scale12_;
                 hasBondFactor = true;
                 break;
             }
@@ -186,6 +189,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
                 if(!angle.assocAtomIsAtCenterOfAngle_ && (i == angle.atomIndex3_))
                 {
                     f*= double(scale13_);
+                    u*= scale13_;
                     hasAngleFactor = true;
                     break;
                 }
@@ -200,6 +204,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
                 if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (i == dihedral.atomIndex4_))
                 {
                     f*= double(scale14_);
+                    u*= scale14_;
                     hasDihedralFactor = true;
                     break;
                 }
@@ -210,12 +215,17 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         if(!hasBondFactor && !hasAngleFactor && !hasDihedralFactor)
         {
             int molOf_i = devAtomList_[i].molIndex_;
-            if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k)) f*= double(scale1N_);
+            if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k))
+            {
+                f*= double(scale1N_);
+                u*= scale1N_;
+            }
         }
 
         // Add the short-range and long-range forces between k and i
         Fpi+= f;
         F+= f;
+        U+= u;
     }
 
     return CMDFFMatrices::CForces(F, Fpi, U);
@@ -311,6 +321,8 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcDihedralForceCoeffs14(const C3
     double          dTheta_dW = (div == 0.0) ? 1.0 / 1E-10 : 1.0 / div;
     C3DVector       dTheta_dr4 = C3DVector(dTheta_dW*dW_dx, dTheta_dW*dW_dy, dTheta_dW*dW_dz);
 
+    dTheta_dr4*= (-1.0);
+
     // Return coeffs that correspond to calculating force on r4 (i.e., dtheta/dx_4, etc.)
     return dTheta_dr4;
 }
@@ -356,17 +368,19 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcDihedralForceCoeffs23(const C3
     double          dTheta_dW = (div == 0.0) ? 1.0 / 1E-10 : 1.0 / div;
     C3DVector       dTheta_dr3 = C3DVector(dTheta_dW*dW_dx, dTheta_dW*dW_dy, dTheta_dW*dW_dz);
 
+    dTheta_dr3*= (-1.0);
+
     // Return coeffs that correspond to calculating force on r3 (i.e., dtheta/dx_3, etc.)
     return dTheta_dr3;
 }
 
-int HOSTDEV_CALLABLE CFunctorCalcForce::calcIndexOfLowerPointOfInterpolationLine(const float& x, const CMDFFMatrices::CPoint& firstPointInList, const CMDFFMatrices::CPoint& lastPointInList)
+int HOSTDEV_CALLABLE CFunctorCalcForce::calcIndexOfLowerPointOfInterpolationLine(const float& x, const CMDFFMatrices::CPoint& firstPointInList, const CMDFFMatrices::CPoint& lastPointInList) const
 {
     float delta = (lastPointInList.x_ - firstPointInList.x_) / float(NUM_POINTS_IN_PROFILES-1);
     return int((x - firstPointInList.x_) / delta);
 }
 
-HOSTDEV_CALLABLE float CFunctorCalcForce::calcAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j)
+HOSTDEV_CALLABLE float CFunctorCalcForce::calcAngle(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j) const
 {
     C3DVector r_ik = r_k - r_i;
     C3DVector r_ij = r_j - r_i;
@@ -376,7 +390,7 @@ HOSTDEV_CALLABLE float CFunctorCalcForce::calcAngle(const C3DVector& r_k, const 
     return  (float)acos(double(cosAngle));
 }
 
-HOSTDEV_CALLABLE float CFunctorCalcForce::calcDihedral(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l)
+HOSTDEV_CALLABLE float CFunctorCalcForce::calcDihedral(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l) const
 {
     C3DVector r_ik = r_k - r_i;
     C3DVector r_ij = r_j - r_i;
@@ -386,10 +400,12 @@ HOSTDEV_CALLABLE float CFunctorCalcForce::calcDihedral(const C3DVector& r_k, con
     float dotProd = float(n1 * n2);
     float n1n2 = (float)n1.norm() * (float)n2.norm();
     float cosAngle = (n1n2 != 0.0f) ? dotProd / n1n2 : 1.0f;
+    if(cosAngle < -1.0f) cosAngle = -1.0f;
+    if(cosAngle > 1.0f) cosAngle = 1.0f;
     return (float)acos(double(cosAngle));
 }
 
-HOSTDEV_CALLABLE float CFunctorCalcForce::interpolateLinear(const float& r, const float& x1, const float& y1, const float& x2, const float& y2)
+HOSTDEV_CALLABLE float CFunctorCalcForce::interpolateLinear(const float& r, const float& x1, const float& y1, const float& x2, const float& y2) const
 {
     float denom = x1 - x2;
     if(denom == 0.0f) denom = 3.0f*FLT_MIN;
@@ -399,7 +415,7 @@ HOSTDEV_CALLABLE float CFunctorCalcForce::interpolateLinear(const float& r, cons
     return (a*r + b);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i, float& U)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& k, const int& i, float& U) const
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
@@ -446,7 +462,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceNonBondedOn_r_k(const C3D
     return c*double(mdU_dr_Sum);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVector& r_k, const C3DVector& r_i, int k, int i, float& U)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVector& r_k, const C3DVector& r_i, int k, int i, float& U) const
 {
     C3DVector r = r_k - r_i;
     float q_i = devAtomList_[i].q_;
@@ -469,7 +485,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVe
     return C3DVector();
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType, const int& k, const int& i, float& U) // :TODO: Remember to make const again!!!
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const int& bondType, const int& k, const int& i, float& U) const
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dr) * (dr/dx_k, dr/dy_k, dr/dz_k)
@@ -509,7 +525,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceBondOn_r_k(const C3DVecto
     return c*double(mdU_dr);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType) const
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dtheta) * (dtheta/dx_k, dtheta/dy_k, dtheta/dz_k)
@@ -540,7 +556,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_k(const C3DVe
     return c*double(mdU_dtheta);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType, float& U)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const int& angleType, float& U) const
 {
     // We know that
     // F_i=-grad_2 U = (-dU/dtheta) * (dtheta/dx_i, dtheta/dy_i, dtheta/dz_i)
@@ -576,7 +592,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceAngularOn_r_i(const C3DVe
     return c*double(mdU_dtheta);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType) const
 {
     // We know that
     // F_k=-grad_1 U = (-dU/dtheta) * (dtheta/dx_k, dtheta/dy_k, dtheta/dz_k)
@@ -607,7 +623,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_k(const C3DV
     return c*double(mdU_dtheta);
 }
 
-HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType, float& U)
+HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DVector& r_k, const C3DVector& r_i, const C3DVector& r_j, const C3DVector& r_l, const int& dihedralType, float& U) const
 {
     // We know that
     // F_i=-grad_1 U = (-dU/dtheta) * (dtheta/dx_i, dtheta/dy_i, dtheta/dz_i)
@@ -633,7 +649,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceDihedralOn_r_i(const C3DV
         mdU_dtheta+= interpolateLinear(theta, p1.x_, p1.f_, p2.x_, p2.f_);
 
         // We always add the potential here since i is in the center of the dihedral and is counted exactly twice per angle in the system, hence leading to the factor of 1/2.
-        U+= 0.5f * interpolateLinear(theta, p1.x_, p1.e_, p2.x_, p2.e_);
+        U+= 0.5f*interpolateLinear(theta, p1.x_, p1.e_, p2.x_, p2.e_);
     }
 
     // Now that we have (-dU/dtheta) at theta, we find the analytic calculation

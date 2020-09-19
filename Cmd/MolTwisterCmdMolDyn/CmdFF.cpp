@@ -93,7 +93,7 @@ void CCmdFF::parseBondforceprofileCommand(const std::vector<std::string>& argume
     for(size_t i=0; i<forceProfile.size(); i++)
     {
         if(i >= potentialProfile.size()) continue;
-        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first, forceProfile[i].second, potentialProfile[i].second);
+        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", (double)forceProfile[i].first, (double)forceProfile[i].second, (double)potentialProfile[i].second);
     }
 }
 
@@ -125,7 +125,7 @@ void CCmdFF::parseAngleforceprofileCommand(const std::vector<std::string>& argum
     for(size_t i=0; i<forceProfile.size(); i++)
     {
         if(i >= potentialProfile.size()) continue;
-        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first * float(180.0 / M_PI), forceProfile[i].second, potentialProfile[i].second);
+        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", (double)forceProfile[i].first * (180.0 / M_PI), (double)forceProfile[i].second, (double)potentialProfile[i].second);
     }
 }
 
@@ -157,7 +157,7 @@ void CCmdFF::parseDihedralforceprofileCommand(const std::vector<std::string>& ar
     for(size_t i=0; i<forceProfile.size(); i++)
     {
         if(i >= potentialProfile.size()) continue;
-        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first * float(180.0 / M_PI), forceProfile[i].second, potentialProfile[i].second);
+        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", (double)forceProfile[i].first * (180.0 / M_PI), (double)forceProfile[i].second, (double)potentialProfile[i].second);
     }
 }
 
@@ -189,6 +189,6 @@ void CCmdFF::parseNonbondforceprofileCommand(const std::vector<std::string>& arg
     for(size_t i=0; i<forceProfile.size(); i++)
     {
         if(i >= potentialProfile.size()) continue;
-        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", forceProfile[i].first, forceProfile[i].second, potentialProfile[i].second);
+        fprintf(stdOut_, "\t% -15.4f% -15.4f% -15.4f\r\n", (double)forceProfile[i].first, (double)forceProfile[i].second, (double)potentialProfile[i].second);
     }
 }
