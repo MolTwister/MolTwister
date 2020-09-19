@@ -5,11 +5,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include "../MDLoop/Printf.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
 CNHChain::CNHChain()
 {
+    verboseOutput_ = false;
+
     n_sy_ = 3;
     n_ = 4;
     M_ = 8;
@@ -28,7 +31,7 @@ void CNHChain::getSuzukiYoshida(double* w)
     w[2] = w0;
 }
 
-void CNHChain::propagator(int N, int dim, double dt, CFct& f)
+void CNHChain::propagator(int, int, double dt, CFct& f)
 {
     double  beta = 1.0 / T_;
     double  coeff;
@@ -37,7 +40,7 @@ void CNHChain::propagator(int N, int dim, double dt, CFct& f)
     
     if((M_ > 0) && (p_eta_[0] > pEtaCutoff))
     {
-        printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g)...\r\n", p_eta_[0], pEtaCutoff);
+        if(verboseOutput_) COut::printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g)...\r\n", p_eta_[0], pEtaCutoff);
         p_eta_[0] = 10.0;
     }
     

@@ -10,6 +10,8 @@ BEGIN_CUDA_COMPATIBLE()
 
 CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, double dShell, double fCutoff)
 {
+    verboseOutput_ = false;
+
     P_ = 1.0 / Conv_press;
     p_eps_ = 1.0;
     eps_ = 0.0;
@@ -85,21 +87,21 @@ void CVelVerlet::cutForces(mthost_vector<CMDFFMatrices::CForces>& F)
         {
             double sign = ((F[i].F_.x_ >= 0.0) ? 1.0 : -1.0);
             double cutF = sign * Fcut_;
-            COut::printf("Warning: x-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.x_, cutF);
+            if(verboseOutput_) COut::printf("Warning: x-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.x_, cutF);
             F[i].Fpi_.x_ = F[i].F_.x_ = cutF;
         }
         if(fabs(F[i].F_.y_) > Fcut_)
         {
             double sign = ((F[i].F_.y_ >= 0.0) ? 1.0 : -1.0);
             double cutF = sign * Fcut_;
-            COut::printf("Warning: y-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.y_, cutF);
+            if(verboseOutput_) COut::printf("Warning: y-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.y_, cutF);
             F[i].Fpi_.y_ = F[i].F_.y_ = cutF;
         }
         if(fabs(F[i].F_.z_) > Fcut_)
         {
             double sign = ((F[i].F_.z_ >= 0.0) ? 1.0 : -1.0);
             double cutF = sign * Fcut_;
-            COut::printf("Warning: z-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.z_, cutF);
+            if(verboseOutput_) COut::printf("Warning: z-forces of atom %i will be cut from %g to %g\r\n", (int)i, F[i].F_.z_, cutF);
             F[i].Fpi_.z_ = F[i].F_.z_ = cutF;
         }
     }

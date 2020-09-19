@@ -26,7 +26,8 @@ public:
     void prepareArrays(int N, int dim);
     void setRandNHPos();
     void setRandNHMom();
-    
+    void setVerboseOutput(bool verbose=true) { verboseOutput_ = verbose; }
+
 private:
     void getSuzukiYoshida(double* w_);
     
@@ -42,6 +43,7 @@ public:
 private:
     int n_sy_;
     double w_[3];
+    bool verboseOutput_;
 };
 
 END_CUDA_COMPATIBLE()

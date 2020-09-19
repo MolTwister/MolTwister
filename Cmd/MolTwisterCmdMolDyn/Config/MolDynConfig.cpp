@@ -14,7 +14,7 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "cutoffradius", "neighshell", "cutoffforce",
              "infofile", "xyzfile", "dcdfile", "pdistrfile", "vdistrfile",
              "includexyzfile", "includedcdfile", "includepdistrfile", "includevdistrfile",
-             "maxpdistr", "maxvdistr",
+             "maxpdistr", "maxvdistr", "verboseoutput",
              "scale12", "scale13", "scale14", "scale1N"
            };
 }
@@ -54,10 +54,12 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tvdistrfile = %s; Filename of volume distribution file.\r\n", cfg_.outVDistrFile_.data());
     fprintf(stdOut, "\tincludexyzfile {yes, no} = %s; Include XYZ file as output.\r\n", cfg_.includeXYZFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludedcdfile {yes, no} = %s; Include DCD file as output.\r\n", cfg_.includeDCDFile_ ? "Yes" : "No");
-    fprintf(stdOut, "\tincludepdistrfile {yes, no} = %s; Include momentum distribution file as output.\r\n", cfg_.includePDistrFile_? "Yes" : "No");
-    fprintf(stdOut, "\tincludevdistrfile {yes, no} = %s; Include volume distribution file as output.\r\n", cfg_.includeVDistrFile_? "Yes" : "No");
+    fprintf(stdOut, "\tincludepdistrfile {yes, no} = %s; Include momentum distribution file as output.\r\n", cfg_.includePDistrFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\tincludevdistrfile {yes, no} = %s; Include volume distribution file as output.\r\n", cfg_.includeVDistrFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tmaxpdistr = %g AA*g/(fs*mol); Desired maximum momentum to use for momentum distribution output.\r\n", cfg_.maxPDistrOutput_);
     fprintf(stdOut, "\tmaxvdistr = %g AA^3; Desired maximum volume to use for volume distribution output.\r\n", cfg_.maxVDistrOutput_);
+    fprintf(stdOut, "\r\n");
+    fprintf(stdOut, "\tverboseoutput {yes, no} = %s; Let output to screen be verbose.\r\n", cfg_.verboseOutput_ ? "Yes" : "No");
 
     fprintf(stdOut, "\r\n\t------------------------------------------\r\n");
 }
@@ -194,6 +196,15 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.maxVDistrOutput_ = std::atof(value.data());
     }
+    else if(parameter == "verboseoutput")
+    {
+        if(value == "yes") cfg_.verboseOutput_ = true;
+        else if(value == "no") cfg_.verboseOutput_ = false;
+        else
+        {
+            return "Error: 'verboseoutput' parameter should be either 'yes' or 'no'!";
+        }
+    }
     else if(parameter == "scale12")
     {
         cfg_.scale12Interactions_ = std::atof(value.data());
@@ -246,6 +257,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.includeVDistrFile_ = false;
     cfg_.maxPDistrOutput_ = 0.3; // AA*g/(fs*mol)
     cfg_.maxVDistrOutput_ = 100.0E3; // AA^3
+    cfg_.verboseOutput_ = false;
     cfg_.scale12Interactions_ = 0.0;
     cfg_.scale13Interactions_ = 0.0;
     cfg_.scale14Interactions_ = 0.5;

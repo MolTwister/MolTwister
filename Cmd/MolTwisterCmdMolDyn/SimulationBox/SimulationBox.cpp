@@ -14,6 +14,9 @@ CSimulationBox::CSimulationBox(CMolTwisterState* state, FILE* stdOut, SMolDynCon
                                        (float)molDynConfig_.scale13Interactions_,
                                        (float)molDynConfig_.scale14Interactions_,
                                        (float)molDynConfig_.scaleAbove14BondedInteractions_);
+    velVerlet_.setVerboseOutput(molDynConfig_.verboseOutput_);
+    NH_T_.setVerboseOutput(molDynConfig_.verboseOutput_);
+    NH_P_.setVerboseOutput(molDynConfig_.verboseOutput_);
 
     N_ = 100;
     C3DRect pbc = state->view3D_->getPBC();

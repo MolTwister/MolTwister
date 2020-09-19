@@ -31,6 +31,7 @@ struct SMolDynConfigStruct
     bool includeVDistrFile_;
     double maxPDistrOutput_;
     double maxVDistrOutput_;
+    bool verboseOutput_;
     double scale12Interactions_;
     double scale13Interactions_;
     double scale14Interactions_;

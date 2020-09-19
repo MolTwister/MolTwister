@@ -23,6 +23,7 @@ public:
     void setRandMom(double tau);
     void setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N);
     double getV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
+    void setVerboseOutput(bool verbose=true) { verboseOutput_ = verbose; }
 
 private:
     void calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F);
@@ -45,6 +46,7 @@ private:
     float scale13_;
     float scale14_;
     float scale1N_;
+    bool verboseOutput_;
 };
 
 END_CUDA_COMPATIBLE()
