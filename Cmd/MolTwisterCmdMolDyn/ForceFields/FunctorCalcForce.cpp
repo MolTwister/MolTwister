@@ -6,7 +6,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float scale12, float scale13, float scale14, float scale1N)
+HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float Ly, float Lz, float cutF, float cutR, float scale12, float scale13, float scale14, float scale1N)
 {
     Natomtypes_ = 0;
     Natoms_ = 0;
@@ -20,6 +20,7 @@ HOSTDEV_CALLABLE CFunctorCalcForce::CFunctorCalcForce(int dim, float Lx, float L
     Lz_ = Lz;
     pbc_ = C3DRect(C3DVector(-(double)Lx/2.0, -(double)Ly/2.0, -(double)Lz/2.0), C3DVector((double)Lx/2.0, (double)Ly/2.0, (double)Lz/2.0));
     cutF_ = cutF;
+    cutR_ = cutR;
     maxNeighbours_ = 0;
 
     scale12_ = scale12;
@@ -470,16 +471,18 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVe
     float R = (float)r.norm();
     double R3 = double(R*R*R);
 
+    const float V = 15.0;
+    float damping = exp(-V * R / cutR_);
     double K = double( Coulomb_K * q_k * q_i );
     if((i > k) && (R != 0.0f))
     {
         // We only add the potential for interactions i>k, thus not overcounting
-        U+= float(K) / R;
+        U+= float(K) * damping / R;
     }
 
     if(R3 != 0.0)
     {
-        return  ( r * (K / R3) );
+        return  ( r * (K * (double)damping / R3) );
     }
 
     return C3DVector();

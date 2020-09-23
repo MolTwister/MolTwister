@@ -34,6 +34,7 @@ private:
 
 public:
     double Fcut_;
+    double Rcut_;
     double P_;
     double V0_;
     double W_;

@@ -17,6 +17,7 @@ CVelVerlet::CVelVerlet(CMolTwisterState* state, FILE* stdOut, double rCutoff, do
     eps_ = 0.0;
     W_ = 1.0;
     Fcut_ = fCutoff;
+    Rcut_ = rCutoff;
 
     scale12_ = 0.0f;
     scale13_ = 0.0f;
@@ -186,7 +187,7 @@ void CVelVerlet::calcParticleForces(int dim, double Lx, double Ly, double Lz, co
 {
     mdFFMatrices_->updateAtomList(particles);
     mdFFMatrices_->genNeighList((float)Lx, (float)Ly, (float)Lz);
-    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut_, scale12_, scale13_, scale14_, scale1N_);
+    CFunctorCalcForce calcForce(dim, (float)Lx, (float)Ly, (float)Lz, (float)Fcut_, (float)Rcut_, scale12_, scale13_, scale14_, scale1N_);
     calcForce.setForceFieldMatrices(*mdFFMatrices_);
     mttransform(EXEC_POLICY mdFFMatrices_->devAtomList_.begin(), mdFFMatrices_->devAtomList_.end(), mdFFMatrices_->devForcesList_.begin(), calcForce);
     mtcudaDeviceSynchronize();
