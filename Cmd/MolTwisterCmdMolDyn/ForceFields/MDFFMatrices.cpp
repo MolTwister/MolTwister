@@ -180,11 +180,11 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     std::vector<int> mdBondsFromFF[2];
     std::vector<int> mdTypeIndex;
     CMolTwisterStateTools(state_, stdOut).getAllMDBondsInSystem(mdBondsFromFF[0], mdBondsFromFF[1], mdTypeIndex, bondsAcrossPBC);
-    for(int i=0; i<mdBondsFromFF[0].size(); i++)
+    for(int i=0; i<(int)mdBondsFromFF[0].size(); i++)
     {
-        if(mdBondsFromFF[0][i] < bondDestIndices.size())
+        if(mdBondsFromFF[0][i] < (int)bondDestIndices.size())
             bondDestIndices[mdBondsFromFF[0][i]].emplace_back(mdBondsFromFF[1][i]);
-        if(mdBondsFromFF[1][i] < bondDestIndices.size())
+        if(mdBondsFromFF[1][i] < (int)bondDestIndices.size())
             bondDestIndices[mdBondsFromFF[1][i]].emplace_back(mdBondsFromFF[0][i]);
     }
 
@@ -345,7 +345,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     mthost_vector<CBond> hostBondsForAtomLists;
     mthost_vector<CListPointer> hostBondsForAtomListPointers(numAtoms);
     int globIndex = 0;
-    for(int k=0; k<numAtoms; k++)
+    for(int k=0; k<(int)numAtoms; k++)
     {
         hostBondsForAtomListPointers[k].indexFirstEntry_ = globIndex;
         int bondCount = 0;
@@ -379,7 +379,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     mthost_vector<CAngle> hostAnglesForAtomLists;
     mthost_vector<CListPointer> hostAnglesForAtomListPointers(numAtoms);
     globIndex = 0;
-    for(int k=0; k<numAtoms; k++)
+    for(int k=0; k<(int)numAtoms; k++)
     {
         hostAnglesForAtomListPointers[k].indexFirstEntry_ = globIndex;
         int angleCount = 0;
@@ -425,7 +425,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     mthost_vector<CDihedral> hostDihedralsForAtomLists;
     mthost_vector<CListPointer> hostDihedralsForAtomListPointers(numAtoms);
     globIndex = 0;
-    for(int k=0; k<numAtoms; k++)
+    for(int k=0; k<(int)numAtoms; k++)
     {
         hostDihedralsForAtomListPointers[k].indexFirstEntry_ = globIndex;
         int dihedralCount = 0;
