@@ -22,6 +22,7 @@ void CCmdLoad::onAddKeywords()
     addKeyword("ignore");
     addKeyword("all");
     addKeyword("frame");
+    addKeyword("noquery");
 }
 
 std::string CCmdLoad::getHelpString() const
@@ -43,6 +44,8 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
     szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
     szText+= "\tpdb :        PDB-coordinate files. Bonds can be ignored using 'ignore'.\r\n";
+    szText+= "\t             To avoid query about delete ('del'), append ('app') or cancel ('can'),\r\n";
+    szText+= "\t             use 'noquery <response>' with the appropriate response.\r\n";
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
     szText+= "\t             each formated as: exec(\"<MolTwister command>\");. For example,\r\n";
@@ -133,9 +136,9 @@ void CCmdLoad::execute(std::string commandLine)
     {
         if(ignoreAllBonds)
             state_->searchForAtomTypes(bondAtomsToIgnore);
-        if((baseFrameIndex < 0) || (baseFrameIndex >= state_->atoms_[0]->r_.size()))
+        if((baseFrameIndex < 0) || (baseFrameIndex >= (int)state_->atoms_[0]->r_.size()))
         {
-            for(int i=0; i<state_->atoms_[0]->r_.size(); i++)
+            for(int i=0; i<(int)state_->atoms_[0]->r_.size(); i++)
                 CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, i, nullptr, &bondAtomsToIgnore);
         }
         else
@@ -281,17 +284,28 @@ void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<st
                 bondAtomsToIgnore = CASCIIUtility::getWords(typeString, ",");
             }
         }
+        else arg--;
+
+        typeString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(typeString);
+        auto noQuery = std::pair<bool, std::string>(false, "");
+        if(typeString == "noquery")
+        {
+            noQuery.first = true;
+            noQuery.second = CASCIIUtility::getWord(commandLine, arg++);
+        }
+        else arg--;
 
         if(text[0] == '/')
         {
-            if(!readPDBFile(text.data(), genBonds))
+            if(!readPDBFile(text.data(), genBonds, noQuery))
                 printf("Error loading PDB file!");
         }
         else
         {
             std::string filePath = CFileUtility::getCWD() + text;
 
-            if(!readPDBFile(filePath.data(), genBonds))
+            if(!readPDBFile(filePath.data(), genBonds, noQuery))
                 printf("Error loading PDB file!");
         }
     }
@@ -525,7 +539,7 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
                 {
                     if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, i, X, Y, Z);
                 }
-                if(i < state_->atoms_.size())
+                if(i < (int)state_->atoms_.size())
                     state_->atoms_[i]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
             }
 
@@ -600,7 +614,7 @@ bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
     return true;
 }
 
-bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
+bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery)
 {
     std::string stringPart;
     double X, Y, Z;
@@ -621,10 +635,19 @@ bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
     
     // Get confiramation from user and purge everything if 'del'
     genBonds = false;
-    printf("Delete all atoms (del), Append (app) or Cancel (can)?: ");
-    char stringAnswer[20];
-    fgets(stringAnswer, 19, stdin);
-    std::string action = CASCIIUtility::removeCRLF(stringAnswer);
+    std::string action;
+    if(!noQuery.first)
+    {
+        printf("Delete all atoms (del), Append (app) or Cancel (can)?: ");
+        char stringAnswer[20];
+        fgets(stringAnswer, 19, stdin);
+        action = CASCIIUtility::removeCRLF(stringAnswer);
+    }
+    else
+    {
+        printf("Delete all atoms (del), Append (app) or Cancel (can)?: %s\r\n", noQuery.second.data());
+        action = noQuery.second;
+    }
     if(action == "can")        return true;
     else if(action == "app")   { /*no action required*/ }
     else if(action == "del")   state_->purgeAtomsList();
@@ -665,7 +688,7 @@ bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
                 
                 coordIndex = state_->addAtom(X, Y, Z, ID.data());
                 
-                if(coordIndex < state_->atoms_.size())
+                if(coordIndex < (int)state_->atoms_.size())
                 {
                     state_->atoms_[coordIndex]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
                     state_->atoms_[coordIndex]->resname_ = resname;
@@ -884,7 +907,7 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
             {
                 coordIndex = state_->addAtom(X, Y, Z, ID.data());
                 
-                if(coordIndex < state_->atoms_.size())
+                if(coordIndex < (int)state_->atoms_.size())
                 {
                     state_->atoms_[coordIndex]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
                     state_->atoms_[coordIndex]->resname_ = sresname;
@@ -896,10 +919,10 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
                     
                     if(bondsAvailable)
                     {
-                        for(int l=0; l<bondsTo.size(); l++)
+                        for(int l=0; l<(int)bondsTo.size(); l++)
                         {
                             int atomToConnectTo = numPrevLoadAtoms + (int)bondsTo[l];
-                            if(atomToConnectTo < state_->atoms_.size())
+                            if(atomToConnectTo < (int)state_->atoms_.size())
                             {
                                 CAtom* pAtom = state_->atoms_[atomToConnectTo].get();
                                 state_->atoms_[coordIndex]->attachBondTo(pAtom);
@@ -948,7 +971,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
 
             int pipeSymbIndex = CASCIIUtility::findString("> ", argument);
             
-            for(int i=0; i<cmdList.size(); i++)
+            for(int i=0; i<(int)cmdList.size(); i++)
             {
                 if(cmdList[i] && cmdList[i]->checkCmd(command.data()))
                 {
@@ -1047,7 +1070,7 @@ bool CCmdLoad::readMassChargeFile(std::string massChargeFileName)
             text = CASCIIUtility::getWord(line, 3);
             m = (double)atof(text.data());
             
-            for(int i=0; i<state_->atoms_.size(); i++)
+            for(int i=0; i<(int)state_->atoms_.size(); i++)
             {
                 std::string ID = state_->atoms_[i]->getID();
                 if(ID == IDCmp)
@@ -1071,7 +1094,7 @@ bool CCmdLoad::readMassChargeFile(std::string massChargeFileName)
             text = CASCIIUtility::getWord(line, 3);
             m = (double)atof(text.data());
             
-            if(atomIndex < state_->atoms_.size())
+            if(atomIndex < (int)state_->atoms_.size())
             {
                 state_->atoms_[atomIndex]->Q_ = Q;
                 state_->atoms_[atomIndex]->m_ = m;
@@ -1152,7 +1175,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
     // and make a corresponding list of all atoms in the correct order (i.e.
     // in the order of the species listed in the ATOMIC_SPECIES section)
     atomsList.clear();
-    for(int i=0; i<speciesList.size(); i++)
+    for(int i=0; i<(int)speciesList.size(); i++)
     {
         fseek(fileHandleInput, 0, SEEK_SET);
         do
@@ -1215,7 +1238,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
                 {
                     if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, i, X, Y, Z);
                 }
-                if(i < state_->atoms_.size())
+                if(i < (int)state_->atoms_.size())
                     state_->atoms_[i]->sigma_ = state_->defaultAtProp_.getWDWRadius(atomsList[i].data());
             }
             

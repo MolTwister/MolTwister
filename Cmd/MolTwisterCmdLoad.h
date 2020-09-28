@@ -28,7 +28,7 @@ private:
 
     bool readXYZFile(std::string xyzFileName, bool& genBonds);
     bool readDCDFile(std::string dcdFileName, bool& genBonds, int stride);
-    bool readPDBFile(std::string pdbFileName, bool& genBonds);
+    bool readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery);
     bool readMTTFile(std::string mttFileName);
     bool readScriptFile(std::string scriptFileName);
     bool readPythonFile(std::string scriptFileName);
