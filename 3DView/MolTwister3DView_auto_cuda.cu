@@ -784,7 +784,7 @@ void C3DView::drawIsoSurfaces(ESelModes mode)
     
     // Add additional PBC space to take into account a finite
     // van der Waals R of the atoms located at the boundary
-    // (assume maximum R of 3Å)
+    // (assume maximum R of 3AA)
     pbc.rLow_.x_-= 3.0; pbc.rHigh_.x_+= 3.0;
     pbc.rLow_.y_-= 3.0; pbc.rHigh_.y_+= 3.0;
     pbc.rLow_.z_-= 3.0; pbc.rHigh_.z_+= 3.0;

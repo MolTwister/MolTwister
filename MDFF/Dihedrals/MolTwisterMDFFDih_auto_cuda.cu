@@ -258,20 +258,20 @@ std::vector<std::pair<float, float>> CMDFFDih::calc1DForceProfile(float phiStart
 
     if(points <= 0) return profile;
 
-    C3DVector r1(0.0f, 1.0f, 0.0f);
-    C3DVector r2(0.0f, 0.0f, 0.0f);
-    C3DVector r3(0.0f, 0.0f, 1.0f);
-    C3DVector r4(0.0f, 1.0f, 1.0f);
+    C3DVector r1(0.0, 1.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 1.0);
+    C3DVector r4(0.0, 1.0, 1.0);
     C3DVector f1, f2, f3, f4;
     float phiDelta = (phiEnd - phiStart) / float(points-1);
     for(int i=0; i<points; i++)
     {
         float phi = phiStart + float(i)*phiDelta;
-        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0f);
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0);
         calcForces(r1, r2, r3, r4, f1, f2, f3, f4);
         C3DVector c = calcDihedralForceCoeffs14(r1, r2, r3, r4);
 
-        profile.emplace_back(std::pair<float, float>(phi, (c.x_ != 0.0f) ? f4.x_ / c.x_ : 0.0f));
+        profile.emplace_back(std::pair<float, float>(phi, (c.x_ != 0.0) ? f4.x_ / c.x_ : 0.0));
     }
 
     return profile;
@@ -281,16 +281,16 @@ std::vector<std::pair<float, float>> CMDFFDih::calc1DPotentialProfile(float phiS
 {
     std::vector<std::pair<float, float>> profile;
 
-    C3DVector r1(0.0f, 1.0f, 0.0f);
-    C3DVector r2(0.0f, 0.0f, 0.0f);
-    C3DVector r3(0.0f, 0.0f, 1.0f);
-    C3DVector r4(0.0f, 1.0f, 1.0f);
+    C3DVector r1(0.0, 1.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 1.0);
+    C3DVector r4(0.0, 1.0, 1.0);
     C3DVector f1, f2, f3, f4;
     float phiDelta = (phiEnd - phiStart) / float(points-1);
     for(int i=0; i<points; i++)
     {
         float phi = phiStart + float(i)*phiDelta;
-        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0f);
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0);
         float E = (float)calcPotential(r1, r2, r3, r4);
 
         profile.emplace_back(std::pair<float, float>(phi, E));

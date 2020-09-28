@@ -4,28 +4,28 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
-FILE* COut::m_pOutFile = NULL;
+FILE* COut::outFile_ = nullptr;
 
-void COut::Printf(const char* format, ...)
+void COut::printf(const char* format, ...)
 {
     va_list     args;
     
     va_start(args, format);
     vprintf(format, args);
     va_end(args);
-    if(m_pOutFile)
+    if(outFile_)
     {
         va_start(args, format);
-        vfprintf(m_pOutFile, format, args);
+        vfprintf(outFile_, format, args);
         va_end(args);
     }
-    fflush(m_pOutFile);
+    fflush(outFile_);
 }
 
-void COut::SetOutputFile(FILE* pOutFile)
+void COut::setOutputFile(FILE* outFile)
 {
-    if(!pOutFile) printf("Warning! Could not open output file!\r\n");
-    m_pOutFile = pOutFile;
+    if(!outFile) printf("Warning! Could not open output file!\r\n");
+    outFile_ = outFile;
 }
 
 END_CUDA_COMPATIBLE()

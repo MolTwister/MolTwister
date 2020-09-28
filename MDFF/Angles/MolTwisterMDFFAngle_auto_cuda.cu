@@ -196,19 +196,19 @@ std::vector<std::pair<float, float>> CMDFFAngle::calc1DForceProfile(float thetaS
 
     if(points <= 0) return profile;
 
-    C3DVector r1(-1.0f, 0.0f, 0.0f);
-    C3DVector r2(0.0f, 0.0f, 0.0f);
-    C3DVector r3(0.0f, 0.0f, 0.0f);
+    C3DVector r1(-1.0, 0.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 0.0);
     C3DVector f1, f2, f3;
     float thetaDelta = (thetaEnd - thetaStart) / float(points-1);
     for(int i=0; i<points; i++)
     {
         float theta = thetaStart + float(i)*thetaDelta;
-        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0f);
+        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0);
         calcForces(r1, r2, r3, f1, f2, f3);
         C3DVector c = calcAngularForceCoeffs13(r1, r2, r3);
 
-        profile.emplace_back(std::pair<float, float>(theta, (c.x_ != 0.0f) ? f3.x_ / c.x_ : 0.0f));
+        profile.emplace_back(std::pair<float, float>(theta, (c.x_ != 0.0) ? f3.x_ / c.x_ : 0.0));
     }
 
     return profile;
@@ -220,14 +220,14 @@ std::vector<std::pair<float, float>> CMDFFAngle::calc1DPotentialProfile(float th
 
     if(points <= 0) return profile;
 
-    C3DVector r1(-1.0f, 0.0f, 0.0f);
-    C3DVector r2(0.0f, 0.0f, 0.0f);
-    C3DVector r3(0.0f, 0.0f, 0.0f);
+    C3DVector r1(-1.0, 0.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 0.0);
     float thetaDelta = (thetaEnd - thetaStart) / float(points-1);
     for(int i=0; i<points; i++)
     {
         float theta = thetaStart + float(i)*thetaDelta;
-        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0f);
+        r3 = C3DVector(-cos((double)theta), sin((double)theta), 0.0);
         float E = (float)calcPotential(r1, r2, r3);
 
         profile.emplace_back(std::pair<float, float>(theta, E));

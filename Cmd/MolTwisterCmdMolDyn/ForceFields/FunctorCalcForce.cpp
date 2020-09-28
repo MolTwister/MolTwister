@@ -72,6 +72,70 @@ void CFunctorCalcForce::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     maxNeighbours_ = ffMatrices.neighList_.getMaxNeighbors();
 }
 
+HOSTDEV_CALLABLE void CFunctorCalcForce::scaleForcesAndPotentials(C3DVector& f, float& u, const int& atomIndex, const int& molOf_k,
+                                                                  const int& numEntriesBonds, const int& firstIndexBonds,
+                                                                  const int& numEntriesAngles, const int& firstIndexAngles,
+                                                                  const int& numEntriesDihedrals, const int& firstIndexDihedrals)
+{
+    // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
+    bool hasBondFactor = false;
+    bool hasAngleFactor = false;
+    bool hasDihedralFactor = false;
+
+    for(int j=0; j<numEntriesBonds; j++)
+    {
+        CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
+        if(atomIndex == (int)bond.atomIndex2_)
+        {
+            f*= double(scale12_);
+            u*= scale12_;
+            hasBondFactor = true;
+            break;
+        }
+    }
+
+    if(!hasBondFactor)
+    {
+        for(int j=0; j<numEntriesAngles; j++)
+        {
+            CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndexAngles + j];
+            if(!angle.assocAtomIsAtCenterOfAngle_ && (atomIndex == (int)angle.atomIndex3_))
+            {
+                f*= double(scale13_);
+                u*= scale13_;
+                hasAngleFactor = true;
+                break;
+            }
+        }
+    }
+
+    if(!hasBondFactor && !hasAngleFactor)
+    {
+        for(int j=0; j<numEntriesDihedrals; j++)
+        {
+            CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndexDihedrals + j];
+            if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (atomIndex == (int)dihedral.atomIndex4_))
+            {
+                f*= double(scale14_);
+                u*= scale14_;
+                hasDihedralFactor = true;
+                break;
+            }
+        }
+    }
+
+    // If we do not find any 1-2, 1-3 or 1-4 links, then check if i and k belong to the same molecule. If so, scale to zero.
+    if(!hasBondFactor && !hasAngleFactor && !hasDihedralFactor)
+    {
+        int molOf_i = devAtomList_[atomIndex].molIndex_;
+        if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k))
+        {
+            f*= double(scale1N_);
+            u*= scale1N_;
+        }
+    }
+}
+
 HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
 {
     // Let F be the force from all image contributions and let Fpi be the force from the primary image.
@@ -146,9 +210,8 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         F+= f;
     }
 
-    // Add non-bonded forces to particle
+    // Add short-range forces to particle
     int numNeighbors = devNeighListCount_[k];
-    bool hasBondFactor, hasAngleFactor, hasDihedralFactor;
     for(int neighIndex=0; neighIndex<numNeighbors; neighIndex++)
     {
         float u = 0.0f;
@@ -162,66 +225,30 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         // Calculate the short-range forces between atom index k and its neareast neighbours, i
         f = calcForceNonBondedOn_r_k(r_k, r_i, k, i, u);
 
+        // Perform appropriate scaling of 1-2, 1-3 or 1-4 interactions
+        scaleForcesAndPotentials(f, u, i, molOf_k, numEntriesBonds, firstIndexBonds, numEntriesAngles, firstIndexAngles, numEntriesDihedrals, firstIndexDihedrals);
+
+        // Add the short-range and long-range forces between k and i
+        Fpi+= f;
+        F+= f;
+        U+= u;
+    }
+
+    // Add long-range forces to particle
+    for(int i=0; i<Natoms_; i++)
+    {
+        float u = 0.0f;
+
+        // Obtain the central particle pos., r_k, the neigh. particle pos., r_i, which are both located
+        // on the same side of the PBC, where r_k dictates the PBC side to use.
+        C3DVector r_i = devAtomList_[i].r_;
+        r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
+
         // Calculate the long-range forces between atom index k and its nearest neightbours, i
-        f+= calcForceCoulombOn_r_k(r_k, r_i, k, i, u);
+        f = calcForceCoulombOn_r_k(r_k, r_i, k, i, u);
 
-        // If the k-i interaction is a 1-2, 1-3 or 1-4 interaction (i.e., one of the intermolecular interactions), then perform an appropriate scaling
-        hasBondFactor = false;
-        hasAngleFactor = false;
-        hasDihedralFactor = false;
-
-        for(int j=0; j<numEntriesBonds; j++)
-        {
-            CMDFFMatrices::CBond bond = devBondsForAtomLists_[firstIndexBonds + j];
-            if(i == bond.atomIndex2_)
-            {
-                f*= double(scale12_);
-                u*= scale12_;
-                hasBondFactor = true;
-                break;
-            }
-        }
-
-        if(!hasBondFactor)
-        {
-            for(int j=0; j<numEntriesAngles; j++)
-            {
-                CMDFFMatrices::CAngle angle = devAnglesForAtomLists_[firstIndexAngles + j];
-                if(!angle.assocAtomIsAtCenterOfAngle_ && (i == angle.atomIndex3_))
-                {
-                    f*= double(scale13_);
-                    u*= scale13_;
-                    hasAngleFactor = true;
-                    break;
-                }
-            }
-        }
-
-        if(!hasBondFactor && !hasAngleFactor)
-        {
-            for(int j=0; j<numEntriesDihedrals; j++)
-            {
-                CMDFFMatrices::CDihedral dihedral = devDihedralsForAtomLists_[firstIndexDihedrals + j];
-                if(!dihedral.assocAtomIsAtCenterOfDihedral_ && (i == dihedral.atomIndex4_))
-                {
-                    f*= double(scale14_);
-                    u*= scale14_;
-                    hasDihedralFactor = true;
-                    break;
-                }
-            }
-        }
-
-        // If we do not find any 1-2, 1-3 or 1-4 links, then check if i and k belong to the same molecule. If so, scale to zero.
-        if(!hasBondFactor && !hasAngleFactor && !hasDihedralFactor)
-        {
-            int molOf_i = devAtomList_[i].molIndex_;
-            if((molOf_i >= 0) && (molOf_k >= 0) && (molOf_i == molOf_k))
-            {
-                f*= double(scale1N_);
-                u*= scale1N_;
-            }
-        }
+        // Perform appropriate scaling of 1-2, 1-3 or 1-4 interactions
+        scaleForcesAndPotentials(f, u, i, molOf_k, numEntriesBonds, firstIndexBonds, numEntriesAngles, firstIndexAngles, numEntriesDihedrals, firstIndexDihedrals);
 
         // Add the short-range and long-range forces between k and i
         Fpi+= f;
@@ -471,18 +498,16 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVe
     float R = (float)r.norm();
     double R3 = double(R*R*R);
 
-    const float V = 15.0;
-    float damping = exp(-V * R / cutR_);
     double K = double( Coulomb_K * q_k * q_i );
     if((i > k) && (R != 0.0f))
     {
         // We only add the potential for interactions i>k, thus not overcounting
-        U+= float(K) * damping / R;
+        U+= float(K) / R;
     }
 
     if(R3 != 0.0)
     {
-        return  ( r * (K * (double)damping / R3) );
+        return  ( r * (K / R3) );
     }
 
     return C3DVector();

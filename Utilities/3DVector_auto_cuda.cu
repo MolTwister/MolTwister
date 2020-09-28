@@ -126,21 +126,21 @@ HOSTDEV_CALLABLE void C3DVector::moveToSameSideOfPBCAsThis(C3DVector& v, const C
     if(dX > (w / 2.0))
     {
         if(x_ > v.x_) v.x_+= w;
-        else        v.x_-= w;
+        else          v.x_-= w;
     }
     
     w = pbc.getWidthY();
     if(dY > (w / 2.0))
     {
         if(y_ > v.y_) v.y_+= w;
-        else        v.y_-= w;
+        else          v.y_-= w;
     }
     
     w = pbc.getWidthZ();
     if(dZ > (w / 2.0))
     {
         if(z_ > v.z_) v.z_+= w;
-        else        v.z_-= w;
+        else          v.z_-= w;
     }
 }
 

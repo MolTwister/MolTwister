@@ -50,8 +50,8 @@ void CDefaultAtomicProperties::initAtomicPropertiesArray()
 {
     // Initialize CPK colors, van der Waals radius (always place two character ID's berfore single 
     // character ID's). Most radii have been taken from [Dalton Trans., 2013, 42, 8617]. Radii that were
-    // not found have been set to 1.0Å. Covalent radii are taken from [Chem. Eur. J. 2009, 15, 186].
-    // Radii not found there are set to 0.5Å.
+    // not found have been set to 1.0AA. Covalent radii are taken from [Chem. Eur. J. 2009, 15, 186].
+    // Radii not found there are set to 0.5AA.
     atomicProperties_.emplace_back(CAtomicProperty("Uut", C3DVector(0.5, 0.0, 0.5), 1.00, 1.36)); // vdW def. 1.0
     atomicProperties_.emplace_back(CAtomicProperty("Uup", C3DVector(0.5, 0.0, 0.5), 1.00, 1.62)); // vdW def. 1.0
     atomicProperties_.emplace_back(CAtomicProperty("Uus", C3DVector(0.5, 0.0, 0.5), 1.00, 1.65)); // vdW def. 1.0

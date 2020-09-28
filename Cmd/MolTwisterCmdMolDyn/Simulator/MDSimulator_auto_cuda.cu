@@ -14,12 +14,14 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& st
 
 void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
-    CMDLoop         MDLoop(config.outXYZFile_);
-    CSimulationBox  SimBox((CMolTwisterState*)state, stdOut, config);
+    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_);
+    mdLoop.setPDistrOutput(config.includePDistrFile_, config.maxPDistrOutput_, config.outPDistrFile_);
+    mdLoop.setVDistrOutput(config.includeVDistrFile_, config.maxVDistrOutput_, config.outVDistrFile_);
+    CSimulationBox simBox((CMolTwisterState*)state, stdOut, config);
 
-    COut::SetOutputFile(fopen(config.outInfoFile_.data(), "w"));
-    MDLoop.RunSimulation(SimBox, config.numberOfTimeSteps_, config.outputStride_);
-    COut::CloseOutputFile();
+    COut::setOutputFile(fopen(config.outInfoFile_.data(), "w"));
+    mdLoop.runSimulation(simBox, config.numberOfTimeSteps_, config.outputStride_);
+    COut::closeOutputFile();
 }
 
 END_CUDA_COMPATIBLE()

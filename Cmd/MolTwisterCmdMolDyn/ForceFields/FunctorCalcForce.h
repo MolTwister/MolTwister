@@ -14,6 +14,11 @@ public:
     HOSTDEV_CALLABLE CMDFFMatrices::CForces operator()(CMDFFMatrices::CAtom& atom);
 
 private:
+    HOSTDEV_CALLABLE void scaleForcesAndPotentials(C3DVector& f, float& u, const int& atomIndex, const int& molOf_k,
+                                                   const int& numEntriesBonds, const int& firstIndexBonds,
+                                                   const int& numEntriesAngles, const int& firstIndexAngles,
+                                                   const int& numEntriesDihedrals, const int& firstIndexDihedrals);
+
     HOSTDEV_CALLABLE C3DVector calcNonBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
     HOSTDEV_CALLABLE C3DVector calcBondForceCoeffs12(const C3DVector& r1, const C3DVector& r2) const;
     HOSTDEV_CALLABLE C3DVector calcAngularForceCoeffs13(const C3DVector& r1, const C3DVector& r2, const C3DVector& r3) const;

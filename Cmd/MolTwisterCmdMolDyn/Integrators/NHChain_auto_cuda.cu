@@ -5,21 +5,24 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include "../MDLoop/Printf.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
 CNHChain::CNHChain()
 {
-    n_sy = 3;
-    n = 4;
-    M = 8;
-    T = 298.0 / Conv_T;  // [K]
-    tau = 20.0 / Conv_t;
+    verboseOutput_ = false;
 
-    GetSuzukiYoshida(w);
+    n_sy_ = 3;
+    n_ = 4;
+    M_ = 8;
+    T_ = 298.0 / Conv_T;  // [K]
+    tau_ = 20.0 / Conv_t;
+
+    getSuzukiYoshida(w_);
 }
 
-void CNHChain::GetSuzukiYoshida(double* w)
+void CNHChain::getSuzukiYoshida(double* w)
 {
     const double w0 = 1.0 / (1.0 - pow(2.0, 1.0/3.0));
     
@@ -28,94 +31,94 @@ void CNHChain::GetSuzukiYoshida(double* w)
     w[2] = w0;
 }
 
-void CNHChain::Propagator(int N, int dim, double dt, CFct& f)
+void CNHChain::propagator(int, int, double dt, CFct& f)
 {
-    double  beta = 1.0 / T;
+    double  beta = 1.0 / T_;
     double  coeff;
     double  pEtaCutoff = 15.0;
     
     
-    if((M > 0) && (p_eta[0] > pEtaCutoff))
+    if((M_ > 0) && (p_eta_[0] > pEtaCutoff))
     {
-        printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g)...\r\n", p_eta[0], pEtaCutoff);
-        p_eta[0] = 10.0;
+        if(verboseOutput_) COut::printf("Warning! cutoff applied to NH chain (p_eta[0]=%g -> %g)...\r\n", p_eta_[0], pEtaCutoff);
+        p_eta_[0] = 10.0;
     }
     
-    for(int mu=0; mu<n_sy; mu++)
+    for(int mu=0; mu<n_sy_; mu++)
     {
-        double Dt = w[mu] * dt / double(n);
-        for(int i=0; i<n; i++)
+        double Dt = w_[mu] * dt / double(n_);
+        for(int i=0; i<n_; i++)
         {
             // Step 1.1
-            p_eta[M-1]+= (Dt / 4.0) * f.G(M-1, p_eta, Q, beta);
+            p_eta_[M_-1]+= (Dt / 4.0) * f.G(M_-1, p_eta_, Q_, beta);
             
             // Step 1.2
-            for(int j=0; j<(M-1); j++)
+            for(int j=0; j<(M_-1); j++)
             {
-                coeff = CMt::Exp(-(Dt / 8.0) * (p_eta[j+1] / Q[j+1]));
-                p_eta[j]*= coeff;
+                coeff = CMt::exp(-(Dt / 8.0) * (p_eta_[j+1] / Q_[j+1]));
+                p_eta_[j]*= coeff;
                 
-                p_eta[j]+= (Dt / 4.0) * f.G(j, p_eta, Q, beta);
+                p_eta_[j]+= (Dt / 4.0) * f.G(j, p_eta_, Q_, beta);
                 
-                coeff = CMt::Exp(-(Dt / 8.0) * (p_eta[j+1] / Q[j+1]));
-                p_eta[j]*= coeff;
+                coeff = CMt::exp(-(Dt / 8.0) * (p_eta_[j+1] / Q_[j+1]));
+                p_eta_[j]*= coeff;
             }
             
             // Step 1.3
-            for(int j=0; j<M; j++)
+            for(int j=0; j<M_; j++)
             {
-                eta[j]+= (Dt / 2.0) * (p_eta[j] / Q[j]);
+                eta_[j]+= (Dt / 2.0) * (p_eta_[j] / Q_[j]);
             }
             
             // Step 1.4
-            coeff = CMt::Exp(-((Dt / 2.0) * (p_eta[0] / Q[0])));
-            f.ScaleMomentum(coeff);
+            coeff = CMt::exp(-((Dt / 2.0) * (p_eta_[0] / Q_[0])));
+            f.scaleMomentum(coeff);
             
             // Step 1.5
-            for(int j=(M-2); j>=0; j--)
+            for(int j=(M_-2); j>=0; j--)
             {
-                coeff = CMt::Exp(-(Dt / 8.0) * (p_eta[j+1] / Q[j+1]));
-                p_eta[j]*= coeff;
+                coeff = CMt::exp(-(Dt / 8.0) * (p_eta_[j+1] / Q_[j+1]));
+                p_eta_[j]*= coeff;
                 
-                p_eta[j]+= (Dt / 4.0) * f.G(j, p_eta, Q, beta);
+                p_eta_[j]+= (Dt / 4.0) * f.G(j, p_eta_, Q_, beta);
                 
-                coeff = CMt::Exp(-(Dt / 8.0) * (p_eta[j+1] / Q[j+1]));
-                p_eta[j]*= coeff;
+                coeff = CMt::exp(-(Dt / 8.0) * (p_eta_[j+1] / Q_[j+1]));
+                p_eta_[j]*= coeff;
             }
             
             // Step 1.6
-            p_eta[M-1]+= (Dt / 4.0) * f.G(M-1, p_eta, Q, beta);
+            p_eta_[M_-1]+= (Dt / 4.0) * f.G(M_-1, p_eta_, Q_, beta);
         }
     }
 }
 
-void CNHChain::PrepareArrays(int N, int dim)
+void CNHChain::prepareArrays(int N, int dim)
 {
-    eta.resize(M, 0.0);
-    p_eta.resize(M, 0.0);
+    eta_.resize(M_, 0.0);
+    p_eta_.resize(M_, 0.0);
     
-    Q.clear();
-    Q.push_back(double(dim*N)*T*tau*tau);
-    for(int j=1; j<M; j++)
-        Q.push_back(T*tau*tau);
+    Q_.clear();
+    Q_.push_back(double(dim*N)*T_*tau_*tau_);
+    for(int j=1; j<M_; j++)
+        Q_.push_back(T_*tau_*tau_);
 }
 
-void CNHChain::SetRandNHPos()
+void CNHChain::setRandNHPos()
 {
-    for(int j=0; j<M; j++)
+    for(int j=0; j<M_; j++)
     {
-        eta[j] = double(rand()) / double(RAND_MAX);
+        eta_[j] = double(rand()) / double(RAND_MAX);
     }
 }
 
-void CNHChain::SetRandNHMom()
+void CNHChain::setRandNHMom()
 {
     double          a = 2.0 / double(RAND_MAX);
     
-    for(int j=0; j<M; j++)
+    for(int j=0; j<M_; j++)
     {
-        p_eta[j] = (a*double(rand()) - 1.0) * (Q[j] / tau);
-        if(p_eta[j] == 0.0) p_eta[j] = (Q[j] / tau);
+        p_eta_[j] = (a*double(rand()) - 1.0) * (Q_[j] / tau_);
+        if(p_eta_[j] == 0.0) p_eta_[j] = (Q_[j] / tau_);
     }
 }
 

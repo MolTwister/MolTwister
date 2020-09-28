@@ -1331,7 +1331,7 @@ double CMolTwisterStateTools::measureTotCoulombEnergy(const double* a1to4BondSep
     const double K = 8.98755E9; // 1/(4 PI eps_0) [C^{-2}*N*m^2]
     const double e = 1.602176565E-19; // [C]
     const double NA = 6.02214129E23; // [mol^{-1}]
-    const double Ke2 = K * e * e * 1.0E10 / 1000.0 * NA; // [kJÅ/mol]
+    const double Ke2 = K * e * e * 1.0E10 / 1000.0 * NA; // [kJAA/mol]
 
     if(frame == -1) frame = state_->getCurrFrameIndex();
 
@@ -1395,7 +1395,7 @@ double CMolTwisterStateTools::measureCoulombPotential(C3DVector at, const std::v
     C3DVector R12;
     const double K = 8.98755E9; // 1/(4 PI eps_0) [C^{-2}*N*m^2]
     const double e = 1.602176565E-19; // [C]
-    const double Ke = K * e * 1.0E10 / 1000.0; // [kJÅ/C]
+    const double Ke = K * e * 1.0E10 / 1000.0; // [kJAA/C]
 
     for(int i=0; i<(int)atoms->size(); i++)
     {
