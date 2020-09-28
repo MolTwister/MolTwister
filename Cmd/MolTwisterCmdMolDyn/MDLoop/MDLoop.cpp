@@ -99,12 +99,16 @@ void CMDLoop::runSimulation(CSimulationBox& simBox, int NStep, int outputEvery)
     
     for(int t=0; t<NStep; t++)
     {
+        startTimer();
+
         simBox.NHPPropagator(fctP);
         simBox.NHTPropagator(fctT);
         simBox.velVerPropagator(F, boxSizeOut);
         simBox.NHTPropagator(fctT);
         simBox.NHPPropagator(fctP);
         simBox.pbcWrap();
+
+        endTimer();
 
         updateOutput(t, equilibSteps, outputEvery, simBox, F, momentumDistr, volumeDistr, boxSizeOut);
     }
@@ -149,7 +153,7 @@ void CMDLoop::printHeading(CSimulationBox& simBox)
     COut::printf("\t Init. box length, Lx = %g, Ly = %g, Lz = %g AA\r\n", simBox.getLmaxX(), simBox.getLmaxY(), simBox.getLmaxZ());
     COut::printf("\t Dimension, d = %i\r\n", simBox.dim_);
     COut::printf("\t----------------------------\r\n\r\n");
-    COut::printf("\t%-15s%-15s%-15s%-20s%-15s%-15s%-15s\r\n", "Timestep", "Temp[K]", "Press[atm]", "Vol[AA^3]", "U[kJ/mol]", "K[kJ/mol]", "Etot[kJ/mol]");
+    COut::printf("\t%-15s%-17s%-15s%-15s%-20s%-15s%-15s%-15s\r\n", "Timestep", "Avg.steptime[s]", "Temp[K]", "Press[atm]", "Vol[AA^3]", "U[kJ/mol]", "K[kJ/mol]", "Etot[kJ/mol]");
 }
 
 void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox)
@@ -338,7 +342,7 @@ void CMDLoop::updateOutput(int t, int equilibSteps, int outputEvery, CSimulation
         if(includeDCDFile_) appendToDCDFile(simBox.particles_, simBox, boxSize);
 
         double T = simBox.calcTemp() * Conv_T;
-        COut::printf("\t%-15i%-15g%-15g%-20g%-15g%-15g%-15g\r\n", t, T,
+        COut::printf("\t%-15i%-17.8f%-15g%-15g%-20g%-15g%-15g%-15g\r\n", readTimerAverage(), t, T,
                simBox.calcPress(F) * Conv_press, simBox.calcV(), Utot, Ktot, Etot);
     }
 }
@@ -368,6 +372,30 @@ void CMDLoop::finalizeOutput(CSimulationBox& simBox, std::vector<int>* momentumD
 double CMDLoop::calcMaxPetaDistrOutput(CSimulationBox& simBox)
 {
     return 2.0*simBox.NH_T_.Q_[0]/simBox.NH_T_.tau_;
+}
+
+void CMDLoop::startTimer()
+{
+    lastStartingTimeStep_ = std::chrono::steady_clock::now();
+}
+
+void CMDLoop::endTimer()
+{
+    timeStepTimePeriods_.emplace_back(std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - lastStartingTimeStep_));
+}
+
+double CMDLoop::readTimerAverage()
+{
+    size_t size = timeStepTimePeriods_.size();
+    double sumFractionalCount = 0.0;
+    for(size_t i=0; i<size; i++)
+    {
+        sumFractionalCount+= timeStepTimePeriods_[i].count();
+    }
+
+    timeStepTimePeriods_.clear();
+
+    return (size != 0.0) ? sumFractionalCount / double(size) : -1.0;
 }
 
 END_CUDA_COMPATIBLE()

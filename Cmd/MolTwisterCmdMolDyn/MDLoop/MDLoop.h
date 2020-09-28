@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <ctime>
+#include <chrono>
 #include "../SimulationBox/SimulationBox.h"
 #include "../Integrators/VelVerlet.h"
 #include "../../../Utilities/CUDAGeneralizations.h"
@@ -59,6 +61,9 @@ private:
     void updateOutput(int t, int equilibSteps, int outputEvery, CSimulationBox& simBox, const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, const C3DVector& boxSize);
     void finalizeOutput(CSimulationBox& simBox, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr);
     double calcMaxPetaDistrOutput(CSimulationBox& simBox);
+    void startTimer();
+    void endTimer();
+    double readTimerAverage();
 
 private:
     double maxPDistrOutput_;
@@ -71,6 +76,8 @@ private:
     std::string fileNameDCD_;
     std::string fileNamePDistr_;
     std::string fileNameVDistr_;
+    std::chrono::steady_clock::time_point lastStartingTimeStep_;
+    std::vector<std::chrono::duration<double>> timeStepTimePeriods_;
 };
 
 END_CUDA_COMPATIBLE()
