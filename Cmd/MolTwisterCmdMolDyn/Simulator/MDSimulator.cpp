@@ -14,6 +14,8 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& st
 
 void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
+    COut::setStdOut(stdOut);
+
     CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_);
     mdLoop.setPDistrOutput(config.includePDistrFile_, config.maxPDistrOutput_, config.outPDistrFile_);
     mdLoop.setVDistrOutput(config.includeVDistrFile_, config.maxVDistrOutput_, config.outVDistrFile_);
