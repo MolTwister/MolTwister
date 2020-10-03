@@ -6,7 +6,7 @@ BEGIN_CUDA_COMPATIBLE()
 HOSTDEV_CALLABLE CFunctorGenNeighList::CFunctorGenNeighList()
 {
     devCellList_ = nullptr;
-    devCellListCount_ = nullptr;
+    devCellListEntryPointers_ = nullptr;
     devAtomCellIndicesRaw_ = nullptr;
     devNeighList_ = nullptr;
     devNeighListCount_ = nullptr;
@@ -16,14 +16,13 @@ HOSTDEV_CALLABLE CFunctorGenNeighList::CFunctorGenNeighList()
     cellCountY_ = 0;
     cellCountZ_ = 0;
     maxNeighbors_ = 0;
-    maxAtomsInCell_ = 0;
     rCutoff2_ = 0.0f;
 }
 
 void CFunctorGenNeighList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
 {
     devCellList_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellList_[0]);
-    devCellListCount_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellListCount_[0]);
+    devCellListEntryPointers_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellListEntryPointers_[0]);
     devAtomCellIndicesRaw_ = mtraw_pointer_cast(&ffMatrices.cellList_.devAtomCellIndices_[0]);
 
     devNeighList_ = mtraw_pointer_cast(&ffMatrices.neighList_.devNeighList_[0]);
@@ -37,7 +36,6 @@ void CFunctorGenNeighList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     cellCountZ_ = ffMatrices.cellList_.getCellCountZ();
 
     maxNeighbors_ = ffMatrices.neighList_.getMaxNeighbors();
-    maxAtomsInCell_ = ffMatrices.cellList_.getMaxAtomsInCell();
 
     rCutoff2_ = ffMatrices.getRCutoff();
     rCutoff2_*= rCutoff2_;
@@ -56,8 +54,7 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
     if(atom.index_ >= numAtoms_) return -1;
     CMDFFMatrices::CCellListIndex cellIndex = devAtomCellIndicesRaw_[atom.index_];
 
-    int maxCellListCountSize = cellCountX_ * cellCountY_ * cellCountZ_;
-    int maxCellListSize = maxCellListCountSize * maxAtomsInCell_;
+    int maxCellListSize = cellCountX_ * cellCountY_ * cellCountZ_;
 
     int ixl = cellIndex.ix_ - 1;
     int ixh = ixl + 2;
@@ -81,13 +78,14 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
             {
                 Iz = size_t((iz >= 0) ? ((iz < cellCountZ_) ? iz : 0) : cellCountZ_ - 1);
                 size_t cellIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, (size_t)cellCountX_, (size_t)cellCountY_);
-                if((int)cellIndex < maxCellListCountSize)
+                if((int)cellIndex < maxCellListSize)
                 {
-                    int numAtomsInCell = devCellListCount_[cellIndex];
+                    int numAtomsInCell = devCellListEntryPointers_[cellIndex].numEntries_;
+                    int firstIndexInCell = devCellListEntryPointers_[cellIndex].indexFirstEntry_;
                     for(size_t i=0; i<(size_t)numAtomsInCell; i++)
                     {
-                        size_t cellListEntryIndex = CFunctorGenCellList::cellIndexToFlatIndex(Ix, Iy, Iz, i, maxAtomsInCell_, (size_t)cellCountX_, (size_t)cellCountY_);
-                        if((int)cellListEntryIndex < maxCellListSize)
+                        size_t cellListEntryIndex = firstIndexInCell + i;
+                        if((int)cellListEntryIndex < numAtoms_)
                         {
                             int atomIndex = devCellList_[cellListEntryIndex];
                             if(atomIndex < numAtoms_)

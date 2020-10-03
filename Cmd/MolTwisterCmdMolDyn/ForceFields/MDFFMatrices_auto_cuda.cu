@@ -17,14 +17,12 @@ HOST_CALLABLE CMDFFMatrices::CCellList::CCellList()
     cellCountX_ = 0;
     cellCountY_ = 0;
     cellCountZ_ = 0;
-    maxAtomsInCell_ = 0;
 }
 
-void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell)
+void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell, int numAtoms)
 {
     float R = rCutoff + dShell;
     C3DRect pbc = state->view3D_->getPBC();
-    maxAtomsInCell_ = (int)ceil(double(R*R*R));
 
     pbcWidthX_ = (float)pbc.getWidthX();
     pbcWidthY_ = (float)pbc.getWidthY();
@@ -40,8 +38,8 @@ void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, floa
 
     int totNumCells = cellCountX_ * cellCountY_ * cellCountZ_;
 
-    devCellList_ = mtdevice_vector<int>(totNumCells * maxAtomsInCell_, -1);
-    devCellListCount_ = mtdevice_vector<int>(totNumCells, 0);
+    devCellList_ = mtdevice_vector<int>(numAtoms, -1);
+    devCellListEntryPointers_ = mtdevice_vector<CMDFFMatrices::CListPointer>(totNumCells);
     devAtomCellIndices_ = mtdevice_vector<CCellListIndex>(state->atoms_.size());
 }
 
@@ -58,9 +56,10 @@ void CMDFFMatrices::CCellList::updatePBC(float Lx, float Ly, float Lz)
 
 void CMDFFMatrices::CCellList::resetCellList()
 {
-    for(size_t i=0; i<devCellListCount_.size(); i++)
+    for(size_t i=0; i<devCellListEntryPointers_.size(); i++)
     {
-        devCellListCount_[i] = 0;
+        CMDFFMatrices::CListPointer listPointer(-1, 0);
+        devCellListEntryPointers_[i] = listPointer;
     }
 }
 
@@ -202,8 +201,8 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     }
 
     // Prepare cell list vectors and associated properties
-    cellList.init(state, rCutoff, dShell);
-    neighList.init(state, cellList.getMaxAtomsInCell());
+    cellList.init(state, rCutoff, dShell, numAtoms);
+    neighList.init(state, 500); // :TODO:
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();

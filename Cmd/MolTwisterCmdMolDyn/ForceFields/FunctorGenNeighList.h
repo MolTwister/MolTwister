@@ -16,7 +16,7 @@ public:
 
 private:
     int* devCellList_;
-    int* devCellListCount_;
+    CMDFFMatrices::CListPointer* devCellListEntryPointers_;
     CMDFFMatrices::CCellListIndex* devAtomCellIndicesRaw_;
     int* devNeighList_;
     int* devNeighListCount_;
@@ -26,7 +26,6 @@ private:
     int cellCountY_;
     int cellCountZ_;
     int maxNeighbors_;
-    int maxAtomsInCell_;
     float rCutoff2_;
     C3DRect pbc_;
 };

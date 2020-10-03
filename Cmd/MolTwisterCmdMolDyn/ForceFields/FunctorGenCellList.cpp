@@ -5,13 +5,13 @@ BEGIN_CUDA_COMPATIBLE()
 HOSTDEV_CALLABLE CFunctorGenCellList::CFunctorGenCellList()
 {
     devCellList_ = nullptr;
-    devCellListCount_ = nullptr;
+    devCellListEntryPointers_ = nullptr;
 }
 
 void CFunctorGenCellList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
 {
     devCellList_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellList_[0]);
-    devCellListCount_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellListCount_[0]);
+    devCellListEntryPointers_ = mtraw_pointer_cast(&ffMatrices.cellList_.devCellListEntryPointers_[0]);
 
     cellCountX_ = ffMatrices.cellList_. getCellCountX();
     cellCountY_ = ffMatrices.cellList_.getCellCountY();
@@ -24,8 +24,6 @@ void CFunctorGenCellList::setForceFieldMatrices(CMDFFMatrices& ffMatrices)
     pbcLowX_ = ffMatrices.cellList_.getPBCLowX();
     pbcLowY_ = ffMatrices.cellList_.getPBCLowY();
     pbcLowZ_ = ffMatrices.cellList_.getPBCLowZ();
-
-    maxAtomsInCell_ = ffMatrices.cellList_.getMaxAtomsInCell();
 }
 
 HOSTDEV_CALLABLE CMDFFMatrices::CCellListIndex CFunctorGenCellList::operator()(CMDFFMatrices::CAtom& atom)
@@ -54,15 +52,37 @@ HOSTDEV_CALLABLE CMDFFMatrices::CCellListIndex CFunctorGenCellList::operator()(C
     return CMDFFMatrices::CCellListIndex(ix, iy, iz);
 }
 
-CUDA_GLOBAL void kernelAssembleList(CMDFFMatrices::CCellListIndex* devAtomCellIndices, int numAtomCellIndices, int* devCellList, int* devCellListCount, int Nx, int Ny, int Nz, int maxAtomsInCell, int* err)
+CUDA_GLOBAL void kernelAssembleList(CMDFFMatrices::CCellListIndex* devAtomCellIndices, int numAtomCellIndices, int* devCellList, CMDFFMatrices::CListPointer* devCellListEntryPointers, int Nx, int Ny, int Nz, int* err)
 {
     long lIdx = mtblockDim.x*mtblockIdx.x + mtthreadIdx.x;
     if(lIdx > 0) return;
 
-    int maxCellListCountSize = Nx * Ny * Nz;
-    int maxCellListSize = maxCellListCountSize * maxAtomsInCell;
+    // Iterate through all atoms once to generate the list of entry pointers
+    for(int i=0; i<numAtomCellIndices; i++)
+    {
+        CMDFFMatrices::CCellListIndex index3D = devAtomCellIndices[i];
+        size_t ix = (size_t)index3D.ix_;
+        size_t iy = (size_t)index3D.iy_;
+        size_t iz = (size_t)index3D.iz_;
 
-    bool cellListOverflow = false;
+        size_t cellIndex = CFunctorGenCellList::cellIndexToFlatIndex(ix, iy, iz, Nx, Ny);
+        devCellListEntryPointers[cellIndex].numEntries_++;
+    }
+
+    // Now place the starting indices, based on the counts that were found and reset the counters
+    int totalCellCount = Nx * Ny * Nz;
+    int nextStartingIndex = 0;
+    for(int i=0; i<totalCellCount; i++)
+    {
+        if(devCellListEntryPointers[i].numEntries_ != 0)
+        {
+            devCellListEntryPointers[i].indexFirstEntry_ = nextStartingIndex;
+            nextStartingIndex+= devCellListEntryPointers[i].numEntries_;
+            devCellListEntryPointers[i].numEntries_ = 0;
+        }
+    }
+
+    // Use the pre-filled list of entry pointers and place all the cell list entries
     bool cellListEntryOverflow = false;
     bool cellListCountOverflow = false;
     for(int i=0; i<numAtomCellIndices; i++)
@@ -73,25 +93,21 @@ CUDA_GLOBAL void kernelAssembleList(CMDFFMatrices::CCellListIndex* devAtomCellIn
         size_t iz = (size_t)index3D.iz_;
 
         size_t cellIndex = CFunctorGenCellList::cellIndexToFlatIndex(ix, iy, iz, Nx, Ny);
-        if((int)cellIndex < maxCellListCountSize)
+        if((int)cellIndex < totalCellCount)
         {
-            int currentCount = devCellListCount[cellIndex];
-            if(currentCount < maxAtomsInCell)
+            CMDFFMatrices::CListPointer listPointer = devCellListEntryPointers[cellIndex];
+            if(listPointer.indexFirstEntry_ != -1)
             {
-                int cellListEntryIndex = (int)CFunctorGenCellList::cellIndexToFlatIndex((size_t)ix, (size_t)iy, (size_t)iz, (size_t)currentCount, maxAtomsInCell, (size_t)Nx, (size_t)Ny);
-                if(cellListEntryIndex < maxCellListSize)
+                int cellListEntryIndex = listPointer.indexFirstEntry_ + listPointer.numEntries_;
+                if(cellListEntryIndex < numAtomCellIndices)
                 {
                     devCellList[cellListEntryIndex] = i;
-                    devCellListCount[cellIndex]++;
+                    devCellListEntryPointers[cellIndex].numEntries_++;
                 }
                 else
                 {
                     cellListEntryOverflow = true;
                 }
-            }
-            else
-            {
-                cellListOverflow = true;
             }
         }
         else
@@ -100,9 +116,8 @@ CUDA_GLOBAL void kernelAssembleList(CMDFFMatrices::CCellListIndex* devAtomCellIn
         }
     }
 
-    if(cellListOverflow) *err = 1;
-    else if(cellListCountOverflow) *err = 2;
-    else if(cellListEntryOverflow) *err = 3;
+    if(cellListCountOverflow) *err = 1;
+    else if(cellListEntryOverflow) *err = 2;
     else *err = 0;
 }
 
@@ -111,7 +126,7 @@ HOST_CALLABLE void CFunctorGenCellList::assembleCellList(mtdevice_vector<CMDFFMa
     int* devErr;
     mtcudaMalloc((void**)&devErr, sizeof(int));
     CMDFFMatrices::CCellListIndex* devAtomCellIndicesRaw = mtraw_pointer_cast(&devAtomCellIndices[0]);
-    kernelAssembleList CUDA_PROC(1, 1)(devAtomCellIndicesRaw, (int)devAtomCellIndices.size(), devCellList_, devCellListCount_, cellCountX_, cellCountY_, cellCountZ_, maxAtomsInCell_, devErr);
+    kernelAssembleList CUDA_PROC(1, 1)(devAtomCellIndicesRaw, (int)devAtomCellIndices.size(), devCellList_, devCellListEntryPointers_, cellCountX_, cellCountY_, cellCountZ_, devErr);
     mtcudaDeviceSynchronize();
 
     int err;
@@ -120,21 +135,12 @@ HOST_CALLABLE void CFunctorGenCellList::assembleCellList(mtdevice_vector<CMDFFMa
 
     if(err == 1)
     {
-        printf("Warning: Cell list overflow occurred!\r\n");
+        printf("Warning: Cell list count overflow occurred!\r\n");
     }
     if(err == 2)
     {
-        printf("Warning: Cell list count overflow occurred!\r\n");
-    }
-    if(err == 3)
-    {
         printf("Warning: Cell list entry overflow occurred!\r\n");
     }
-}
-
-HOSTDEV_CALLABLE size_t CFunctorGenCellList::cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t i, int maxAtomsInCell, size_t Nx, size_t Ny)
-{
-    return size_t(i + maxAtomsInCell*(ix + Nx*(iy + iz*Ny)));
 }
 
 HOSTDEV_CALLABLE size_t CFunctorGenCellList::cellIndexToFlatIndex(size_t ix, size_t iy, size_t iz, size_t Nx, size_t Ny)

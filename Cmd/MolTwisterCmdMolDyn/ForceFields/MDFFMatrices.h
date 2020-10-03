@@ -11,6 +11,17 @@ BEGIN_CUDA_COMPATIBLE()
 class CMDFFMatrices
 {
 public:
+    class CListPointer
+    {
+    public:
+        HOSTDEV_CALLABLE CListPointer() { indexFirstEntry_ = -1; numEntries_ = 0; }
+        HOSTDEV_CALLABLE CListPointer(int indexFirstEntry, int numEntries) { indexFirstEntry_ = indexFirstEntry; numEntries_ = numEntries; }
+
+    public:
+        int numEntries_;
+        int indexFirstEntry_;
+    };
+
     class CAtom
     {
     public:
@@ -44,9 +55,9 @@ public:
         HOST_CALLABLE CCellList();
 
     public:
-        void init(CMolTwisterState* state, float rCutoff, float dShell);
-        void updatePBC(float Lx, float Ly, float Lz);
+        void init(CMolTwisterState* state, float rCutoff, float dShell, int numAtoms);
         void resetCellList();
+        void updatePBC(float Lx, float Ly, float Lz);
 
         HOSTDEV_CALLABLE float getPBCWidthX() const { return pbcWidthX_; }
         HOSTDEV_CALLABLE float getPBCWidthY() const { return pbcWidthY_; }
@@ -60,11 +71,9 @@ public:
         HOSTDEV_CALLABLE int getCellCountY() const { return cellCountY_; }
         HOSTDEV_CALLABLE int getCellCountZ() const { return cellCountZ_; }
 
-        HOSTDEV_CALLABLE int getMaxAtomsInCell() const { return maxAtomsInCell_; }
-
     public:
         mtdevice_vector<int> devCellList_;
-        mtdevice_vector<int> devCellListCount_;
+        mtdevice_vector<CListPointer> devCellListEntryPointers_;
         mtdevice_vector<CCellListIndex> devAtomCellIndices_;
 
     private:
@@ -77,7 +86,6 @@ public:
         int cellCountX_;
         int cellCountY_;
         int cellCountZ_;
-        int maxAtomsInCell_;
     };
 
     class CNeighList
@@ -147,16 +155,6 @@ public:
         size_t atomIndex4_;
         int dihedralType_;
         bool assocAtomIsAtCenterOfDihedral_;
-    };
-
-    class CListPointer
-    {
-    public:
-        HOSTDEV_CALLABLE CListPointer() { }
-
-    public:
-        int numEntries_;
-        int indexFirstEntry_;
     };
 
     class CPoint
