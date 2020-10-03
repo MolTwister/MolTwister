@@ -2,6 +2,7 @@
 #include "FunctorGenCellList.h"
 #include "FunctorGenNeighList.h"
 #include "../../Tools/MolecularSystemTools.h"
+#include "../MDLoop/Printf.h"
 #include <functional>
 
 BEGIN_CUDA_COMPATIBLE()
@@ -66,13 +67,15 @@ void CMDFFMatrices::CCellList::resetCellList()
 HOST_CALLABLE CMDFFMatrices::CNeighList::CNeighList()
 {
     maxNeighbours_ = 0;
+    numAtoms_ = 0;
 }
 
-void CMDFFMatrices::CNeighList::init(CMolTwisterState* state, int maxNeighbors)
+void CMDFFMatrices::CNeighList::init(CMolTwisterState* state, int initialMaxNeighbors)
 {
-    maxNeighbours_ = maxNeighbors;
+    maxNeighbours_ = initialMaxNeighbors;
 
     size_t numAtoms = state->atoms_.size();
+    numAtoms_ = (int)numAtoms;
     devNeighList_ = mtdevice_vector<int>(numAtoms * (size_t)maxNeighbours_);
     devNeighListCount_ = mtdevice_vector<int>(numAtoms);
 }
@@ -83,6 +86,12 @@ void CMDFFMatrices::CNeighList::resetNeighList()
     {
         devNeighListCount_[i] = 0;
     }
+}
+
+void CMDFFMatrices::CNeighList::resizeNeighList(int maxNeighbours)
+{
+    maxNeighbours_ = maxNeighbours;
+    devNeighList_ = mtdevice_vector<int>(numAtoms_ * (size_t)maxNeighbours_);
 }
 
 CMDFFMatrices::CMDFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell)
@@ -131,11 +140,22 @@ void CMDFFMatrices::genNeighList(float Lx, float Ly, float Lz)
     genCellList.assembleCellList(cellList_.devAtomCellIndices_);
 
     // Generate neighborlists
-    neighList_.resetNeighList();
-    CFunctorGenNeighList genNeighList;
-    genNeighList.setForceFieldMatrices(*this);
-    mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), neighList_.devNeighListCount_.begin(), genNeighList);
-    mtcudaDeviceSynchronize();
+    int storageRequirement = -1;
+    do
+    {
+        neighList_.resetNeighList();
+        CFunctorGenNeighList genNeighList;
+        genNeighList.setForceFieldMatrices(*this);
+        mttransform(EXEC_POLICY devAtomList_.begin(), devAtomList_.end(), neighList_.devNeighListCount_.begin(), genNeighList);
+        mtcudaDeviceSynchronize();
+        storageRequirement = genNeighList.checkRequiredMaxNumNeighbours(neighList_.devNeighListCount_);
+        if(storageRequirement != -1)
+        {
+            COut::printf("\tSearching for appropriate neighbour list size [trying %i]\r\n", storageRequirement + 10);
+            neighList_.resizeNeighList(storageRequirement + 10);
+        }
+
+    } while(storageRequirement != -1);
 }
 
 void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, float rCutoff, float dShell, bool bondsAcrossPBC,
@@ -202,7 +222,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
 
     // Prepare cell list vectors and associated properties
     cellList.init(state, rCutoff, dShell, numAtoms);
-    neighList.init(state, 500); // :TODO:
+    neighList.init(state, 10);
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.
     size_t numAtomTypes = atomTypes.size();

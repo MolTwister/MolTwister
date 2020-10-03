@@ -94,8 +94,9 @@ public:
         HOST_CALLABLE CNeighList();
 
     public:
-        void init(CMolTwisterState* state, int maxNeighbors);
+        void init(CMolTwisterState* state, int initialMaxNeighbors);
         void resetNeighList();
+        void resizeNeighList(int maxNeighbours);
         HOSTDEV_CALLABLE int getMaxNeighbors() const { return maxNeighbours_; }
 
     public:
@@ -104,6 +105,7 @@ public:
 
     private:
         int maxNeighbours_;
+        int numAtoms_;
     };
 
     class CForces

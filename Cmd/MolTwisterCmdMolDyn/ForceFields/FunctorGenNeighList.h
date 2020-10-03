@@ -13,6 +13,7 @@ public:
     void setForceFieldMatrices(CMDFFMatrices& ffMatrices);
     HOSTDEV_CALLABLE int operator()(CMDFFMatrices::CAtom& atom);
     HOSTDEV_CALLABLE static size_t neighIndexToFlatIndex(size_t atomIndex, size_t neighIndex, int maxNeighbors);
+    int checkRequiredMaxNumNeighbours(mtdevice_vector<int>& devNeighListCount);
 
 private:
     int* devCellList_;

@@ -93,27 +93,35 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
                                 double drSqr = r0.distToAcrossPBC2(devAtomList_[atomIndex].r_, pbc_);
 
                                 int currentNeigh = devNeighListCount_[atom.index_];
-                                if((currentNeigh < maxNeighbors_) && (drSqr < (double)rCutoff2_))
+                                if(currentNeigh < maxNeighbors_)
                                 {
-                                    if(atomIndex == atom.index_) continue;
-                                    devNeighList_[neighIndexToFlatIndex(atom.index_, currentNeigh, maxNeighbors_)] = atomIndex;
-                                    devNeighListCount_[atom.index_]++;
+                                    if(drSqr < (double)rCutoff2_)
+                                    {
+                                        if(atomIndex == atom.index_) continue;
+                                        devNeighList_[neighIndexToFlatIndex(atom.index_, currentNeigh, maxNeighbors_)] = atomIndex;
+                                        devNeighListCount_[atom.index_]++;
+                                    }
+                                }
+                                else
+                                {
+                                    // Return the negative of the minimum number of neighbour cells required to complete the neighbour list entry
+                                    return -(currentNeigh + 1);
                                 }
                             }
                             else
                             {
-                                return -4;
+                                return 0x00FFFFFF;
                             }
                         }
                         else
                         {
-                            return -3;
+                            return 0x00FFFFFE;
                         }
                     }
                 }
                 else
                 {
-                    return -2;
+                    return 0x00FFFFFD;
                 }
             }
         }
@@ -125,6 +133,41 @@ HOSTDEV_CALLABLE int CFunctorGenNeighList::operator()(CMDFFMatrices::CAtom& atom
 HOSTDEV_CALLABLE size_t CFunctorGenNeighList::neighIndexToFlatIndex(size_t atomIndex, size_t neighIndex, int maxNeighbors)
 {
     return neighIndex + maxNeighbors*atomIndex;
+}
+
+CUDA_GLOBAL void kernelCheckRequiredMaxNumNeighbours(int* devNeighListCount, int numAtoms, int* requiredMaxNeighbours)
+{
+    long lIdx = mtblockDim.x*mtblockIdx.x + mtthreadIdx.x;
+    if(lIdx > 0) return;
+
+    *requiredMaxNeighbours = -1;
+    for(int i=0; i<numAtoms; i++)
+    {
+        // We found a neigh list entry that was too short
+        if(devNeighListCount[i] < 0)
+        {
+            int minReuquiredLen = -devNeighListCount[i];
+            if(minReuquiredLen > (*requiredMaxNeighbours)) *requiredMaxNeighbours = minReuquiredLen;
+        }
+    }
+}
+
+int CFunctorGenNeighList::checkRequiredMaxNumNeighbours(mtdevice_vector<int>& devNeighListCount)
+{
+    // Iterate through all lengths that was found in devNeighListCount. If negative, this means that a large enough
+    // size was not found. The minimum required size is the absolute of this value. We find and return the largest
+    // of these values. If we find that all neigh. list entries are large enough we return -1.
+    int* devRequiredMaxNeighbours;
+    mtcudaMalloc((void**)&devRequiredMaxNeighbours, sizeof(int));
+    int* devNeighListCountRaw = mtraw_pointer_cast(&devNeighListCount[0]);
+    kernelCheckRequiredMaxNumNeighbours CUDA_PROC(1, 1)(devNeighListCountRaw, numAtoms_, devRequiredMaxNeighbours);
+    mtcudaDeviceSynchronize();
+
+    int requiredMaxNeighbours;
+    mtcudaMemcpy(&requiredMaxNeighbours, devRequiredMaxNeighbours, sizeof(int), cudaMemcpyDeviceToHost);
+    mtcudaFree(devRequiredMaxNeighbours);
+
+    return requiredMaxNeighbours;
 }
 
 END_CUDA_COMPATIBLE()
