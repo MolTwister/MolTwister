@@ -23,7 +23,7 @@ HOST_CALLABLE CMDFFMatrices::CCellList::CCellList()
 void CMDFFMatrices::CCellList::init(CMolTwisterState* state, float rCutoff, float dShell, int numAtoms)
 {
     float R = rCutoff + dShell;
-    C3DRect pbc = state->view3D_->getPBC();
+    C3DRect pbc = state->view3D_->calcPBC();
 
     pbcWidthX_ = (float)pbc.getWidthX();
     pbcWidthY_ = (float)pbc.getWidthY();

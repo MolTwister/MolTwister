@@ -24,7 +24,7 @@ static PyObject* moltwister_mt_exec(PyObject* , PyObject* args)
 
     int pipeSymbIndex = CASCIIUtility::findString("> ", stringArgLine);
     
-    for(int i=0; i<cmdList.size(); i++)
+    for(int i=0; i<(int)cmdList.size(); i++)
     {
         if(cmdList[i] && cmdList[i]->checkCmd(stringCommand.data()))
         {
@@ -79,7 +79,7 @@ static PyObject* moltwister_mt_get_atom_pos(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "ii", &index, &indexAxis)) return nullptr;
     
     if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
     
     if(indexAxis == 0)
         return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].x_);
@@ -98,7 +98,7 @@ static PyObject* moltwister_mt_get_atom_type(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("s", "");
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
     
     std::string ID = g_pMT->getCurrentState()->atoms_[index]->getID();
     
@@ -112,7 +112,7 @@ static PyObject* moltwister_mt_get_atom_mass(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
     
     return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->m_);
 }
@@ -124,7 +124,7 @@ static PyObject* moltwister_mt_get_atom_charge(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
     
     return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->Q_);
 }
@@ -136,7 +136,7 @@ static PyObject* moltwister_mt_get_atom_resname(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("s", "");
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
     
     return Py_BuildValue("s", g_pMT->getCurrentState()->atoms_[index]->resname_.data());
 }
@@ -148,7 +148,7 @@ static PyObject* moltwister_mt_get_atom_molindex(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("i", 0);
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", 0);
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", 0);
     
     return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->getMolIndex());
 }
@@ -160,7 +160,7 @@ static PyObject* moltwister_mt_is_atom_sel(PyObject*, PyObject* args)
     if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
     
     if(index < 0) return Py_BuildValue("i", -1);
-    if(index >= g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", -1);
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", -1);
     
     return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->isSelected() ? 1 : 0);
 }
