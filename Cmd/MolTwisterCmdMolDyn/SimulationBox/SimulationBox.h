@@ -22,6 +22,7 @@ public:
     double calcTemp();
     double calcPress(const mthost_vector<CMDFFMatrices::CForces>& F) const;
     double calcV() { return velVerlet_.getV(LmaxX_, LmaxY_, LmaxZ_, molDynConfig_.ensemble_); }
+    C3DVector calcSimBox() { return velVerlet_.getSimBox(LmaxX_, LmaxY_, LmaxZ_, molDynConfig_.ensemble_); }
     double getLmaxX() { return LmaxX_; }
     double getLmaxY() { return LmaxY_; }
     double getLmaxZ() { return LmaxZ_; }

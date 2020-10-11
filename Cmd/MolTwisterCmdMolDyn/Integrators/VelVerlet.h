@@ -23,6 +23,7 @@ public:
     void setRandMom(double tau);
     void setNonBondedScaleFactors(float scale12, float scale13, float scale14, float scale1N);
     double getV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
+    C3DVector getSimBox(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const;
     void setVerboseOutput(bool verbose=true) { verboseOutput_ = verbose; }
 
 private:

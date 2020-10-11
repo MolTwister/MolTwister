@@ -41,13 +41,8 @@ void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double Lmax
         prop_p(N, dt, particles, F);                    // Step 3.2
         prop_r(N, dt, particles, F);                    // Step 3.3
         eps_+= (dt * p_eps_ / W_);                      // Step 3.4
-        double Vmax = LmaxX * LmaxY * LmaxZ;
-        double etaCube = getV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
-        etaCube = pow(etaCube, 1.0/3.0);
 
-        boxSizeOut.x_ = etaCube * LmaxX;
-        boxSizeOut.y_ = etaCube * LmaxY;
-        boxSizeOut.z_ = etaCube * LmaxZ;
+        boxSizeOut = getSimBox(LmaxX, LmaxY, LmaxZ, ensemble);
 
         calcParticleForces(dim, boxSizeOut.x_, boxSizeOut.y_, boxSizeOut.z_, particles, F);
 
@@ -66,9 +61,7 @@ void CVelVerlet::propagator(int N, int dim, double dt, double LmaxX, double Lmax
             particles[k].r_+= particles[k].p_*(dt / m_k);
         }
 
-        boxSizeOut.x_ = LmaxX;
-        boxSizeOut.y_ = LmaxY;
-        boxSizeOut.z_ = LmaxZ;
+        boxSizeOut = getSimBox(LmaxX, LmaxY, LmaxZ, ensemble);
 
         calcParticleForces(dim, LmaxX, LmaxY, LmaxZ, particles, F);
         if(Fcut_ > 0) cutForces(F);
@@ -181,6 +174,20 @@ double CVelVerlet::getV(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigS
     if(ensemble == SMolDynConfigStruct::ensembleNPT) return V0_ * exp(3.0 * eps_);
 
     return LmaxX*LmaxY*LmaxZ;
+}
+
+C3DVector CVelVerlet::getSimBox(double LmaxX, double LmaxY, double LmaxZ, SMolDynConfigStruct::Ensemble ensemble) const
+{
+    if(ensemble == SMolDynConfigStruct::ensembleNPT)
+    {
+        double Vmax = LmaxX * LmaxY * LmaxZ;
+        double etaCube = getV(LmaxX, LmaxY, LmaxZ, SMolDynConfigStruct::ensembleNPT) / Vmax;
+        etaCube = pow(etaCube, 1.0/3.0);
+
+        return C3DVector(etaCube * LmaxX, etaCube * LmaxY, etaCube * LmaxZ);
+    }
+
+    return C3DVector(LmaxX, LmaxY, LmaxZ);
 }
 
 void CVelVerlet::calcParticleForces(int dim, double Lx, double Ly, double Lz, const mthost_vector<CParticle3D>& particles, mthost_vector<CMDFFMatrices::CForces>& F)

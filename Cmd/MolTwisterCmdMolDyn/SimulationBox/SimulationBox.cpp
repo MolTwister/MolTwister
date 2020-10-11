@@ -115,21 +115,26 @@ void CSimulationBox::pbcAdd(double& pos, double L, double Lm)
 
 void CSimulationBox::pbcWrap()
 {
-    double Lm = pow(calcV(), 1.0 / 3.0);
-    double Lmax_2 = Lm / 2.0;
+    C3DVector simBox = calcSimBox();
+    double LmX = simBox.x_;
+    double LmY = simBox.y_;
+    double LmZ = simBox.z_;
+    double LmaxX_2 = LmX / 2.0;
+    double LmaxY_2 = LmY / 2.0;
+    double LmaxZ_2 = LmZ / 2.0;
 
     for(int k=0; k<N_; k++)
     {
-        if(particles_[k].r_.x_ >= Lmax_2) pbcAdd(particles_[k].r_.x_,  Lmax_2, Lm);
-        if(particles_[k].r_.x_ < -Lmax_2) pbcAdd(particles_[k].r_.x_, -Lmax_2, Lm);
+        if(particles_[k].r_.x_ >= LmaxX_2) pbcAdd(particles_[k].r_.x_,  LmaxX_2, LmX);
+        if(particles_[k].r_.x_ < -LmaxX_2) pbcAdd(particles_[k].r_.x_, -LmaxX_2, LmX);
 
         if(dim_ < 2) continue;
-        if(particles_[k].r_.y_ >= Lmax_2) pbcAdd(particles_[k].r_.y_,  Lmax_2, Lm);
-        if(particles_[k].r_.y_ < -Lmax_2) pbcAdd(particles_[k].r_.y_, -Lmax_2, Lm);
+        if(particles_[k].r_.y_ >= LmaxY_2) pbcAdd(particles_[k].r_.y_,  LmaxY_2, LmY);
+        if(particles_[k].r_.y_ < -LmaxY_2) pbcAdd(particles_[k].r_.y_, -LmaxY_2, LmY);
 
         if(dim_ < 3) continue;
-        if(particles_[k].r_.z_ >= Lmax_2) pbcAdd(particles_[k].r_.z_,  Lmax_2, Lm);
-        if(particles_[k].r_.z_ < -Lmax_2) pbcAdd(particles_[k].r_.z_, -Lmax_2, Lm);
+        if(particles_[k].r_.z_ >= LmaxZ_2) pbcAdd(particles_[k].r_.z_,  LmaxZ_2, LmZ);
+        if(particles_[k].r_.z_ < -LmaxZ_2) pbcAdd(particles_[k].r_.z_, -LmaxZ_2, LmZ);
     }
 }
 

@@ -261,7 +261,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
                                                                 forceField->calc1DPotentialProfile(0.01f, rCutoff, numPointsInForceProfiles));
                         for(size_t j=0; j<plot.size(); j++)
                         {
-                            hostNonBondFFMatrix[toIndexNonBond(r, c, ffIndex, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
+                            hostNonBondFFMatrix[toIndexNonBond(r, c, i, j, numAtomTypes, numAtomTypes, maxNumFFPerAtomicSet)] = plot[j];
                         }
                     }
                 }
