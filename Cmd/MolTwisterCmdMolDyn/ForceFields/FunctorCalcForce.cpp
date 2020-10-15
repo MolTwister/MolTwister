@@ -137,7 +137,7 @@ HOSTDEV_CALLABLE void CFunctorCalcForce::scaleForcesAndPotentials(C3DVector& f, 
 }
 
 HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatrices::CAtom& atom)
-{
+{    
     // Let F be the force from all image contributions and let Fpi be the force from the primary image.
     // This distinction only differs if we consider methods such as Ewald summation for electrostatic forces
     C3DVector f, F, Fpi;
@@ -145,6 +145,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
 
     // Obtain common parameters to use throught the force calcualtions
     int k = atom.index_;
+    if(!devAtomList_[k].isMobile_) return CMDFFMatrices::CForces(F, Fpi, U);
     C3DVector r_k = devAtomList_[k].r_;
     int molOf_k = devAtomList_[k].molIndex_;
 

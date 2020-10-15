@@ -46,7 +46,7 @@ void CSimulationBox::initSystem()
     resizeArrays();
     NH_T_.setRandNHPos();
     NH_P_.setRandNHPos();
-    setRandMom(0, N_);
+    setRandMom();
     NH_T_.setRandNHMom();
     NH_P_.setRandNHMom();
 
@@ -75,12 +75,12 @@ void CSimulationBox::copyPosFromState()
     }
 }
 
-void CSimulationBox::setRandMom(int first, int to)
+void CSimulationBox::setRandMom()
 {
     double  a = 2.0 / double(RAND_MAX);
     
     // Randomize p between 0 and 1 and prevent p=0
-    for(int k=first; k<to; k++)
+    for(int k=0; k<N_; k++)
     {
         particles_[k].p_.x_ = (a*double(rand()) - 1.0);
         particles_[k].p_.y_ = (a*double(rand()) - 1.0);
@@ -94,10 +94,17 @@ void CSimulationBox::setRandMom(int first, int to)
         if(dim_ < 2) particles_[k].p_.y_ = 0.0;
     }
 
+    // Reset momentum of all atoms that are not mobile
+    for(int i=0; i<N_; i++)
+    {
+        if(state_->atoms_[i]->r_.size() == 0) continue;
+        if(!state_->atoms_[i]->isMobile_) particles_[i].p_.set(0.0, 0.0, 0.0);
+    }
+
     // Perform velocity scaling to achive desired initial T
     double Tnow = calcTemp();
     double p_scale = sqrt(NH_T_.T_ / Tnow);
-    for(int k=first; k<to; k++)
+    for(int k=0; k<N_; k++)
     {
         particles_[k].p_.x_*= p_scale;
         particles_[k].p_.y_*= p_scale;

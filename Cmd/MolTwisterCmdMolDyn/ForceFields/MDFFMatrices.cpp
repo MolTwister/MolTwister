@@ -183,6 +183,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     for(size_t i=0; i<numAtoms; i++)
     {
         if(state->atoms_[i]->r_.size() == 0) continue;
+        hostAtomList[i].isMobile_ =  state->atoms_[i]->isMobile_;
         hostAtomList[i].r_.x_ = state->atoms_[i]->r_[0].x_;
         hostAtomList[i].r_.y_ = state->atoms_[i]->r_[0].y_;
         hostAtomList[i].r_.z_ = state->atoms_[i]->r_[0].z_;

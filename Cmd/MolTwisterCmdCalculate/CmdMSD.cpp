@@ -98,7 +98,7 @@ std::string CCmdMSD::execute(std::vector<std::string> arguments)
         std::vector<std::vector<int>> unorganizedListOfMolecules;
         unorganizedListOfMolecules.resize(state_->atoms_.size());
 
-        for(int i=0; i<state_->atoms_.size(); i++)
+        for(int i=0; i<(int)state_->atoms_.size(); i++)
         {
             if(state_->atoms_[i]->resname_ == text)
             {
@@ -107,7 +107,7 @@ std::string CCmdMSD::execute(std::vector<std::string> arguments)
         }
 
         // Pick out the molecules that are available in the unorganized list and build a more organized list
-        for(int i=0; i<unorganizedListOfMolecules.size(); i++)
+        for(int i=0; i<(int)unorganizedListOfMolecules.size(); i++)
         {
             if(unorganizedListOfMolecules[i].size() == 0) continue;
             listOfMolecules.emplace_back(unorganizedListOfMolecules[i]);
@@ -157,13 +157,13 @@ std::string CCmdMSD::execute(std::vector<std::string> arguments)
             int maxNumCoordinates = dcdFile.getNumCoordinatesInRecord();
 
             double sum = 0.0;
-            for(int i=0; i<listOfMolecules.size(); i++)
+            for(int i=0; i<(int)listOfMolecules.size(); i++)
             {
                 // Get center of mass ($\mathbf{R}_c = \frac{1}{M_{tot}} \sum_{n=1}^{N_{atoms}} m_n \mathbf{r}_n$)
                 // or geomeric center (where $m_n\equiv 1$ and $M = N_{atoms}$). $m_n$ is the mass of atom $n$.
                 double M = 0.0;
                 C3DVector Rc;
-                for(int n=0; n<listOfMolecules[i].size(); n++)
+                for(int n=0; n<(int)listOfMolecules[i].size(); n++)
                 {
                     double m = 1.0;
                     if(!useGeometricCenter) m = state_->atoms_[listOfMolecules[i][n]]->m_;
@@ -209,7 +209,7 @@ std::string CCmdMSD::execute(std::vector<std::string> arguments)
     }
 
     // Average each bin in the MSD curve over the number of shifts done in t0
-    for(int i=0; i<msdCurve.size(); i++)
+    for(int i=0; i<(int)msdCurve.size(); i++)
     {
         msdCurve[i]/= double(numShiftsIn_t0 + 1);
     }
@@ -219,7 +219,7 @@ std::string CCmdMSD::execute(std::vector<std::string> arguments)
     fprintf(stdOut_, "\tFrom frame = %i\r\n", frameFrom);
     fprintf(stdOut_, "\tTo frame = %i\r\n\r\n", frameTo+numShiftsIn_t0);
     fprintf(stdOut_, "\t%-15s%-15s\r\n", "Index", "MSD");
-    for(int i=0; i<msdCurve.size(); i++)
+    for(int i=0; i<(int)msdCurve.size(); i++)
     {
         fprintf(stdOut_, "\t%-15i% -15.8f\r\n", i, msdCurve[i]);
     }

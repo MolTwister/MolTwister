@@ -47,7 +47,7 @@ private:
     void resizeArrays();
 
     void copyPosFromState();
-    void setRandMom(int first, int to);
+    void setRandMom();
     void pbcAdd(double& pos, double L, double Lm);
 
 public:

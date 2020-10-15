@@ -24,6 +24,7 @@
 #include "MolTwisterCmdCalculate/CmdDipMomPerturbZPosExchange.h"
 #include "MolTwisterCmdCalculate/CmdDipMomPerturbZPos.h"
 #include "MolTwisterCmdCalculate/CmdDipMom.h"
+#include "MolTwisterCmdCalculate/CmdVolumeFromDensity.h"
 
 void CCmdCalculate::onAddKeywords()
 {
@@ -57,6 +58,7 @@ void CCmdCalculate::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdQBal>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdVACF>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdVDOS>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdVolumeFromDensity>(state_, stdOut_));
 }
 
 std::string CCmdCalculate::getHelpString() const

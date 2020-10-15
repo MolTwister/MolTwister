@@ -25,7 +25,7 @@ public:
     class CAtom
     {
     public:
-        HOSTDEV_CALLABLE CAtom() { typeIndex_ = -1; }
+        HOSTDEV_CALLABLE CAtom() { typeIndex_ = -1; index_ = 0; m_ = 0.0f; q_ = 0.0f; molIndex_ = 0; isMobile_ = true; }
 
     public:
         int index_;
@@ -35,6 +35,7 @@ public:
         C3DVector p_;
         int typeIndex_;
         int molIndex_;
+        bool isMobile_;
     };
 
     class CCellListIndex

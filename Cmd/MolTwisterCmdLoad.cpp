@@ -578,7 +578,7 @@ bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
         return false;
     }
 
-    progBar.beginProgress("Loading XYZ file contents");
+    progBar.beginProgress("Loading DCD file contents");
     int numRecords = dcdFile.getNumRecords();
     bool firstFrameAdded = false;
     for(int i=0; i<numRecords; i++)

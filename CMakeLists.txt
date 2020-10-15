@@ -306,6 +306,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMomPerturbZPos.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMom.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMom.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdVolumeFromDensity.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdVolumeFromDensity.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdReadRecord.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdReadRecord.cpp
