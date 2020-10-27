@@ -25,7 +25,7 @@ std::string CCmdMSD::getCmdFreetextHelp()
     std::string text;
 
     text+= "\tCalculates the mean square displacement (MSD) of the molecules that has the resname <resname>\r\n";
-    text+= "\tbetween frames <frame from> to <frame to>. By defualt, the MSD is calculated based on the\r\n";
+    text+= "\tbetween frames <frame from> to <frame to>. By default, the MSD is calculated based on the\r\n";
     text+= "\tcenter of mass of the tracked molecules (which requires masses of the atoms to be loaded).\r\n";
     text+= "\tHowever, by using the 'usegeomcent' keyword, all masses are set to unity, thus resulting\r\n";
     text+= "\tin the geometric center of the molecules being used as basis for the MSD.\r\n";

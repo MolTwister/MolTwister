@@ -141,7 +141,7 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
         }
     }
 
-   pb. beginProgress("Reading atomic trajectories");
+    pb. beginProgress("Reading atomic trajectories");
     for(int t=frameFrom; t<frameTo; t++)
     {
         if((t < 0) || (t >= numFrames))

@@ -501,7 +501,7 @@ void CCmdPrint::parseMixffCommand(std::string commandLine, int& arg)
     
     for(int i=0; i<constituents1.size(); i++)
     {
-        std::shared_ptr<std::vector<int>> indicesI= state_->mdFFNonBondedList_.indexFromNames(constituents1[i], constituents1[i]);
+        std::shared_ptr<std::vector<int>> indicesI = state_->mdFFNonBondedList_.indexFromNames(constituents1[i], constituents1[i]);
         for(int m=0; m<indicesI->size(); m++)
         {
             CMDFFNonBonded* nonBondI = state_->mdFFNonBondedList_.get((*indicesI)[m]);

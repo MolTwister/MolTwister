@@ -222,7 +222,7 @@ void CMDFFMatrices::prepareFFMatrices(CMolTwisterState* state, FILE* stdOut, flo
     }
 
     // Prepare cell list vectors and associated properties
-    cellList.init(state, rCutoff, dShell, numAtoms);
+    cellList.init(state, rCutoff, dShell, (int)numAtoms);
     neighList.init(state, 10);
 
     // Generate non-bonded force-field matrix, [toIndex(row, column, ffIndex, pointIndex)]. Assigned are one ore more 1D force-profiles.

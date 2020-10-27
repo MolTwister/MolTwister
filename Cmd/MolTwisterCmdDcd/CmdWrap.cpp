@@ -28,7 +28,7 @@ std::string CCmdWrap::getCmdFreetextHelp()
     std::string text;
 
     text+= "\tLoads a DCD file, <DCD filename>, and performs a wrap across the periodic boundaries\r\n";
-    text+= "\t(i.e., PBC). The PBC is taken from the DCD file by defualt. However, by specifying\r\n";
+    text+= "\t(i.e., PBC). The PBC is taken from the DCD file by default. However, by specifying\r\n";
     text+= "\tthe 'pbcfromvisual' keyword, the PBC can be taken from the applied visual PBC.\r\n";
     text+= "\tThe output is a DCD file with the name\r\n";
     text+= "\t* <DCD filename (without extension)>_mtwrap.dcd";

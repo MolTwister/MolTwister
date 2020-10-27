@@ -49,7 +49,8 @@ std::string CCmdDensityProfile::getCmdFreetextHelp()
     text+= "\t                 .\r\n";
     text+= "\tN+1. <x abs> <y <bs> <z abs> <x rel> <y rel> <z rel> <particle density> <mass density> <charge density>\r\n";
     text+= "\twhere N is the number of bins. Relative positions (rel) are relative to <vec. from>, while absolute\r\n";
-    text+= "\tpositions (abs) are relative to the simulation box.";
+    text+= "\tpositions (abs) are relative to the simulation box. Mass density is in [g/mol], while charge density\r\n";
+    text+= "\tis in units of partial charges.";
 
     return text;
 }
@@ -241,7 +242,7 @@ std::string CCmdDensityProfile::execute(std::vector<std::string> arguments)
             {
                 numDensitiesAlong_k[n]++;
                 massDensitiesAlong_k[n]+= atomicMasses[j]; // g/mol
-                chargeDensitiesAlong_k[n]+= atomicCharges[j]; // g/mol
+                chargeDensitiesAlong_k[n]+= atomicCharges[j]; // Partial charges
             }
         }
 

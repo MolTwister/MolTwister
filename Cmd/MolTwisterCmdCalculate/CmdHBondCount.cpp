@@ -234,7 +234,7 @@ std::string CCmdHBondCount::execute(std::vector<std::string> arguments)
         firstHBondInFrame.emplace_back(firstHBond);
 
 
-        // Find total number of H-bond ends connected to donors (including donor hydrogens forming  hydrogen bonds)
+        // Find total number of H-bond ends connected to donors (including donor hydrogens forming hydrogen bonds)
         // Start by finding all possible donor indices (but do not count them twice). Then, go through all donors
         // and count the number of H-bonds connected to each (and sum up all)
         std::vector<int> donors;
