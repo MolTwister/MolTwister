@@ -244,7 +244,8 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
         v_tilde = fft.fft1D(atomVelTrajectory[i]);
 
         // The FFT class provides no FFT normalization convention between fwd and rev transf. Need to apply the correct one.
-        double sqrT = sqrt((double)v_tilde->size());
+        double T = (double)v_tilde->size();
+        double sqrT = sqrt(T);
         for(size_t n=0; n<v_tilde->size(); n++)
         {
             (*v_tilde)[n].re_/= sqrT;
@@ -260,10 +261,13 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
         }
 
         // Compute the normalized dot products between the fft and its complex conjugates,
-        // i.e. $\mathbf{\tilde{v}}^{*}_n \cdot \mathbf{\tilde{v}}_n / C$
+        // i.e. $\mathbf{\tilde{v}}^{*}_n \cdot \mathbf{\tilde{v}}_n / (C \Delta \omega)$
+        double T2 = T*T;
+        double dw = 2.0 * M_PI * (T - 1.0) / (timeStep * T2);
+        double dwC =  C * dw;
         for(int n=0; n<v_tilde->size(); n++)
         {
-            avg_v_tilde2[n]+= ( (*v_tilde)[n].modulus2() / C );
+            avg_v_tilde2[n]+= ( (*v_tilde)[n].modulus2() / dwC );
         }
 
         pb.updateProgress(i, (int)atomIndicesToInclude.size());
