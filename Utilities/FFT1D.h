@@ -13,6 +13,11 @@ public:
     {
     public:
         CCplx() { re_ = 0.0; im_ = 0.0; }
+        CCplx(double re, double im) { re_ = re; im_ = im; }
+
+    public:
+        CCplx conj() { return CCplx(re_, -im_); }
+        double modulus2() { return re_*re_ + im_*im_; }
         
     public:
         double re_;

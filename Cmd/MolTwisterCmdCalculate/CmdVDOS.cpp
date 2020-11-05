@@ -17,8 +17,8 @@ std::vector<std::string> CCmdVDOS::getCmdLineKeywords()
 std::vector<std::string> CCmdVDOS::getCmdHelpLines()
 {
     return {
-                "vdos <DCD filename> <frame from> <frame to> <time step (fs)> name <atom IDs (comma sep., no space)>",
-                "vdos <DCD filename> <frame from> <frame to> <time step (fs)> sel"
+                "vdos <DCD filename> <frame from> <num. bits> <time step (fs)> name <atom IDs (comma sep., no space)>",
+                "vdos <DCD filename> <frame from> <num. bits> <time step (fs)> sel"
            };
 }
 
@@ -27,21 +27,21 @@ std::string CCmdVDOS::getCmdFreetextHelp()
     std::string text;
 
     text+= "\tCalculates the vibrational density of states (VDOS) for the DCD file, <DCD filename>,\r\n";
-    text+= "\tbetween the start frame, <frame from>, to the frame <frame to>. The time step, <time\r\n";
-    text+= "\tstep>, given in units of femtoseconds (fs), is used to obtain numerically calculated\r\n";
-    text+= "\tvelocities that are needed within the calculations. The VDOS is only calculated for a\r\n";
+    text+= "\tbetween the start frame, <frame from>, to the frame <frame from>+2^<num. bits>. The time\r\n";
+    text+= "\tstep, <time step>, given in units of femtoseconds (fs), is used to obtain numerically\r\n";
+    text+= "\tcalculated velocities that are needed within the calculations. VDOS is only calculated for a\r\n";
     text+= "\tgiven selection of atoms. Either, based on the atom 'name', where a list, <atom IDs>,\r\n";
     text+= "\tis supplied (e.g., H, O, C7), or based on the visual selection of atoms, achieved through\r\n";
     text+= "\tthe 'sel' keyword.\r\n";
     text+= "\r\n";
     text+= "\tOutput:\r\n";
-    text+= "\t1. omega vdos\r\n";
-    text+= "\t2. <angular frequency> <VDOS value>\r\n";
-    text+= "\t3. <angular frequency> <VDOS value>\r\n";
+    text+= "\t1. omegaomega[rad/fs] vdos\r\n";
+    text+= "\t2. <angular frequency> <VDOS value (probability)>\r\n";
+    text+= "\t3. <angular frequency> <VDOS value (probability)>\r\n";
     text+= "\t       .\r\n";
     text+= "\t       .\r\n";
     text+= "\t       .\r\n";
-    text+= "\tN+1. <angular frequency> <VDOS value>\r\n";
+    text+= "\tN+1. <angular frequency> <VDOS value (probability)>\r\n";
     text+= "\twhere N is the length of the VDOS function.";
 
     return text;
@@ -50,8 +50,8 @@ std::string CCmdVDOS::getCmdFreetextHelp()
 std::string CCmdVDOS::execute(std::vector<std::string> arguments)
 {
     /////////////////////////////////////////////////////////////////////////////////
-    // Calculate the vibrational density of states (VDOS) by Fourier transformation
-    // of the VACF (which in turn can be found through FFT of the VDOS).
+    // Calculate the vibrational density of states (VDOS) by the Fourier components
+    // of the VACF (which can be found through FFT of the velocity trajectories).
     // Ref. [Phys. Rev. B, 46, 12019 (1992)], Ref. [Phys. Rev., 188, 1407 (1969)]
     // and Ref. [Statistical Mechanics: Theory and Molecular Simulation, Tuckerman]
     /////////////////////////////////////////////////////////////////////////////////
@@ -125,7 +125,7 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
     }
 
 
-    // Pre-read all selected atom trajectories
+    // Pre-read all selected atom trajectories (that need to be fftLen+1, while velocity traj. becomes fftLen long)
     int fftLen = frameTo - frameFrom;
     int numAtoms = (int)atomIndicesToInclude.size();
     int numFrames = dcdFile.getNumRecords();
@@ -137,12 +137,12 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
         atomTrajectory[n].resize(numAtoms);
         for(int i=0; i<numAtoms; i++)
         {
-            atomTrajectory[n][i].resize(fftLen);
+            atomTrajectory[n][i].resize(fftLen+1);
         }
     }
 
     pb. beginProgress("Reading atomic trajectories");
-    for(int t=frameFrom; t<frameTo; t++)
+    for(int t=frameFrom; t<(frameTo+1); t++)
     {
         if((t < 0) || (t >= numFrames))
         {
@@ -155,37 +155,115 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
         for(int i=0; i<numAtoms; i++)
         {
             v = dcdFile.getCoordinate(atomIndicesToInclude[i]);
-            atomTrajectory[0][i][t].re_ = v.x_;
-            atomTrajectory[1][i][t].re_ = v.y_;
-            atomTrajectory[2][i][t].re_ = v.z_;
+            atomTrajectory[0][i][t-frameFrom].re_ = v.x_;
+            atomTrajectory[1][i][t-frameFrom].re_ = v.y_;
+            atomTrajectory[2][i][t-frameFrom].re_ = v.z_;
         }
 
-        pb.updateProgress(t - frameFrom, fftLen);
+        pb.updateProgress(t-frameFrom, fftLen+1);
     }
     pb.endProgress();
 
 
-    // Loop through each particle, then FFT each of the particle trajectories
+    // Convert positional trajectories to velocity trajectories
+    pb. beginProgress("Reading atomic trajectories");
+    size_t trajAtomCount = atomTrajectory[0].size();
+    if(trajAtomCount != atomTrajectory[1].size())
+    {
+        lastError_ = "The atom count of the y-trajectories does not match that of x";
+        return lastError_;
+    }
+    if(trajAtomCount != atomTrajectory[2].size())
+    {
+        lastError_ = "The atom count of the z-trajectories does not match that of x";
+        return lastError_;
+    }
+
+    if(trajAtomCount == 0)
+    {
+        lastError_ = "The atom count was zero";
+        return lastError_;
+    }
+
+    size_t trajSize = atomTrajectory[0][0].size();
+    if(trajSize != atomTrajectory[1][0].size())
+    {
+        lastError_ = "The trajectory size of the y-trajectories does not match that of x";
+        return lastError_;
+    }
+    if(trajSize != atomTrajectory[2][0].size())
+    {
+        lastError_ = "The trajectory size of the z-trajectories does not match that of x";
+        return lastError_;
+    }
+
+    std::vector<std::vector<CFFT1D::CCplx>> atomVelTrajectory(trajAtomCount);
+    for(size_t i=0; i<atomVelTrajectory.size(); i++)
+    {
+        atomVelTrajectory[i].resize(fftLen);
+    }
+
+    for(size_t t=1; t<trajSize; t++)
+    {
+        for(size_t i=0; i<trajAtomCount; i++)
+        {
+            double x1 = atomTrajectory[0][i][t-1].re_;
+            double x2 = atomTrajectory[0][i][t].re_;
+            double vx = (x2 - x1) / timeStep; // AA / fs
+
+            double y1 = atomTrajectory[1][i][t-1].re_;
+            double y2 = atomTrajectory[1][i][t].re_;
+            double vy = (y2 - y1) / timeStep; // AA / fs
+
+            double z1 = atomTrajectory[2][i][t-1].re_;
+            double z2 = atomTrajectory[2][i][t].re_;
+            double vz = (z2 - z1) / timeStep; // AA / fs
+
+            double kern = vx*vx + vy*vy + vz*vz;
+            kern = (kern >= 0.0) ? kern : 0.0;
+            double v = sqrt(kern);
+
+            atomVelTrajectory[i][t-1].re_ = v;
+        }
+
+        pb.updateProgress((int)t, (int)trajSize);
+    }
+
+    pb.endProgress();
+
+
+    // Loop through each particle, then FFT each of the particle velocity trajectories
     std::vector<double> avg_v_tilde2;
     avg_v_tilde2.resize(fftLen, 0.0);
     pb.beginProgress("Calculating vibrational density of states");
-    for(int i=0; i<numAtoms; i++)
+    for(int i=0; i<(int)trajAtomCount; i++)
     {
-        // Fourier transform trajectory of atom i in x,y and z directions
+        // Fourier transform velocity trajectory of atom i
         CFFT1D fft;
-        std::shared_ptr<std::vector<CFFT1D::CCplx>> v_tilde[3];
-        v_tilde[0] = fft.fft1D(atomTrajectory[0][i]);
-        v_tilde[1] = fft.fft1D(atomTrajectory[1][i]);
-        v_tilde[2] = fft.fft1D(atomTrajectory[2][i]);
+        std::shared_ptr<std::vector<CFFT1D::CCplx>> v_tilde;
+        v_tilde = fft.fft1D(atomVelTrajectory[i]);
 
-        // Compute the dot products between the fft and its complex conjugates,
-        // i.e. $\mathbf{\tilde{v}}^{*}_n \cdot \mathbf{\tilde{v}}_n$
-        for(int n=0; n<v_tilde[0]->size(); n++)
+        // The FFT class provides no FFT normalization convention between fwd and rev transf. Need to apply the correct one.
+        double sqrT = sqrt((double)v_tilde->size());
+        for(size_t n=0; n<v_tilde->size(); n++)
         {
-            double vx2 = (*v_tilde[0])[n].re_*(*v_tilde[0])[n].re_ + (*v_tilde[0])[n].im_*(*v_tilde[0])[n].im_;
-            double vy2 = (*v_tilde[1])[n].re_*(*v_tilde[1])[n].re_ + (*v_tilde[1])[n].im_*(*v_tilde[1])[n].im_;
-            double vz2 = (*v_tilde[2])[n].re_*(*v_tilde[2])[n].re_ + (*v_tilde[2])[n].im_*(*v_tilde[2])[n].im_;
-            avg_v_tilde2[n]+= (vx2 + vy2 + vz2);
+            (*v_tilde)[n].re_/= sqrT;
+            (*v_tilde)[n].im_/= sqrT;
+        }
+
+        // Calculate normalization
+        double C = 0.0;
+        for(size_t t=0; t<atomVelTrajectory[i].size(); t++)
+        {
+            double v = atomVelTrajectory[i][t].re_;
+            C+= v*v;
+        }
+
+        // Compute the normalized dot products between the fft and its complex conjugates,
+        // i.e. $\mathbf{\tilde{v}}^{*}_n \cdot \mathbf{\tilde{v}}_n / C$
+        for(int n=0; n<v_tilde->size(); n++)
+        {
+            avg_v_tilde2[n]+= ( (*v_tilde)[n].modulus2() / C );
         }
 
         pb.updateProgress(i, (int)atomIndicesToInclude.size());
@@ -202,12 +280,12 @@ std::string CCmdVDOS::execute(std::vector<std::string> arguments)
 
 
     // Print the resulting VDOS spectrum
-    int M = (int)avg_v_tilde2.size();
+    int T = (int)avg_v_tilde2.size();
     printf("\r\n");
-    fprintf(stdOut_, "\t%-15s%-15s\r\n", "omega", "vdos");
-    for(int n=0; n<M; n++)
+    fprintf(stdOut_, "\t%-15s%-15s\r\n", "omega[rad/fs]", "vdos");
+    for(int n=0; n<T; n++)
     {
-        double omega = 2.0*M_PI*double(n) / (double(M)*timeStep);
+        double omega = 2.0*M_PI*double(n) / (double(T)*timeStep);
         fprintf(stdOut_, "\t% -15.8f% -15.8f\r\n", omega, avg_v_tilde2[n]);
     }
 
