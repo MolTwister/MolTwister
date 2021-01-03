@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <float.h>
 
 class CASCIIUtility
 {
@@ -8,8 +9,11 @@ public:
     static std::string extractString(int startIndex, int endIndex, std::string stringIn);
     static bool isWhiteSpace(char character, const char* whiteSpaceChars=nullptr);
     static void removeWhiteSpace(std::string& string, const char* whiteSpaceChars=nullptr);
+    static std::string trimFromLeft(const std::string& str, const char* whiteSpaceChars=nullptr, int maxTrim=INT_MAX);
+    static std::string trimFromRight(const std::string& str, const char* whiteSpaceChars=nullptr, int maxTrim=INT_MAX);
     static std::string getWord(std::string line, int wordIndex, const char* whiteSpaceChars=nullptr);
     static std::vector<std::string> getWords(std::string line, const char* whiteSpaceChars=nullptr);
+    static std::vector<std::string> getLines(std::string text);
     static std::string getDelimitedWord(std::string line, int wordIndex, char startDelimiter, char endDelimiter);
     static std::string removeCRLF(std::string text);
     static int findString(std::string string, std::string line);
@@ -18,4 +22,5 @@ public:
     static std::string getArg(const std::vector<std::string>& arguments, size_t argIndex);
     static std::string argsToString(const std::vector<std::string>& arguments);
     static std::string argsToString(const std::vector<std::string>& arguments, size_t firstArgToInclude);
+    static std::string createMarkDownCodeBlock(std::string str, int numSpaces, bool removeFirstTab=false);
 };

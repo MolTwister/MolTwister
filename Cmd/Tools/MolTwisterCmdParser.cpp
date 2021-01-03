@@ -88,6 +88,18 @@ std::string CCmdParser::genHelpText(std::string parentCmd, std::string subComman
     return std::string("\t") + subCommand + std::string(" is not a valid sub command argument for ") + parentCmd + std::string("!\r\n\r\n");
 }
 
+std::shared_ptr<std::vector<std::string>> CCmdParser::getListOfCmdEntryCommands()
+{
+    auto cmdStringList = std::make_shared<std::vector<std::string>>();
+
+    for(std::shared_ptr<CCmdEntry> cmdEntry : cmdEntryList_)
+    {
+        cmdStringList->emplace_back(cmdEntry->getCmd());
+    }
+
+    return cmdStringList;
+}
+
 void CCmdParser::redirectOutput(FILE* stdOut)
 {
     for(std::shared_ptr<CCmdEntry> cmdEntry : cmdEntryList_)

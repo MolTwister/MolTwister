@@ -6,6 +6,16 @@
 
 std::vector<std::string> CCmd::keywords_ = std::vector<std::string>();
 
+std::shared_ptr<std::vector<std::string>> CCmd::getListOfSubCommands()
+{
+    if(parser_)
+    {
+        return parser_->getListOfCmdEntryCommands();
+    }
+
+    return std::make_shared<std::vector<std::string>>();
+}
+
 void CCmd::addKeyword(std::string keyword)
 {
     for(std::string cmpKey : keywords_)

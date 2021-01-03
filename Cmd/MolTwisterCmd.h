@@ -27,6 +27,7 @@ public:
     virtual std::string getTopLevHelpString() const { return std::string("Help not available for ") + getCmd() + std::string("..."); }
     virtual std::string getHelpString() const { return std::string("\tHelp not available for ") + getCmd() + std::string("!"); }
     virtual std::string getHelpString(std::string subCommand) const { return std::string("\tHelp not available for ") + getCmd() + std::string(" ") + subCommand + std::string("!"); }
+    std::shared_ptr<std::vector<std::string>> getListOfSubCommands();
     static int getNumKeywords() { return (int)keywords_.size(); }
     static std::string getKeyword(int index) { return keywords_[index]; }
     void redirectOutput(FILE* stdOut = stdout) { stdOut_ = stdOut; parser_->redirectOutput(stdOut); }

@@ -51,6 +51,58 @@ void CASCIIUtility::removeWhiteSpace(std::string& string, const char* whiteSpace
     string = newStr;
 }
 
+std::string CASCIIUtility::trimFromLeft(const std::string& str, const char* whiteSpaceChars, int maxTrim)
+{
+    std::string newStr;
+
+    int numTrimmedChars = 0;
+    int startFrom = 0;
+    for(int i=0; i<str.length(); i++)
+    {
+        if(isWhiteSpace(str[i], whiteSpaceChars))
+        {
+            numTrimmedChars++;
+            if(numTrimmedChars <= maxTrim)
+                continue;
+        }
+        startFrom = i;
+        break;
+    }
+
+    for(int i=startFrom; i<str.length(); i++)
+    {
+        newStr+= str[i];
+    }
+
+    return newStr;
+}
+
+std::string CASCIIUtility::trimFromRight(const std::string& str, const char* whiteSpaceChars, int maxTrim)
+{
+    std::string newStr;
+
+    int numTrimmedChars = 0;
+    int endIndex = int(str.length()-1);
+    for(int i=int(str.length()-1); i>=0; i--)
+    {
+        if(isWhiteSpace(str[i], whiteSpaceChars))
+        {
+            numTrimmedChars++;
+            if(numTrimmedChars <= maxTrim)
+                continue;
+        }
+        endIndex = i;
+        break;
+    }
+
+    for(int i=0; i<=endIndex; i++)
+    {
+        newStr+= str[i];
+    }
+
+    return newStr;
+}
+
 std::string CASCIIUtility::getWord(std::string line, int wordIndex, const char* whiteSpaceChars)
 {
     size_t lineLen = line.size();
@@ -119,6 +171,31 @@ std::vector<std::string> CASCIIUtility::getWords(std::string line, const char* w
     } while(foundWord && (wordIndex < 10000000));
 
     return words;
+}
+
+std::vector<std::string> CASCIIUtility::getLines(std::string text)
+{
+    removeWhiteSpace(text, "\r");
+
+    std::vector<std::string> lines;
+    int len = (int)text.size();
+    std::string line;
+    for(int i=0; i<len; i++)
+    {
+        if(text[i] == '\n')
+        {
+            lines.emplace_back(line);
+            line.clear();
+        }
+        else
+        {
+            line+= text[i];
+        }
+    }
+
+    if(!line.empty()) lines.emplace_back(line);
+
+    return lines;
 }
 
 std::string CASCIIUtility::getDelimitedWord(std::string line, int wordIndex, char startDelimiter, char endDelimiter)
@@ -283,4 +360,23 @@ std::string CASCIIUtility::argsToString(const std::vector<std::string>& argument
     }
 
     return "";
+}
+
+std::string CASCIIUtility::createMarkDownCodeBlock(std::string str, int numSpaces, bool removeFirstTab)
+{
+    std::vector<std::string> lines = getLines(str);
+
+    std::string reconstructedString;
+    reconstructedString+= "````text\r\n";
+    for(std::string line : lines)
+    {
+        if(removeFirstTab) line = trimFromLeft(line, "\t", 1);
+        line = trimFromRight(line);
+
+        reconstructedString+= line;
+        reconstructedString+= "\r\n";
+    }
+    reconstructedString+= "````\r\n";
+
+    return reconstructedString;
 }

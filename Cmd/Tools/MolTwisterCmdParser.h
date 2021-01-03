@@ -12,6 +12,7 @@ public:
     std::string executeCmd(std::string commandLine);
     std::string genHelpText(std::string parentCmd);
     std::string genHelpText(std::string parentCmd, std::string subCommand);
+    std::shared_ptr<std::vector<std::string>> getListOfCmdEntryCommands();
     void purge() { cmdEntryList_.clear(); }
     void redirectOutput(FILE* stdOut = stdout);
 

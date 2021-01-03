@@ -210,7 +210,8 @@ bool CMolTwister::_run()
                     printf(" - %s\r\n", cmdList_[i]->getTopLevHelpString().data());
                 }
                 printf("\r\n\tAny commands not recognized by MolTwister will be\r\n");
-                printf("\tredirected to the shell (e.g. ssh, vim, pico).\r\n");
+                printf("\tredirected to the shell (e.g. ssh, vim, pico). Write\r\n");
+                printf("\t'help __MarkDown__' to create a Markdown help document.\r\n");
 
                 printf("\r\n\tIn the 3D View you can use the mouse to:\r\n");
                 printf("\t   * Rotate the system by holding down the left mouse\r\n");
@@ -242,6 +243,49 @@ bool CMolTwister::_run()
                 printf("\r\n");
                 printf("\tNotes on units and conventions:\r\n");
                 printf("\t   * The Angstrom unit is denoted as AA\r\n");
+            }
+            else if(cmdString == "__MarkDown__")
+            {
+                std::string mkdFileName = "list_of_commands.md";
+                FILE* mkdFile = fopen(mkdFileName.data(), "w");
+
+                if(mkdFile)
+                {
+                    fprintf(mkdFile, "# List of commands\r\n\r\n");
+                    for(int i=0; i<(int)cmdList_.size(); i++)
+                    {
+                        std::string markdownText;
+
+                        fprintf(mkdFile, "## %s\r\n\r\n", cmdList_[i]->getCmd().data());
+                        markdownText = cmdList_[i]->getTopLevHelpString();
+                        markdownText = CASCIIUtility::trimFromLeft(markdownText, "\t", 1);
+                        fprintf(mkdFile, "*%s*\r\n\r\n", markdownText.data());
+
+                        markdownText = cmdList_[i]->getHelpString();
+                        markdownText = CASCIIUtility::createMarkDownCodeBlock(markdownText, 4, true);
+                        fprintf(mkdFile, "%s\r\n", markdownText.data());
+
+                        std::shared_ptr<std::vector<std::string>> subCmdList = cmdList_[i]->getListOfSubCommands();
+                        if(subCmdList)
+                        {
+                            for(int j=0; j<(int)subCmdList->size(); j++)
+                            {
+                                fprintf(mkdFile, "### %s\r\n\r\n", (*subCmdList)[j].data());
+
+                                markdownText = cmdList_[i]->getHelpString((*subCmdList)[j]);
+                                markdownText = CASCIIUtility::createMarkDownCodeBlock(markdownText, 4, true);
+                                fprintf(mkdFile, "%s\r\n", markdownText.data());
+                            }
+                        }
+                    }
+
+                    fclose(mkdFile);
+                    printf("\r\n\tCreated file %s!\r\n", mkdFileName.data());
+                }
+                else
+                {
+                    printf("\r\n\tError! could not create file %s\r\n", mkdFileName.data());
+                }
             }
             else
             {
