@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <float.h>
+#include <climits>
 
 class CASCIIUtility
 {

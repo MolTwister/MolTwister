@@ -459,3 +459,5 @@ endif()
 
 target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
+
+install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
