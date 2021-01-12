@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2021 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <pthread.h>
 #include <math.h>
@@ -142,7 +162,7 @@ bool CMolTwister::_run()
     printf("----------------------------------------------------------------\r\n");
     CBashColor::setColor();
     CBashColor::setColor(CBashColor::colYellow);
-    printf(" Copyright (C) 2020 Richard Olsen.\r\n");
+    printf(" Copyright (C) 2021 Richard Olsen.\r\n");
     printf("\r\n");
     printf(" This program is free software: you can redistribute it and/or\r\n");
     printf(" modify it under the terms of the GNU General Public License as\r\n");
