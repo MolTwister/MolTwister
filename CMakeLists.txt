@@ -50,7 +50,7 @@ function(generate_auto_cuda_files FOLDER_TO_SEARCH GENERATED_LIST_OF_CU_MODULES)
 
     message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
     SET(${GENERATED_LIST_OF_CU_MODULES} ${LIST_OF_CU_MODULES} PARENT_SCOPE)
-endfunction(create_cuda_files)
+endfunction(generate_auto_cuda_files)
 
 function(display_list_contents LIST_HEADER LIST_TO_TRAVERS)
     message(STATUS " ")
@@ -477,7 +477,7 @@ if(${INCLUDE_CUDA_COMMANDS})
     set(CUDA_MT_LIB MolTwisterCudaLib)
 endif()
 
-target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline util)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
 install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
