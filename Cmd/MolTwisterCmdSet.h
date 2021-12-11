@@ -43,4 +43,7 @@ private:
     void parseBondacrosspbcCommand(std::string commandLine, int& arg);
     void parseRedrawlimitCommand(std::string commandLine, int& arg);
     void parseFogCommand(std::string commandLine, int& arg);
+    void parseLabelsCommand(std::string commandLine, int& arg);
+    void parseLabelsfontsizeCommand(std::string commandLine, int& arg);
+    void parseBackgroundcolorCommand(std::string commandLine, int& arg);
 };

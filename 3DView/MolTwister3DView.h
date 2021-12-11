@@ -116,6 +116,9 @@ public:
     void setOrthoView(bool set=true) { orthoView_ = set; }
     static void setRedrawLimit(int numAtoms) { numAtomsBeforeNoDraw_ = numAtoms; }
     void setFog(bool enabled) { fogEnabled_ = enabled; }
+    void setLabelVisibility(bool visible=true) { labelsVisible_ = visible; }
+    void setLabelFontSize(int fontSize=12) { labelsFontSize_ = fontSize; }
+    void setBackgroundColor(C3DVector color = C3DVector(0.3, 0.3, 0.3));
     void enableViewOfBondsAcrossPBC(bool set=true) { viewBondsAcrossPBC_ = set; }
     void requestQuit() { requestQuit_ = true; }
     C3DRect getPBC() const { return pbc_; }
@@ -132,14 +135,19 @@ protected:
     static void onMouseClick(int button, int state, int x, int y);
     static void onMouseMove(int x, int y);
     static void onKeyboard(unsigned char key, int x, int y);
+    static void onKeyboardUp(unsigned char key, int x, int y);
     static void onSpecialFunc(int key, int x, int y);
-    
+    static void onSpecialFuncUp(int key, int x, int y);
+
 private:
     static void initOpenGL();
     static void initScene();
     static void initSelColorRot();
+    static void reinitBackgroundColorAndFog();
     static void drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection=false, C3DVector selColor=C3DVector(1.0, 1.0, 1.0));
     static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b);
+    static void drawAtomLabel(CAtom* atom);
+    static void drawBondLabel(CAtom* atom1, CAtom* atom2);
     static double drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, double r, double g, double b);
     static double drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, C3DVector color);
     static void drawPBCGrid(ESelModes mode);
@@ -153,6 +161,7 @@ private:
     static void recalcFrustum(double& frustLow, double& frustHigh, ESelModes mode=selmodeNone);
     static void pickAtoms(int x, int y);
     static C3DVector currFrmAtVec(const CAtom& atom);
+    static C3DVector worldCoordsToViewportCoords(const C3DVector& worldCoords);
     
 private:
     static int updateRequested_;
@@ -181,6 +190,9 @@ private:
     static C3DRect pbc_;
     static int numAtomsBeforeNoDraw_;
     static bool fogEnabled_;
+    static bool labelsVisible_;
+    static int labelsFontSize_;
+    static C3DVector backgroundColor_;
 };
 
 END_CUDA_COMPATIBLE()

@@ -76,7 +76,6 @@ CAtom::CAtom(const C3DVector &R, std::string ID, int atomIndex)
 CAtom::CAtom(const CAtom& src)
 { 
     ID_[0] = '\0';
-
     copy(src); 
 }
 
@@ -105,6 +104,15 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         {
             io << item.atom_->atomIndex_;
             io << item.numBondsAway_;
+        }
+
+        atomLabel_.serialize(io, saveToStream);
+
+        io << bondLabels_.size();
+        for(auto item : bondLabels_)
+        {
+            io << item.first->atomIndex_;
+            item.second.serialize(io, saveToStream);
         }
 
         io << Q_;
@@ -154,6 +162,20 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
             listOf1to4Connections_[i] = conn;
         }
 
+        atomLabel_.serialize(io, saveToStream);
+
+        io >> size;
+        bondLabels_.clear();
+        for(size_t i=0; i<size; i++)
+        {
+            int atomIndex;
+            io >> atomIndex;
+            CLabel label;
+            label.serialize(io, saveToStream);
+
+            bondLabels_[(*newAtomList)[atomIndex].get()] = label;
+        }
+
         io >> Q_;
         io >> sigma_;
         io >> m_;
@@ -169,7 +191,7 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
 
 int CAtom::addFrame()
 {
-    if(r_.size() == 0)   r_.emplace_back(C3DVector(0.0, 0.0, 0.0));
+    if(r_.size() == 0)  r_.emplace_back(C3DVector(0.0, 0.0, 0.0));
     else                r_.emplace_back(r_[r_.size()-1]);
     
     return (int)r_.size() - 1;
@@ -290,7 +312,6 @@ void CAtom::searchForLeafAtomsConnToBond(const CAtom* bondAt1, const CAtom* bond
 int CAtom::attachBondTo(CAtom* atom)
 {
     bonds_.emplace_back(atom);
-
     return (int)bonds_.size();
 }
 
@@ -435,12 +456,16 @@ void CAtom::copy(const CAtom& src)
     m_ = src.m_;
     sigma_ = src.sigma_;
     ID_ = src.ID_;
+    atomLabel_ = src.atomLabel_;
     resname_ = src.resname_;
     isMobile_ = src.isMobile_;
     ignoreBondFrom_ = src.ignoreBondFrom_;
 
     bonds_.clear();
     for(int i=0; i<(int)src.bonds_.size(); i++) bonds_.emplace_back(src.bonds_[i]);
+
+    bondLabels_.clear();
+    for(auto item : src.bondLabels_) { bondLabels_[item.first] = item.second; }
 
     atomIndex_ = src.atomIndex_;
     molIndex_ = src.molIndex_;
@@ -450,14 +475,30 @@ void CAtom::copy(const CAtom& src)
     for(int i=0; i<(int)listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
 }
 
-void CAtom::copyIntrinsicAtomProperties(const CAtom &src)
+void CAtom::copyIntrinsicAtomProperties(const CAtom& src)
 {
     Q_ = src.Q_;
     sigma_ = src.sigma_;
     m_ = src.m_;
     ID_ = src.ID_;
+    atomLabel_ = src.atomLabel_;
     isMobile_ = src.isMobile_;
     ignoreBondFrom_ = src.ignoreBondFrom_;
+
+    bondLabels_.clear();
+    for(auto item : src.bondLabels_) { bondLabels_[item.first] = item.second; }
+}
+
+CAtom::CLabel CAtom::getBondLabel(CAtom* bondDest) const
+{
+    try
+    {
+        return bondLabels_.at(bondDest);
+    }
+    catch(...)
+    {
+        return CLabel();
+    }
 }
 
 int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double& lenghtZ) const
@@ -554,6 +595,24 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsInMolecule, std::map<C
     for(int i=0; i<(int)bonds_.size(); i++)
     {
         bonds_[i]->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
+    }
+}
+
+void CAtom::CLabel::serialize(CSerializer& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        displacement_.serialize(io, saveToStream);
+        color_.serialize(io, saveToStream);
+
+        io << name_;
+    }
+    else
+    {
+        displacement_.serialize(io, saveToStream);
+        color_.serialize(io, saveToStream);
+
+        io >> name_;
     }
 }
 
