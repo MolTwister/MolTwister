@@ -37,11 +37,11 @@ std::vector<std::string> CCmdAtom::getCmdLineKeywords()
 std::vector<std::string> CCmdAtom::getCmdHelpLines()
 {
     return {
-                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] at <x> <y> <z> [cubecpy <nx> <ny> <nz> <dx> <dy> <dz>, spherecpy <N> <R> [random]]",
-                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] dist <d> [cubecpy...]",
-                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] dir <dx> <dy> <dz> dist <d> [cubecpy...]",
-                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] from bond <n1> <n2> [bondlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]",
-                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] from angle <n1> <n2> <n3> [bondlabel <name> <x-displ> <y-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]"
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] at <x> <y> <z> [cubecpy <nx> <ny> <nz> <dx> <dy> <dz>, spherecpy <N> <R> [random]]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] dir <dx> <dy> <dz> dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from bond <n1> <n2> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from angle <n1> <n2> <n3> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]"
            };
 }
 
@@ -56,8 +56,8 @@ std::string CCmdAtom::getCmdFreetextHelp()
     text+= "\r\n";
 
     text+= "\tThe 'atomlabel' keyword can be used to add a label with any <name>, without white\r\n";
-    text+= "\tcharacters, that can be displayed a displacement (<x-disp>, <y-disp>) away from\r\n";
-    text+= "\tthe atomic position, with the color {<r>, <g>, <b>}. Similarly, a label can be\r\n";
+    text+= "\tcharacters, that can be displayed a displacement (<x-disp>, <y-disp>, <z-displ>) away\r\n";
+    text+= "\tfrom the atomic position, with the color {<r>, <g>, <b>}. Similarly, a label can be\r\n";
     text+= "\tadded relative to each bond center by applying the 'bondlabel' keyword.\r\n";
     text+= "\r\n";
 
@@ -106,6 +106,9 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
 
             text = CASCIIUtility::getArg(arguments, arg++);
             displacement.y_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            displacement.z_ = atof(text.data());
 
             text = CASCIIUtility::getArg(arguments, arg++);
             color.x_ = atof(text.data());
