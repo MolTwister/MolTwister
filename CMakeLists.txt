@@ -374,6 +374,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondCount.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdOverlap.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdOverlap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdRadiusOfGyration.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdRadiusOfGyration.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomPos.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomPos.cpp

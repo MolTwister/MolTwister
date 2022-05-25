@@ -34,8 +34,26 @@ class CAtom
 {
 public:
     enum EPBCDir { dirX=0, dirY=1, dirZ=2 };
-    
-    
+
+public:
+    class CLabel
+    {
+    public:
+        CLabel() = default;
+        CLabel(const std::string& name, const C3DVector& displacement, const C3DVector& color) { name_ = name; displacement_ = displacement; color_ = color; }
+
+    public:
+        std::string getName() const { return name_; }
+        C3DVector getDisplacement() const { return displacement_; }
+        C3DVector getColor() const { return color_; }
+        void serialize(CSerializer& io, bool saveToStream);
+
+    private:
+        std::string name_;
+        C3DVector displacement_;
+        C3DVector color_;
+    };
+
 private:
     class C1to4Conn
     {
@@ -46,16 +64,14 @@ private:
         CAtom* atom_;
         char numBondsAway_;
     };
-    
-    
+
 public:
     CAtom();
     CAtom(double X, double Y, double Z, std::string ID, int atomIndex);
     CAtom(const C3DVector& R, std::string ID, int atomIndex);
     CAtom(const CAtom& src);
     virtual ~CAtom();
-    
-    
+
 public:
     void serialize(CSerializer& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList=nullptr);
     int addFrame();
@@ -89,7 +105,13 @@ public:
     int getNum1to4Connections() const { return (int)listOf1to4Connections_.size(); }
     CAtom* get1to4Connection(int index, char& numBondsAway) const { numBondsAway = listOf1to4Connections_[index].numBondsAway_; return listOf1to4Connections_[index].atom_; }
     void copyIntrinsicAtomProperties(const CAtom& src);
-    
+    void setAtomLabel(const CLabel& label) { atomLabel_ = label; }
+    void setAtomLabel(const std::string& name, const C3DVector& displacement, const C3DVector& color) { setAtomLabel(CLabel(name, displacement, color)); }
+    CLabel getAtomLabel() const { return atomLabel_; }
+    void addBondLabel(CAtom* bondDest, const CLabel& label) { bondLabels_[bondDest] = label; }
+    void addBondLabel(CAtom* bondDest, const std::string& name, const C3DVector& displacement, const C3DVector& color) { addBondLabel(bondDest, CLabel(name, displacement, color)); }
+    CLabel getBondLabel(CAtom* bondDest) const;
+
 private:
     void searchForLeafAtomsConnToBond(int bondDest, std::vector<CAtom*>& leafAtoms) const;
     int searchForNonNegMolIndexInAttachedAtoms(std::vector<const CAtom*>& visitedAtoms) const;
@@ -99,7 +121,6 @@ private:
     void findAtomsInMolecule(std::vector<CAtom*>* atomsAtPBCBdry[], std::map<CAtom*,int>& visitedAtoms, int currBdry, double distFromCaller, C3DRect& pbc, EPBCDir pbcDir, int frame);
     void findAtomsInMolecule(std::vector<CAtom*>* atomsInMolecule, std::map<CAtom*,int>& visitedAtoms, int frame);
 
-    
 public:
     std::vector<C3DVector> r_;
     double Q_;
@@ -108,10 +129,12 @@ public:
     std::string resname_;
     bool isMobile_;
     bool ignoreBondFrom_;
-    
+
 private:
     std::string ID_;
     std::vector<CAtom*> bonds_;
+    CLabel atomLabel_;
+    std::map<CAtom*, CLabel> bondLabels_;
     int atomIndex_;
     int molIndex_;
     bool isSelected_;

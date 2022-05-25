@@ -59,6 +59,11 @@ C3DRect C3DView::pbcUser_ = C3DRect();
 C3DRect C3DView::pbc_ = C3DRect();
 int C3DView::numAtomsBeforeNoDraw_ = 7000;
 bool C3DView::fogEnabled_ = false;
+bool C3DView::labelsVisible_ = false;
+int C3DView::labelsFontSize_ = 12;
+C3DVector C3DView::backgroundColor_ = C3DVector(0.3, 0.3, 0.3);
+bool C3DView::useVanDerWaalsRadiusForAtoms_ = false;
+double C3DView::vdwScaleFactor_ = 1.0;
 
 void C3DView::CCamera::serialize(CSerializer& io, bool saveToStream)
 {
@@ -188,6 +193,27 @@ C3DVector C3DView::currFrmAtVec(const CAtom &atom)
     return atom.r_[static_cast<size_t>(*currentFrame_)];
 }
 
+C3DVector C3DView::worldCoordsToViewportCoords(const C3DVector& worldCoords)
+{
+    GLdouble x = worldCoords.x_;
+    GLdouble y = worldCoords.y_;
+    GLdouble z = worldCoords.z_;
+    GLdouble m[16];
+    GLdouble p[16];
+    GLint v[4];
+    GLdouble xv;
+    GLdouble yv;
+    GLdouble zv;
+
+    glGetDoublev(GL_MODELVIEW_MATRIX, m);
+    glGetDoublev(GL_PROJECTION_MATRIX, p);
+    glGetIntegerv(GL_VIEWPORT, v);
+
+    gluProject(x, y, z, m, p, v, &xv, &yv, &zv);
+
+    return C3DVector(2.0*xv / v[2] - 1.0, 2.0*yv / v[3] - 1.0, zv);
+}
+
 C3DRect C3DView::calcPBC(int frame)
 {
     C3DRect pbc;
@@ -258,7 +284,9 @@ void C3DView::initOpenGL()
     glutMouseFunc(onMouseClick);
     glutMotionFunc(onMouseMove);
     glutKeyboardFunc(onKeyboard);
+    glutKeyboardUpFunc(onKeyboardUp);
     glutSpecialFunc(onSpecialFunc);
+    glutSpecialUpFunc(onSpecialFuncUp);
     glutTimerFunc(100, onTimer, 0);
 }
 
@@ -270,14 +298,10 @@ void C3DView::initScene()
     float lightAmbient[] = { 0.5f, 0.5f, 0.5f, 1.0f };
     float matSpecular[] = { 1.0f, 1.0f, 1.0f, 0.15f };
     float matShininess[] = { 50.0f };
-    
-    // Generic setup + clear color
-    float backColor[] = { 0.3f, 0.3f, 0.3f };
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(backColor[0], backColor[1], backColor[2], 0.0f);
-    glShadeModel(GL_SMOOTH);
-    glDepthRange(0.0, 1.0);
-    
+
+    // Setup backround color and fog
+    reinitBackgroundColorAndFog();
+
     // Setup lighting
     glLightfv(GL_LIGHT0, GL_POSITION, light0Pos);
     glLightfv(GL_LIGHT0, GL_DIFFUSE, light0Diffuse);
@@ -285,13 +309,6 @@ void C3DView::initScene()
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lightAmbient);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-
-    // Setup fog
-    float fogColor[] = { backColor[0], backColor[1], backColor[2], 1.0f };
-    int fogMode = GL_LINEAR;
-    glFogi(GL_FOG_MODE, fogMode);
-    glFogfv(GL_FOG_COLOR, fogColor);
-    glHint(GL_FOG_HINT, GL_DONT_CARE);
 
     // Define material to be used for front and back faces
     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, matSpecular);
@@ -333,6 +350,22 @@ void C3DView::initSelColorRot()
     selColorRot_.emplace_back(C3DVector(1.0, 1.0, 1.0));
 }
 
+void C3DView::reinitBackgroundColorAndFog()
+{
+    // Generic setup + clear color
+    float backColor[] = { static_cast<float>(backgroundColor_.x_), static_cast<float>(backgroundColor_.y_), static_cast<float>(backgroundColor_.z_) };
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(backColor[0], backColor[1], backColor[2], 0.0f);
+    glShadeModel(GL_SMOOTH);
+    glDepthRange(0.0, 1.0);
+
+    // Setup fog
+    float fogColor[] = { backColor[0], backColor[1], backColor[2], 1.0f };
+    int fogMode = GL_LINEAR;
+    glFogi(GL_FOG_MODE, fogMode);
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glHint(GL_FOG_HINT, GL_DONT_CARE);
+}
 
 void C3DView::drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection, C3DVector selColor)
 {
@@ -428,6 +461,50 @@ bool C3DView::drawBond(C3DVector R1, C3DVector R2, double radius, float r, float
     return true;
 }
 
+void* C3DView::getBitmapFont(int fontSize)
+{
+    void* font = nullptr;
+
+    if(fontSize == 10) font = GLUT_BITMAP_HELVETICA_10;
+    if(fontSize == 12) font = GLUT_BITMAP_HELVETICA_12;
+    if(fontSize == 18) font = GLUT_BITMAP_HELVETICA_18;
+
+    return font;
+}
+
+void C3DView::drawAtomLabel(CAtom *atom)
+{
+    if(labelsVisible_)
+    {
+        void* font = getBitmapFont(labelsFontSize_);
+        if(!font) return;
+
+        C3DVector R = atom->r_[*currentFrame_];
+        CAtom::CLabel label = atom->getAtomLabel();
+
+        C3DVector viewCoords = worldCoordsToViewportCoords(R + label.getDisplacement());
+        C3DVector c = label.getColor();
+        drawBitmapText(label.getName().data(), font, viewCoords.x_, viewCoords.y_, c.x_, c.y_, c.z_);
+    }
+}
+
+void C3DView::drawBondLabel(CAtom *atom1, CAtom *atom2)
+{
+    if(labelsVisible_)
+    {
+        void* font = getBitmapFont(labelsFontSize_);
+        if(!font) return;
+
+        C3DVector R1 = atom1->r_[*currentFrame_];
+        C3DVector R2 = atom2->r_[*currentFrame_];
+        CAtom::CLabel label = atom1->getBondLabel(atom2);
+
+        C3DVector viewCoords = worldCoordsToViewportCoords((R1 + R2)*0.5 + label.getDisplacement());
+        C3DVector c = label.getColor();
+        drawBitmapText(label.getName().data(), font, viewCoords.x_, viewCoords.y_, c.x_, c.y_, c.z_);
+    }
+}
+
 double C3DView::drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, double r, double g, double b)
 {
     const char* p = text;
@@ -461,7 +538,7 @@ double C3DView::drawBitmapText(const char* text, void* glutBitmapFont, double x,
     {
         glutBitmapCharacter(glutBitmapFont, *p);
         
-    } while( *(++p));
+    } while(*(++p));
     
     glGetIntegerv(GL_CURRENT_RASTER_POSITION, rasterPos);
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -607,9 +684,11 @@ void C3DView::drawMolecules(ESelModes mode)
         {
             std::string ID = (*atoms_)[i]->getID();
             defaultAtProp_->getCPKColor(ID.data(), r, g, b);
+            double radius = useVanDerWaalsRadiusForAtoms_ ? vdwScaleFactor_ * defaultAtProp_->getWDWRadius(ID) : 0.3;
 
             if(mode == selmodeAtoms) glLoadName(i);
-            drawAtom(currFrmAtVec(*(*atoms_)[i]), 0.3, (float)r, (float)g, (float)b);
+            drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, (float)r, (float)g, (float)b);
+            drawAtomLabel((*atoms_)[i].get());
             
             if(mode != selmodeAtoms)
             {
@@ -625,11 +704,14 @@ void C3DView::drawMolecules(ESelModes mode)
                        (fabs(bond.z_) > (pbc_.getWidthZ()/2.0)))    { bondRadius = 0.05; bondAcrossPBC = true; }
                     else                                              bondRadius = 0.2;
                     bond*= 0.5;
-                    
+
                     end = currFrmAtVec(*A1) + bond;
                     
                     if(viewBondsAcrossPBC_ || !bondAcrossPBC)
+                    {
                         drawBond(currFrmAtVec(*A1), end, bondRadius, (float)r, (float)g, (float)b);
+                        drawBondLabel(A1, A2);
+                    }
                 }
             }
         }
@@ -638,10 +720,12 @@ void C3DView::drawMolecules(ESelModes mode)
         {
             for(int i=0; i<(int)atoms_->size(); i++)
             {            
+                std::string ID = (*atoms_)[i]->getID();
+                double radius = useVanDerWaalsRadiusForAtoms_ ? vdwScaleFactor_ * defaultAtProp_->getWDWRadius(ID) : 0.3;
                 if((*atoms_)[i]->isSelected())
                 {
                     if(selCount >= (int)selColorRot_.size()) selCount = 0;
-                    drawAtom(currFrmAtVec(*(*atoms_)[i]), 0.3, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
+                    drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
                     selCount++;
                 }
             }
@@ -974,6 +1058,7 @@ void C3DView::serialize(CSerializer& io, bool saveToStream,
         io << applyUserDefPBC_;
         io << numAtomsBeforeNoDraw_;
         io << fogEnabled_;
+        io << labelsVisible_;
     }
     else
     {
@@ -1014,6 +1099,7 @@ void C3DView::serialize(CSerializer& io, bool saveToStream,
         io >> applyUserDefPBC_;
         io >> numAtomsBeforeNoDraw_;
         io >> fogEnabled_;
+        io >> labelsVisible_;
     }
 }
 
@@ -1031,13 +1117,17 @@ void C3DView::show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::
     glutMainLoop();
 }
 
+void C3DView::setBackgroundColor(C3DVector color)
+{
+    backgroundColor_ = color;
+}
+
 void C3DView::update(bool updateCameraPos)
 {    
     double low, high;
     
+    reinitBackgroundColorAndFog();
     pbc_ = calcPBC();
-
-    // Recalculate camera positions and frustum
     recalcFrustum(low, high);
     
     if(updateCameraPos)
@@ -1369,6 +1459,11 @@ void C3DView::onKeyboard(unsigned char key, int, int)
     }
 }
 
+void C3DView::onKeyboardUp(unsigned char key, int, int)
+{
+    // Nothing here yet!
+}
+
 void C3DView::onSpecialFunc(int key, int, int)
 {
     int mod = glutGetModifiers();
@@ -1405,6 +1500,19 @@ void C3DView::onSpecialFunc(int key, int, int)
             update(false);
             glutPostRedisplay();
         }
+    }
+
+    if(key == GLUT_ACTIVE_SHIFT)
+    {
+        middleMButtonPressed_ = true;
+    }
+}
+
+void C3DView::onSpecialFuncUp(int key, int, int)
+{
+    if(key == GLUT_ACTIVE_SHIFT)
+    {
+        middleMButtonPressed_ = false;
     }
 }
 

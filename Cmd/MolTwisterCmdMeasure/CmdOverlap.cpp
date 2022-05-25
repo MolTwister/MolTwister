@@ -45,8 +45,8 @@ std::string CCmdOverlap::getCmdFreetextHelp()
 
     text+= "\tCounts number of overlaping atoms within the current frame by counting the\r\n";
     text+= "\tnumber of atoms that are closer than the distance <within>. The count is\r\n";
-    text+= "\tlimited to the currently selected atoms, which is specified by the 'sel'\r\n";
-    text+= "\tkeyword.\r\n";
+    text+= "\tdone for all atoms. Specifying the 'sel' keyword will select one atom of\r\n";
+    text+= "\tevery overlapping pair of atoms.\r\n";
     text+= "\r\n";
     text+= "\tOutput:\r\n";
     text+= "\t1. Total number of overlaps within <within> = N\r\n";

@@ -34,6 +34,7 @@
 #include "MolTwisterCmdMeasure/CmdCount.h"
 #include "MolTwisterCmdMeasure/CmdBondCount.h"
 #include "MolTwisterCmdMeasure/CmdOverlap.h"
+#include "MolTwisterCmdMeasure/CmdRadiusOfGyration.h"
 
 using namespace MolTwisterCmdMeasure;
 
@@ -60,6 +61,7 @@ void CCmdMeasure::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdDihedral>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdOverlap>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdPBC>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdRadiusOfGyration>(state_, stdOut_));
 }
 
 std::string CCmdMeasure::getHelpString() const
