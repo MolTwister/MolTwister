@@ -116,6 +116,8 @@ public:
     void setOrthoView(bool set=true) { orthoView_ = set; }
     static void setRedrawLimit(int numAtoms) { numAtomsBeforeNoDraw_ = numAtoms; }
     void setFog(bool enabled) { fogEnabled_ = enabled; }
+    void useVDWRadiusForAtoms(bool enabled) { useVanDerWaalsRadiusForAtoms_ = enabled; }
+    void setVDWScaleFactor(double scaleFactor) { vdwScaleFactor_ = scaleFactor; }
     void setLabelVisibility(bool visible=true) { labelsVisible_ = visible; }
     void setLabelFontSize(int fontSize=12) { labelsFontSize_ = fontSize; }
     void setBackgroundColor(C3DVector color = C3DVector(0.3, 0.3, 0.3));
@@ -146,6 +148,7 @@ private:
     static void reinitBackgroundColorAndFog();
     static void drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection=false, C3DVector selColor=C3DVector(1.0, 1.0, 1.0));
     static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b);
+    static void* getBitmapFont(int fontSize);
     static void drawAtomLabel(CAtom* atom);
     static void drawBondLabel(CAtom* atom1, CAtom* atom2);
     static double drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, double r, double g, double b);
@@ -193,6 +196,8 @@ private:
     static bool labelsVisible_;
     static int labelsFontSize_;
     static C3DVector backgroundColor_;
+    static bool useVanDerWaalsRadiusForAtoms_;
+    static double vdwScaleFactor_;
 };
 
 END_CUDA_COMPATIBLE()

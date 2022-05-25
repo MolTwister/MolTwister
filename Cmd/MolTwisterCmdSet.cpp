@@ -35,6 +35,8 @@ void CCmdSet::onAddKeywords()
     addKeyword("userdefpbc");
     addKeyword("redrawlimit");
     addKeyword("fog");
+    addKeyword("usevdwradius");
+    addKeyword("vdwscalefactor");
     addKeyword("labels");
     addKeyword("labelsfontsize");
     addKeyword("backgroundcolor");
@@ -51,6 +53,8 @@ std::string CCmdSet::getHelpString() const
     text+= "\t       set bondacrosspbc <bondacrosspbc>\r\n";
     text+= "\t       set redrawlimit <num atoms>\r\n";
     text+= "\t       set fog <fog>\r\n";
+    text+= "\t       set usevdwradius <usevdwradius>\r\n";
+    text+= "\t       set vdwscalefactor <vdwscalefactor>\r\n";
     text+= "\t       set labels <labels>\r\n";
     text+= "\t       set labelsfontsize <fontsize>\r\n";
     text+= "\t       set backgroundcolor <r> <g> <b>\r\n";
@@ -74,6 +78,9 @@ std::string CCmdSet::getHelpString() const
     text+= "\taxis system. All atoms will be redrawn once the corresponding mouse button is released.\r\n";
     text+= "\r\n";
     text+= "\tThe <fog> can be either 'on' or 'off'.\r\n";
+    text+= "\r\n";
+    text+= "\tThe <usevdwradius> can be either 'on' or 'off'. If 'on' the atoms are drawn using the\r\n";
+    text+= "\tbuilt in van der Waals radius multiplied by <vdwscalefactor> (default 1).\r\n";
     text+= "\r\n";
     text+= "\tThe <labels> can be either 'on' or 'off'. If 'on', the atom and bond labels defined in the\r\n";
     text+= "\t'add atom' command will be displayed.\r\n";
@@ -122,6 +129,16 @@ void CCmdSet::execute(std::string commandLine)
     else if(text == "fog")
     {
         parseFogCommand(commandLine, arg);
+    }
+
+    else if(text == "usevdwradius")
+    {
+        parseUsevdwradiusCommand(commandLine, arg);
+    }
+
+    else if(text == "vdwscalefactor")
+    {
+        parseVdwscalefactorCommand(commandLine, arg);
     }
 
     else if(text == "labels")
@@ -278,6 +295,50 @@ void CCmdSet::parseFogCommand(std::string commandLine, int& arg)
     else
     {
         printf("Syntax Error: Third argument should be 'on' or 'off'!");
+    }
+}
+
+void CCmdSet::parseUsevdwradiusCommand(std::string commandLine, int& arg)
+{
+    std::string text;
+
+    text = CASCIIUtility::getWord(commandLine, arg++);
+    if(text == "on")
+    {
+        if(state_->view3D_)
+        {
+            state_->view3D_->useVDWRadiusForAtoms(true);
+        }
+    }
+    else if(text == "off")
+    {
+        if(state_->view3D_)
+        {
+            state_->view3D_->useVDWRadiusForAtoms(false);
+        }
+    }
+    else
+    {
+        printf("Syntax Error: Third argument should be 'on' or 'off'!");
+    }
+}
+
+void CCmdSet::parseVdwscalefactorCommand(std::string commandLine, int &arg)
+{
+    if(state_->view3D_)
+    {
+        std::string text;
+
+        text = CASCIIUtility::getWord(commandLine, arg++);
+        double scaleFactor = atof(text.data());
+        if(scaleFactor > 0.0)
+        {
+            state_->view3D_->setVDWScaleFactor(scaleFactor);
+        }
+        else
+        {
+            printf("Syntax Error: Third argument should be greater than zero!");
+        }
     }
 }
 

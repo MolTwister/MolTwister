@@ -62,6 +62,8 @@ bool C3DView::fogEnabled_ = false;
 bool C3DView::labelsVisible_ = false;
 int C3DView::labelsFontSize_ = 12;
 C3DVector C3DView::backgroundColor_ = C3DVector(0.3, 0.3, 0.3);
+bool C3DView::useVanDerWaalsRadiusForAtoms_ = false;
+double C3DView::vdwScaleFactor_ = 1.0;
 
 void C3DView::CCamera::serialize(CSerializer& io, bool saveToStream)
 {
@@ -459,16 +461,30 @@ bool C3DView::drawBond(C3DVector R1, C3DVector R2, double radius, float r, float
     return true;
 }
 
+void* C3DView::getBitmapFont(int fontSize)
+{
+    void* font = nullptr;
+
+    if(fontSize == 10) font = GLUT_BITMAP_HELVETICA_10;
+    if(fontSize == 12) font = GLUT_BITMAP_HELVETICA_12;
+    if(fontSize == 18) font = GLUT_BITMAP_HELVETICA_18;
+
+    return font;
+}
+
 void C3DView::drawAtomLabel(CAtom *atom)
 {
     if(labelsVisible_)
     {
+        void* font = getBitmapFont(labelsFontSize_);
+        if(!font) return;
+
         C3DVector R = atom->r_[*currentFrame_];
         CAtom::CLabel label = atom->getAtomLabel();
 
         C3DVector viewCoords = worldCoordsToViewportCoords(R + label.getDisplacement());
         C3DVector c = label.getColor();
-        drawBitmapText(label.getName().data(), GLUT_BITMAP_HELVETICA_12, viewCoords.x_, viewCoords.y_, c.x_, c.y_, c.z_);
+        drawBitmapText(label.getName().data(), font, viewCoords.x_, viewCoords.y_, c.x_, c.y_, c.z_);
     }
 }
 
@@ -476,10 +492,7 @@ void C3DView::drawBondLabel(CAtom *atom1, CAtom *atom2)
 {
     if(labelsVisible_)
     {
-        void* font = nullptr;
-        if(labelsFontSize_ == 10) font = GLUT_BITMAP_HELVETICA_10;
-        if(labelsFontSize_ == 12) font = GLUT_BITMAP_HELVETICA_12;
-        if(labelsFontSize_ == 18) font = GLUT_BITMAP_HELVETICA_18;
+        void* font = getBitmapFont(labelsFontSize_);
         if(!font) return;
 
         C3DVector R1 = atom1->r_[*currentFrame_];
@@ -671,9 +684,10 @@ void C3DView::drawMolecules(ESelModes mode)
         {
             std::string ID = (*atoms_)[i]->getID();
             defaultAtProp_->getCPKColor(ID.data(), r, g, b);
+            double radius = useVanDerWaalsRadiusForAtoms_ ? vdwScaleFactor_ * defaultAtProp_->getWDWRadius(ID) : 0.3;
 
             if(mode == selmodeAtoms) glLoadName(i);
-            drawAtom(currFrmAtVec(*(*atoms_)[i]), 0.3, (float)r, (float)g, (float)b);
+            drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, (float)r, (float)g, (float)b);
             drawAtomLabel((*atoms_)[i].get());
             
             if(mode != selmodeAtoms)
@@ -706,10 +720,12 @@ void C3DView::drawMolecules(ESelModes mode)
         {
             for(int i=0; i<(int)atoms_->size(); i++)
             {            
+                std::string ID = (*atoms_)[i]->getID();
+                double radius = useVanDerWaalsRadiusForAtoms_ ? vdwScaleFactor_ * defaultAtProp_->getWDWRadius(ID) : 0.3;
                 if((*atoms_)[i]->isSelected())
                 {
                     if(selCount >= (int)selColorRot_.size()) selCount = 0;
-                    drawAtom(currFrmAtVec(*(*atoms_)[i]), 0.3, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
+                    drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
                     selCount++;
                 }
             }
