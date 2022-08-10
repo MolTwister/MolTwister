@@ -197,62 +197,17 @@ void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSim
 
 void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize)
 {
-    FILE* file = fopen(fileNameDCD_.data(), "r");
+    int numTimeSteps = simBox.getNumTimeSteps();
+    int outputStride = simBox.getOutputStride();
 
-    // Check if DCD file exists. If not, create it and add an appropriate header
-    if(!file)
+    std::function<std::tuple<double, double, double>(const int&)> getAtomPos = [&particles](const int& atomIndex)
     {
-        file = fopen(fileNameDCD_.data(), "w");
-        if(file)
-        {
-            int numTimeSteps = simBox.getNumTimeSteps();
-            int outputStride = simBox.getOutputStride();
+        C3DVector r = particles[atomIndex].r_;
+        return std::tuple<double, double, double>(r.x_, r.y_, r.z_);
+    };
 
-            CDCDFile::CMainHeader mainHeader;
-            mainHeader.ID_ = "CORD";
-            mainHeader.nSets_ = numTimeSteps / outputStride;
-            mainHeader.initStep_ = 0;
-            mainHeader.wrtFreq_ = outputStride;
-            mainHeader.timeStep_ = (float)simBox.getTimeStep();
-            mainHeader.descriptA_ = "Written by MolTwister";
-            mainHeader.descriptB_ = "---";
-            mainHeader.nAtoms_ = (int)particles.size();
-
-            int numBytesWritten = 0;
-            mainHeader.write(file, numBytesWritten);
-        }
-
-        fclose(file);
-    }
-    else
-    {
-        fclose(file);
-    }
-
-    // Open the DCD file and place the file pointer at the end of the file
-    file = fopen(fileNameDCD_.data(), "a+");
-    if(!file) return;
-
-    // Write a DCD record, starting at the end of the file
-    CDCDFile::CRecordHeader recordHeader;
-    recordHeader.boxX_ = boxSize.x_;
-    recordHeader.boxY_ = boxSize.y_;
-    recordHeader.boxZ_ = boxSize.z_;
-
-    CDCDFile::CRecord record;
-    record.setRecordHeader(recordHeader);
-
-    int numBytesWritten = 0;
-    record.init((int)particles.size(), true);
-
-    for(size_t i=0; i<particles.size(); i++)
-    {
-        C3DVector r = particles[i].r_;
-        record.setPos((int)i, r.x_, r.y_, r.z_);
-    }
-    record.write(file, numBytesWritten);
-
-    fclose(file);
+    CDCDFile::createDCDFileIfNotExists(fileNameDCD_, numTimeSteps, outputStride, simBox.getTimeStep(), (int)particles.size());
+    CDCDFile::appendToDCDFile(fileNameDCD_, (int)particles.size(), { boxSize.x_, boxSize.y_, boxSize.z_ }, getAtomPos);
 }
 
 void CMDLoop::resizeDistrArrays(std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, int size, int NArrays)

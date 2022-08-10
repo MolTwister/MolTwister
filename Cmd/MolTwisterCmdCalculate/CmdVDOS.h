@@ -20,6 +20,9 @@
 
 #pragma once
 #include "../Tools/MolTwisterCmdEntry.h"
+#include "../../Utilities/FFT1D.h"
+#include "../../Utilities/DCDFile.h"
+#include "../Tools/ProgressBar.h"
 
 class CCmdVDOS : public CCmdEntry
 {
@@ -34,6 +37,10 @@ public:
     std::vector<std::string> getCmdHelpLines();
     std::string getCmdFreetextHelp();
     std::string execute(std::vector<std::string> arguments);
+
+private:
+    std::string fillAtomTrajectoryAvgAtoms(const std::vector<int>& atomIndicesToInclude, int frameFrom, int frameTo, int fftLen, std::vector<std::vector<std::vector<CFFT1D::CCplx>>>& atomTrajectory, CProgressBar& pb, CDCDFile& dcdFile) const;
+    std::string fillAtomTrajectoryCOMOfAtoms(const std::vector<int>& atomIndicesToInclude, int frameFrom, int frameTo, int fftLen, std::vector<std::vector<std::vector<CFFT1D::CCplx>>>& atomTrajectory, CProgressBar& pb, CDCDFile& dcdFile) const;
 
 private:
     std::string lastError_;

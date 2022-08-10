@@ -136,6 +136,8 @@ public:
     CRecordHeader getCurrentRecordHeader() const { return currentRecord_.getRecordHeader(); }
     C3DRect getCurrentBoundingBox() const;
     C3DRect getCurrentPBC() const;
+    static void createDCDFileIfNotExists(const std::string& filePath, int numTimeSteps, int stride, double timeStep, int numAtoms);
+    static void appendToDCDFile(const std::string& filePath, int numAtoms, std::tuple<int, int, int> boxSize, std::function<std::tuple<double, double, double>(const int& atomPos)> getAtomPos);
     
 private:
     FILE* file_;

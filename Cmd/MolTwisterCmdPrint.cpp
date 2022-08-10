@@ -232,7 +232,7 @@ void CCmdPrint::parsePDBCommand(std::string commandLine, int& arg)
         {
             int molIndex = state_->atoms_[i]->getMolIndex();
             if(molIndex < 10000)   sprintf(stringMolIndex, "%4i", molIndex);
-            else                    sprintf(stringMolIndex, "****");
+            else                   sprintf(stringMolIndex, "****");
             
             if(i < 100000)  sprintf(stringIndex, "%5i", i);
             else            sprintf(stringIndex, "%5x", i);
