@@ -20,6 +20,7 @@
 
 #pragma once
 #include "Utilities/ASCIIUtility.h"
+#include "Utilities/DCDFile.h"
 #include "MolTwisterCommandPool.h"
 #include "Cmd/MolTwisterCmdPrint.h"
 #include "MolTwister.h"
@@ -185,6 +186,152 @@ static PyObject* moltwister_mt_is_atom_sel(PyObject*, PyObject* args)
     return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->isSelected() ? 1 : 0);
 }
 
+static PyObject* moltwister_mt_create_xyz_file(PyObject*, PyObject* args)
+{
+    const char* filePath;
+
+    if(!PyArg_ParseTuple(args, "s", &filePath)) return nullptr;
+
+    FILE* file = fopen(filePath, "w");
+    if(file)
+    {
+        fclose(file);
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject* moltwister_mt_append_to_xyz_file(PyObject*, PyObject* args)
+{
+    const double toAU = 1.8897261245651;
+    const char* filePath;
+    double boxSizeX = 0.0;
+    double boxSizeY = 0.0;
+    double boxSizeZ = 0.0;
+    PyObject* atomCoordinates = nullptr;
+    bool convertToAU = false;
+
+    if(!PyArg_ParseTuple(args, "sdddpO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &convertToAU, &PyList_Type, &atomCoordinates)) return nullptr;
+    Py_ssize_t numAtoms = PyList_Size(atomCoordinates);
+    if(numAtoms < 0) return nullptr;
+
+    std::vector<std::pair<std::string, C3DVector>> cppAtomCoordinates(numAtoms);
+    for(Py_ssize_t i=0; i<numAtoms; i++)
+    {
+        PyObject* coordinate = PyList_GetItem(atomCoordinates, i);
+        Py_ssize_t numEntries = PyList_Size(coordinate);
+        if(numEntries != 4) continue;
+
+        C3DVector cppCoordinate;
+        std::string atomType;
+
+        PyObject* entry = PyList_GetItem(coordinate, 0);
+        PyObject* repr = PyObject_Repr(entry);
+        PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+        atomType = PyBytes_AS_STRING(str);
+        Py_XDECREF(repr);
+        Py_XDECREF(str);
+
+        entry = PyList_GetItem(coordinate, 1);
+        cppCoordinate.x_ = PyFloat_AsDouble(entry);
+
+        entry = PyList_GetItem(coordinate, 2);
+        cppCoordinate.y_ = PyFloat_AsDouble(entry);
+
+        entry = PyList_GetItem(coordinate, 3);
+        cppCoordinate.z_ = PyFloat_AsDouble(entry);
+
+        cppAtomCoordinates[i] = { atomType, cppCoordinate };
+    }
+
+    FILE* file = fopen(filePath, "a+");
+    if(file)
+    {
+        int numAtoms = (int)cppAtomCoordinates.size();
+        fprintf(file, "\t%i\r\n\tXYZ file, PBC = (%g, %g, %g)\r\n", numAtoms, boxSizeX, boxSizeY, boxSizeZ);
+        for(int i=0; i<numAtoms; i++)
+        {
+            std::string ID = cppAtomCoordinates[i].first;
+            C3DVector r = cppAtomCoordinates[i].second;
+            double x = r.x_;
+            double y = r.y_;
+            double z = r.z_;
+            if(convertToAU) { x*= toAU; y*= toAU; z*= toAU;}
+            fprintf(file, "\t%-5s% -13.3f% -13.3f% -13.3f\r\n", ID.data(), x, y, z);
+        }
+
+        fprintf(file, "\r\n");
+        fclose(file);
+    }
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject* moltwister_mt_create_dcd_file(PyObject*, PyObject* args)
+{
+    const char* filePath;
+    int numTimeSteps = 0;
+    int stride = 1;
+    double timeStep = 1.0;
+    int numAtoms = 1;
+
+    if(!PyArg_ParseTuple(args, "siidi", &filePath, &numTimeSteps, &stride, &timeStep, &numAtoms)) return nullptr;
+
+    CDCDFile::createDCDFileIfNotExists(filePath, numTimeSteps, stride, timeStep, numAtoms);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject* moltwister_mt_append_to_dcd_file(PyObject*, PyObject* args)
+{
+    const char* filePath;
+    double boxSizeX = 0.0;
+    double boxSizeY = 0.0;
+    double boxSizeZ = 0.0;
+    PyObject* atomCoordinates = nullptr;
+
+    if(!PyArg_ParseTuple(args, "sdddO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &PyList_Type, &atomCoordinates)) return nullptr;
+    Py_ssize_t numAtoms = PyList_Size(atomCoordinates);
+    if(numAtoms < 0) return nullptr;
+
+    std::vector<C3DVector> cppAtomCoordinates(numAtoms);
+    for(Py_ssize_t i=0; i<numAtoms; i++)
+    {
+        PyObject* coordinate = PyList_GetItem(atomCoordinates, i);
+        Py_ssize_t numEntries = PyList_Size(coordinate);
+        if(numEntries != 3) continue;
+
+        C3DVector cppCoordinate;
+
+        PyObject* entry = PyList_GetItem(coordinate, 0);
+        cppCoordinate.x_ = PyFloat_AsDouble(entry);
+
+        entry = PyList_GetItem(coordinate, 1);
+        cppCoordinate.y_ = PyFloat_AsDouble(entry);
+
+        entry = PyList_GetItem(coordinate, 2);
+        cppCoordinate.z_ = PyFloat_AsDouble(entry);
+
+        cppAtomCoordinates[i] = cppCoordinate;
+    }
+
+    CDCDFile dcdFile;
+
+    std::function<std::tuple<double, double, double>(const int&)> getAtomPos = [&cppAtomCoordinates](const int& atomIndex)
+    {
+        C3DVector r = cppAtomCoordinates[atomIndex];
+        return std::tuple<double, double, double>(r.x_, r.y_, r.z_);
+    };
+
+    CDCDFile::appendToDCDFile(filePath, (int)numAtoms, { boxSizeX, boxSizeY, boxSizeZ }, getAtomPos);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
 static PyObject* moltwister_mt_begin_progress(PyObject*, PyObject* args)
 {
     const char* argLinePtr;
@@ -227,6 +374,10 @@ static PyMethodDef MolTwisterMethods[] =
     {"mt_get_atom_resname", moltwister_mt_get_atom_resname, METH_VARARGS, "Get atom resname."},
     {"mt_get_atom_molindex", moltwister_mt_get_atom_molindex, METH_VARARGS, "Get atom molecular index."},
     {"mt_is_atom_sel", moltwister_mt_is_atom_sel, METH_VARARGS, "Check if atom is selected 1:yes, 0:no."},
+    {"mt_create_xyz_file", moltwister_mt_create_xyz_file, METH_VARARGS, "Create XYZ file."},
+    {"mt_append_to_xyz_file", moltwister_mt_append_to_xyz_file, METH_VARARGS, "Append to XYZ file from array of [atom type, x, y, z] lists."},
+    {"mt_create_dcd_file", moltwister_mt_create_dcd_file, METH_VARARGS, "Create DCD file with basic header information."},
+    {"mt_append_to_dcd_file", moltwister_mt_append_to_dcd_file, METH_VARARGS, "Append to DCD file from array of atom coordinates."},
     {"mt_begin_progress", moltwister_mt_begin_progress, METH_VARARGS, "Shows initial progress bar with given text."},
     {"mt_update_progress", moltwister_mt_update_progress, METH_VARARGS, "Updates progress bar according to given step information."},
     {"mt_end_progress", moltwister_mt_end_progress, METH_VARARGS, "Finishes progress bar, showing as 100 percent complete."},

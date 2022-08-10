@@ -667,6 +667,67 @@ C3DRect CDCDFile::getCurrentPBC() const
     return pbc;
 }
 
+void CDCDFile::createDCDFileIfNotExists(const std::string& filePath, int numTimeSteps, int stride, double timeStep, int numAtoms)
+{
+    FILE* file = fopen(filePath.data(), "r");
+
+    // Check if DCD file exists. If not, create it and add an appropriate header
+    if(!file)
+    {
+        file = fopen(filePath.data(), "w");
+        if(file)
+        {
+            CDCDFile::CMainHeader mainHeader;
+            mainHeader.ID_ = "CORD";
+            mainHeader.nSets_ = numTimeSteps / stride;
+            mainHeader.initStep_ = 0;
+            mainHeader.wrtFreq_ = stride;
+            mainHeader.timeStep_ = (float)timeStep;
+            mainHeader.descriptA_ = "Written by MolTwister";
+            mainHeader.descriptB_ = "---";
+            mainHeader.nAtoms_ = numAtoms;
+
+            int numBytesWritten = 0;
+            mainHeader.write(file, numBytesWritten);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        fclose(file);
+    }
+}
+
+void CDCDFile::appendToDCDFile(const std::string& filePath, int numAtoms, std::tuple<int, int, int> boxSize, std::function<std::tuple<double, double, double>(const int& atomIndex)> getAtomPos)
+{
+    // Open the DCD file and place the file pointer at the end of the file
+    FILE* file = fopen(filePath.data(), "a+");
+    if(!file) return;
+
+    // Write a DCD record, starting at the end of the file
+    CDCDFile::CRecordHeader recordHeader;
+    recordHeader.boxX_ = std::get<0>(boxSize);
+    recordHeader.boxY_ = std::get<1>(boxSize);
+    recordHeader.boxZ_ = std::get<2>(boxSize);
+
+    CDCDFile::CRecord record;
+    record.setRecordHeader(recordHeader);
+
+    int numBytesWritten = 0;
+    record.init(numAtoms, true);
+
+    for(size_t i=0; i<numAtoms; i++)
+    {
+        auto atomPos = getAtomPos((int)i);
+        C3DVector r(std::get<0>(atomPos), std::get<1>(atomPos), std::get<2>(atomPos));
+        record.setPos((int)i, r.x_, r.y_, r.z_);
+    }
+    record.write(file, numBytesWritten);
+
+    fclose(file);
+}
+
 void CDCDFile::setCoordinate(int coordinateIndex, int coordinate, double val)
 {
     std::pair<const float*, size_t> xPositions = currentRecord_.getCoordinateDataX();

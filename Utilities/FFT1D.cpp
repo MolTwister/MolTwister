@@ -32,10 +32,10 @@ std::shared_ptr<std::vector<CFFT1D::CCplx>> CFFT1D::fft1D(const std::vector<CCpl
     return out;
 }
 
-std::shared_ptr<std::vector<CFFT1D::CCplx>> CFFT1D::dft1D(const std::vector<CCplx> &in, int stride, EDir) const
+std::shared_ptr<std::vector<CFFT1D::CCplx>> CFFT1D::dft1D(const std::vector<CCplx> &in, int stride, EDir dir) const
 {
     auto out = std::make_shared<std::vector<CCplx>>(in.size());
-    dft1D(in, 0, static_cast<int>(in.size()), *out, stride);
+    dft1D(in, 0, static_cast<int>(in.size()), *out, stride, dir);
 
     return out;
 }
