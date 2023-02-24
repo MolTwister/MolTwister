@@ -18,7 +18,7 @@
 # along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
 # ************************************************************************************
 # Function declataions
@@ -68,7 +68,7 @@ endfunction()
 # CMake main body
 # ************************************************************************************
 option(CUDA_DBG_INFO "Include CUDA debug info" OFF)
-option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" ON)
+option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" OFF)
 
 if(${INCLUDE_CUDA_COMMANDS})
     project(MolTwister LANGUAGES CXX CUDA)
@@ -84,15 +84,15 @@ endif()
 
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(PythonLibs REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(Threads REQUIRED)
 
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(${PYTHON_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-link_libraries(${PYTHON_LIBRARIES})
+include_directories(${Python3_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+link_libraries(Python3::Python GLUT::GLUT)
 
 source_group("MolTwister" FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -479,7 +479,7 @@ if(${INCLUDE_CUDA_COMMANDS})
     set(CUDA_MT_LIB MolTwisterCudaLib)
 endif()
 
-target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline util)
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
 install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)

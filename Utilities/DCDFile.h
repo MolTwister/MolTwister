@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <tuple>
 #include "3DVector.h"
 #include "3DRect.h"
 
