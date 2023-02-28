@@ -21,6 +21,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <functional>
 #include "CmdAtom.h"
 #include "../../Utilities/ASCIIUtility.h"
 

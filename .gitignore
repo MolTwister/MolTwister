@@ -4,6 +4,7 @@
 CMakeLists.txt.user
 CMakeCache.txt
 MakeFile
+Makefile
 launch.json
 tasks.json
 cmake_install*.cmake

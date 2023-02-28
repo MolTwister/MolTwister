@@ -92,7 +92,7 @@ find_package(Threads REQUIRED)
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${Python3_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-link_libraries(Python3::Python GLUT::GLUT)
+link_libraries(Python3::Python OpenGL::GLU GLUT::GLUT)
 
 source_group("MolTwister" FILES ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -19,6 +19,7 @@
 //
 
 #include "CmdRadiusOfGyration.h"
+#include <functional>
 #include "../../Utilities/ASCIIUtility.h"
 #include "../Tools/MolTwisterStateTools.h"
 
