@@ -69,6 +69,8 @@ public:
     void getAllMDDihedralsInSystem(std::vector<int>& atoms1, std::vector<int>& atoms2, std::vector<int>& atoms3, std::vector<int>& atoms4, std::vector<int>& mdTypeIndex, bool bondsAcrossPBC=false);
     void reportConsistencyOfMDForceField(FILE* file=stdout);
     C3DVector getCenterOfMass(const std::vector<int>& atomIndices, int frameIndex) const;
+    C3DVector getGeometricCenter(const std::vector<int>& atomIndices, int frameIndex) const;
+    static C3DVector getGeometricCenter(const std::vector<CAtom*>& atoms, int frameIndex);
     double measureTotCoulombEnergy(const double* a1to4BondSepCoeffs=nullptr, int frame=-1) const;
     double measureCoulombPotential(C3DVector at, const std::vector<std::shared_ptr<CAtom>>* atoms, int frame) const;
     double measureCoulombPotential(C3DVector at, int frame=-1) const;

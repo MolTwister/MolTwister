@@ -55,6 +55,7 @@ public:
     HOSTDEV_CALLABLE double angleAcrossPBC(const C3DVector& v1, const C3DVector& v3, const C3DRect& pbc) const;
     HOSTDEV_CALLABLE C3DVector unit() const;
     HOSTDEV_CALLABLE void normalize();
+    HOSTDEV_CALLABLE void rotate(const C3DVector& rotCenter, const double& alpha, const double& beta, const double& gamma);
     HOSTDEV_CALLABLE C3DVector cross(const C3DVector& rhs) const;
     HOSTDEV_CALLABLE C3DVector operator+(const C3DVector& rhs) const;
     HOSTDEV_CALLABLE C3DVector operator+=(const C3DVector& rhs);

@@ -211,6 +211,35 @@ HOSTDEV_CALLABLE void C3DVector::normalize()
     z_/= d;
 }
 
+HOSTDEV_CALLABLE void C3DVector::rotate(const C3DVector& rotCenter, const double& alpha, const double& beta, const double& gamma)
+{
+    const C3DVector r = C3DVector(x_, y_, z_) - rotCenter;
+
+    const double ca = cos(alpha);
+    const double cb = cos(beta);
+    const double cg = cos(gamma);
+
+    const double sa = sin(alpha);
+    const double sb = sin(beta);
+    const double sg = sin(gamma);
+
+    const double a11 = ca*cb;
+    const double a12 = ca*sb*sg - sa*cg;
+    const double a13 = ca*sb*cg + sa*sg;
+
+    const double a21 = sa*cb;
+    const double a22 = sa*sb*sg + ca*cg;
+    const double a23 = sa*sb*cg - ca*sg;
+
+    const double a31 = -sb;
+    const double a32 = cb*sg;
+    const double a33 = cb*cg;
+
+    x_ = rotCenter.x_ +  r.x_*a11 + r.y_*a12 + r.z_*a13;
+    y_ = rotCenter.y_ +  r.x_*a21 + r.y_*a22 + r.z_*a23;
+    z_ = rotCenter.z_ +  r.x_*a31 + r.y_*a32 + r.z_*a33;
+}
+
 HOSTDEV_CALLABLE C3DVector C3DVector::cross(const C3DVector &rhs) const
 {
     C3DVector ret;
