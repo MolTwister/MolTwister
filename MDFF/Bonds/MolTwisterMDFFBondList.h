@@ -22,9 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFBond.h"
-#include "MolTwisterMDFFBond_Harm.h"
-#include "MolTwisterMDFFBond_Morse.h"
-#include "MolTwisterMDFFBond_LJC.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

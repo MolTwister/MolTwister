@@ -50,6 +50,7 @@ public:
     double getTimeStep() { return molDynConfig_.timeStep_; }
     int getOutputStride() { return molDynConfig_.outputStride_; }
     int getNumTimeSteps() { return molDynConfig_.numberOfTimeSteps_; }
+    double getGradDescentLearningRate() { return molDynConfig_.gradientDescentLearningRate_; }
 
     void NHTPropagator(CFct& fct)
         { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT || molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNVT) NH_T_.propagator(N_, dim_, dt_, fct); }
@@ -57,11 +58,13 @@ public:
         { if(molDynConfig_.ensemble_ == SMolDynConfigStruct::ensembleNPT) NH_P_.propagator(N_, dim_, dt_, fct); }
     void velVerPropagator(mthost_vector<CMDFFMatrices::CForces>& F, C3DVector& boxSizeOut)
         { velVerlet_.propagator(N_, dim_, dt_, LmaxX_, LmaxY_, LmaxZ_, particles_, F, molDynConfig_.ensemble_, boxSizeOut); }
+    void gradientDescentStep(mthost_vector<CMDFFMatrices::CForces>& F);
     mthost_vector<CMDFFMatrices::CForces> calcParticleForces()
         { return velVerlet_.calcParticleForces(dim_, LmaxX_, LmaxY_, LmaxZ_, particles_); }
     std::string getAtomType(int index);
     double calcCurrentKineticEnergy();
-    
+    double calcUtot(const mthost_vector<CMDFFMatrices::CForces>& F) const;
+
 private:
     void initSystem();
     void resizeArrays();

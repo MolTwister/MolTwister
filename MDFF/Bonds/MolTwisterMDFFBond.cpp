@@ -133,7 +133,7 @@ bool CMDFFBond::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector& f1,
 std::vector<std::pair<float, float>> CMDFFBond::calc1DForceProfile(float rStart, float rEnd, int points) const
 {
     // We first note that for U=U(r), the force is F_2=-grad_2 U = -dU/dr * (dr/dx_2, dr/dy_2, dr/dz_2),
-    // where r = sqrt((x_2 - x_1)^2 + (y_2 - y_1)^2 + (z_2 - z_1)^2). We which to calculate (-dU/dr). This,
+    // where r = sqrt((x_2 - x_1)^2 + (y_2 - y_1)^2 + (z_2 - z_1)^2). We wish to calculate (-dU/dr). This,
     // is done by calling calcForces() to obtain F_2.x and then calcBondForceCoeffs12() to obtain dr/dx_2.
     // Thus, (-dU/dr) = F_2.x / (dr/dx_2).
     std::vector<std::pair<float, float>> profile;

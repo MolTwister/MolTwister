@@ -35,7 +35,8 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "infofile", "xyzfile", "dcdfile", "pdistrfile", "vdistrfile",
              "includexyzfile", "includedcdfile", "includepdistrfile", "includevdistrfile",
              "maxpdistr", "maxvdistr", "verboseoutput",
-             "scale12", "scale13", "scale14", "scale1N"
+             "scale12", "scale13", "scale14", "scale1N", "optmaxsteps", "optlearningrate",
+             "optaccuracy"
            };
 }
 
@@ -80,6 +81,10 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tmaxvdistr = %g AA^3; Desired maximum volume to use for volume distribution output.\r\n", cfg_.maxVDistrOutput_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tverboseoutput {yes, no} = %s; Let output to screen be verbose.\r\n", cfg_.verboseOutput_ ? "Yes" : "No");
+    fprintf(stdOut, "\r\n");
+    fprintf(stdOut, "\toptlearningrate = %g; Learning rate, or step size, of gradient descent algorithm used for energy optimization.\r\n", cfg_.gradientDescentLearningRate_);
+    fprintf(stdOut, "\toptmaxsteps = %i; Maximum number of steps used for energy optimization.\r\n", cfg_.gradientDescentMaxSteps_);
+    fprintf(stdOut, "\toptaccuracy = %g; Accuracy, a, for energy optimization in kJ/mol, which terminates if |U_(n+1) - U_(n)| < a.\r\n", cfg_.gradientDescentAccuracy_);
 
     fprintf(stdOut, "\r\n\t------------------------------------------\r\n");
 }
@@ -241,6 +246,18 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.scaleAbove14BondedInteractions_ = std::atof(value.data());
     }
+    else if(parameter == "optlearningrate")
+    {
+        cfg_.gradientDescentLearningRate_ = std::atof(value.data());
+    }
+    else if(parameter == "optmaxsteps")
+    {
+        cfg_.gradientDescentMaxSteps_ = std::atoi(value.data());
+    }
+    else if(parameter == "optaccuracy")
+    {
+        cfg_.gradientDescentAccuracy_ = std::atof(value.data());
+    }
     else
     {
         return "Error: unknown parameter!";
@@ -282,4 +299,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.scale13Interactions_ = 0.0;
     cfg_.scale14Interactions_ = 0.5;
     cfg_.scaleAbove14BondedInteractions_ = 0.0;
+    cfg_.gradientDescentLearningRate_ = 1e-6;
+    cfg_.gradientDescentMaxSteps_ = 5000;
+    cfg_.gradientDescentAccuracy_ = 0.0;
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -18,7 +18,7 @@
 // along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
 //
 
-#include "CmdRun.h"
+#include "CmdOptimizeEnergy.h"
 #include "../../Utilities/ASCIIUtility.h"
 #include "Simulator/MDSimulator.h"
 
@@ -29,36 +29,36 @@ namespace mtdev
 }
 #endif
 
-std::string CCmdRun::getCmd()
+std::string CCmdOptimizeEnergy::getCmd()
 {
-    return "run";
+    return "optimizeenergy";
 }
 
-std::vector<std::string> CCmdRun::getCmdLineKeywords()
+std::vector<std::string> CCmdOptimizeEnergy::getCmdLineKeywords()
 {
-    return { "run", "cpu" };
+    return { "optimizeenergy", "cpu" };
 }
 
-std::vector<std::string> CCmdRun::getCmdHelpLines()
+std::vector<std::string> CCmdOptimizeEnergy::getCmdHelpLines()
 {
     return {
-        "run [cpu]"
+        "optimizeenergy [cpu]"
     };
 }
 
-std::string CCmdRun::getCmdFreetextHelp()
+std::string CCmdOptimizeEnergy::getCmdFreetextHelp()
 {
     std::string text;
 
-    text+= "\tThis command will run a molecular dynamics (MD) simulation. If the 'cpu' keyword is included, the\r\n";
-    text+= "\tsimulation will be forced to be executed on the CPU. If not, an attempt will be made to run the\r\n";
-    text+= "\tsimulation on GPU. If this does not succeed (e.g., if the software is not compiled to run on GPU)\r\n";
-    text+= "\tthe simulation will be executed on CPU.";
+    text+= "\tThis command will run an energy optimization. If the 'cpu' keyword is included, the\r\n";
+    text+= "\toptimization will be forced to be executed on the CPU. If not, an attempt will be made to run the\r\n";
+    text+= "\toptimization on GPU. If this does not succeed (e.g., if the software is not compiled to run on GPU)\r\n";
+    text+= "\tthe optimization will be executed on CPU.";
 
     return text;
 }
 
-std::string CCmdRun::execute(std::vector<std::string> arguments)
+std::string CCmdOptimizeEnergy::execute(std::vector<std::string> arguments)
 {
     lastError_ = "";
 
@@ -96,23 +96,23 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
         runOnGPU = false;
         if(compiledForGPU)
         {
-            fprintf(stdOut_, "\tMolTwister is compiled for GPU, but 'cpu' was explicitly specified. Hence, simulation will run on CPU!\r\n");
+            fprintf(stdOut_, "\tMolTwister is compiled for GPU, but 'cpu' was explicitly specified. Hence, energy optimization will run on CPU!\r\n");
         }
         else
         {
-            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU, but 'cpu' was explicitly specified. Hence, simulation will run on CPU!\r\n");
+            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU, but 'cpu' was explicitly specified. Hence, engergy optimization will run on CPU!\r\n");
         }
     }
     else
     {
         if(compiledForGPU)
         {
-            fprintf(stdOut_, "\tMolTwister is compiled for GPU and will run simulation on GPU!\r\n");
+            fprintf(stdOut_, "\tMolTwister is compiled for GPU and will run energy optimization on GPU!\r\n");
             runOnGPU = true;
         }
         else
         {
-            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU and will therefore run simulation on CPU!\r\n");
+            fprintf(stdOut_, "\tMolTwister is NOT compiled for GPU and will therefore run energy optimization on CPU!\r\n");
             runOnGPU = false;
         }
     }
@@ -124,7 +124,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
         {
             CSerializer stateContent;
             state_->serialize(stateContent, true);
-            mtdev::CMDSimulator::run(molDynConfig_->cfg_, stdOut_, stateContent);
+            mtdev::CMDSimulator::optimize(molDynConfig_->cfg_, stdOut_, stateContent);
         }
         #else
         {
@@ -135,7 +135,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     }
     else
     {
-        CMDSimulator::run(molDynConfig_->cfg_, stdOut_, (CMolTwisterState*)state_);
+        CMDSimulator::optimize(molDynConfig_->cfg_, stdOut_, (CMolTwisterState*)state_);
     }
 
     return lastError_;

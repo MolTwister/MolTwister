@@ -22,10 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFNonBonded.h"
-#include "MolTwisterMDFFNonBonded_LJ.h"
-#include "MolTwisterMDFFNonBonded_LJ1208.h"
-#include "MolTwisterMDFFNonBonded_Buck.h"
-#include "MolTwisterMDFFNonBonded_LJBuck.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

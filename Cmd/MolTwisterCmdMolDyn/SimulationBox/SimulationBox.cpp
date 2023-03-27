@@ -194,6 +194,19 @@ double CSimulationBox::calcPress(const mthost_vector<CMDFFMatrices::CForces>& F)
     return (1.0 / (3.0*V)) * sum;
 }
 
+void CSimulationBox::gradientDescentStep(std::vector<CMDFFMatrices::CForces>& F)
+{
+    // Calculate gradient for entire system, grad(U). Note that F=-grad(U)
+    // Use gradient to calculate x_(n+1) = x_n - L*grad(U), where L is the learning rate
+    size_t N = particles_.size();
+    for(size_t i=0; i<F.size(); i++)
+    {
+        if(i >= N) break;
+        C3DVector negGradU = F[i].F_;
+        particles_[i].r_+= negGradU*molDynConfig_.gradientDescentLearningRate_;
+    }
+}
+
 std::string CSimulationBox::getAtomType(int index)
 {
     return state_->atoms_[index]->getID();
@@ -208,6 +221,13 @@ double CSimulationBox::calcCurrentKineticEnergy()
     }
 
     return 0.5*K;
+}
+
+double CSimulationBox::calcUtot(const std::vector<CMDFFMatrices::CForces>& F) const
+{
+    double Utot = 0.0;
+    for(size_t i=0; i<F.size(); i++) Utot+= (double)F[i].U_;
+    return Utot;
 }
 
 END_CUDA_COMPATIBLE()

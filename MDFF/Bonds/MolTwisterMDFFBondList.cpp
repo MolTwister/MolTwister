@@ -19,6 +19,9 @@
 //
 
 #include "MolTwisterMDFFBondList.h"
+#include "MolTwisterMDFFBond_Harm.h"
+#include "MolTwisterMDFFBond_Morse.h"
+#include "MolTwisterMDFFBond_LJC.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -58,7 +61,7 @@ void CMDFFBondList::serialize(CSerializer& io, bool saveToStream)
         {
             std::string ffType;
             io >> ffType;
-            for(std::shared_ptr<CMDFFBond> item : registeredForceFieldTypes_)
+            for(const std::shared_ptr<CMDFFBond>& item : registeredForceFieldTypes_)
             {
                 if(item->getFFType() == ffType)
                 {

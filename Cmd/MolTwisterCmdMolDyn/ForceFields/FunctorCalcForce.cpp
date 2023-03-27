@@ -249,7 +249,7 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         // Perform appropriate scaling of 1-2, 1-3 or 1-4 interactions
         scaleForcesAndPotentials(f, u, i, molOf_k, numEntriesBonds, firstIndexBonds, numEntriesAngles, firstIndexAngles, numEntriesDihedrals, firstIndexDihedrals);
 
-        // Add the short-range and long-range forces between k and i
+        // Add the short-range forces between k and i
         Fpi+= f;
         F+= f;
         U+= u;
@@ -265,13 +265,13 @@ HOSTDEV_CALLABLE CMDFFMatrices::CForces CFunctorCalcForce::operator()(CMDFFMatri
         C3DVector r_i = devAtomList_[i].r_;
         r_k.moveToSameSideOfPBCAsThis(r_i, pbc_);
 
-        // Calculate the long-range forces between atom index k and its nearest neightbours, i
+        // Calculate the long-range forces between atom index k and its neightbours, i
         f = calcForceCoulombOn_r_k(r_k, r_i, k, i, u);
 
         // Perform appropriate scaling of 1-2, 1-3 or 1-4 interactions
         scaleForcesAndPotentials(f, u, i, molOf_k, numEntriesBonds, firstIndexBonds, numEntriesAngles, firstIndexAngles, numEntriesDihedrals, firstIndexDihedrals);
 
-        // Add the short-range and long-range forces between k and i
+        // Add the long-range forces between k and i
         Fpi+= f;
         F+= f;
         U+= u;
@@ -528,7 +528,7 @@ HOSTDEV_CALLABLE C3DVector CFunctorCalcForce::calcForceCoulombOn_r_k(const C3DVe
 
     if(R3 != 0.0)
     {
-        return  ( r * (K / R3) );
+        return ( r * (K / R3) );
     }
 
     return C3DVector();

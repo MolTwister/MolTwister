@@ -38,6 +38,8 @@ public:
 public:
     static void run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent);
     static void run(SMolDynConfigStruct config, FILE* stdOut, void* state);
+    static void optimize(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent);
+    static void optimize(SMolDynConfigStruct config, FILE* stdOut, void* state);
 };
 
 END_CUDA_COMPATIBLE()

@@ -22,8 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFAngle.h"
-#include "MolTwisterMDFFAngle_Harm.h"
-#include "MolTwisterMDFFAngle_Class2.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

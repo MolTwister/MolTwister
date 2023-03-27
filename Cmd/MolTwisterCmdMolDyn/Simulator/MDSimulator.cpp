@@ -46,4 +46,23 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
     COut::closeOutputFile();
 }
 
+void CMDSimulator::optimize(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent)
+{
+    CMolTwisterState state;
+    state.serialize(stateContent, false);
+    optimize(config, stdOut, &state);
+}
+
+void CMDSimulator::optimize(SMolDynConfigStruct config, FILE* stdOut, void* state)
+{
+    COut::setStdOut(stdOut);
+
+    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_);
+    CSimulationBox simBox((CMolTwisterState*)state, stdOut, config);
+
+    COut::setOutputFile(fopen(config.outInfoFile_.data(), "w"));
+    mdLoop.runOptimization(simBox, config.gradientDescentAccuracy_, config.gradientDescentMaxSteps_, config.outputStride_);
+    COut::closeOutputFile();
+}
+
 END_CUDA_COMPATIBLE()

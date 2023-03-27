@@ -20,6 +20,7 @@
 
 #include "MolTwisterCmdMolDyn.h"
 
+#include "MolTwisterCmdMolDyn/CmdOptimizeEnergy.h"
 #include "MolTwisterCmdMolDyn/CmdRun.h"
 #include "MolTwisterCmdMolDyn/CmdFF.h"
 #include "MolTwisterCmdMolDyn/CmdCfg.h"
@@ -40,6 +41,7 @@ void CCmdMolDyn::onAddKeywords()
 void CCmdMolDyn::onRegisterSubCommands()
 {
     parser_->purge();
+    parser_->registerCmd(std::make_shared<CCmdOptimizeEnergy>(state_, stdOut_, &molDynConfig_));
     parser_->registerCmd(std::make_shared<CCmdRun>(state_, stdOut_, &molDynConfig_));
     parser_->registerCmd(std::make_shared<CCmdFF>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdCfg>(state_, stdOut_, &molDynConfig_));

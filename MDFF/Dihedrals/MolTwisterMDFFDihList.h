@@ -22,8 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFDih.h"
-#include "MolTwisterMDFFDih_Fourier4t.h"
-#include "MolTwisterMDFFDih_Harm.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

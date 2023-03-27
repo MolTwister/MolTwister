@@ -56,4 +56,7 @@ struct SMolDynConfigStruct
     double scale13Interactions_;
     double scale14Interactions_;
     double scaleAbove14BondedInteractions_;
+    double gradientDescentLearningRate_;
+    int gradientDescentMaxSteps_;
+    double gradientDescentAccuracy_;
 };

@@ -27,6 +27,16 @@
 #include "Utilities/3DRect.h"
 #include "MolTwisterCmdHoomdBlue.h"
 #include "Tools/MolTwisterStateTools.h"
+#include "MDFF/Bonds/MolTwisterMDFFBond_Harm.h"
+#include "MDFF/Bonds/MolTwisterMDFFBond_LJC.h"
+#include "MDFF/Bonds/MolTwisterMDFFBond_Morse.h"
+#include "MDFF/Angles/MolTwisterMDFFAngle_Harm.h"
+#include "MDFF/Dihedrals/MolTwisterMDFFDih_Harm.h"
+#include "MDFF/Dihedrals/MolTwisterMDFFDih_Fourier4t.h"
+#include "MDFF/Non-Bonded/MolTwisterMDFFNonBonded_Buck.h"
+#include "MDFF/Non-Bonded/MolTwisterMDFFNonBonded_LJ1208.h"
+#include "MDFF/Non-Bonded/MolTwisterMDFFNonBonded_LJ.h"
+#include "MDFF/Non-Bonded/MolTwisterMDFFNonBonded_LJBuck.h"
 
 void CCmdHoomdblue::onAddKeywords()
 {
