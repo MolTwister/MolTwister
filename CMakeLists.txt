@@ -395,6 +395,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdMobillity.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdResname.h

@@ -674,7 +674,6 @@ void C3DView::drawMolecules(ESelModes mode)
     C3DVector bond, end, emptySelColor;
     CAtom* A1;
     CAtom* A2;
-    double r=0.0, g=0.0, b=0.0;
     double bondRadius;
     int selCount = 0;
     
@@ -683,7 +682,7 @@ void C3DView::drawMolecules(ESelModes mode)
         for(int i=0; i<(int)atoms_->size(); i++)
         {
             std::string ID = (*atoms_)[i]->getID();
-            defaultAtProp_->getCPKColor(ID.data(), r, g, b);
+            auto [r, g, b] = defaultAtProp_->getCPKColor(ID.data());
             double radius = useVanDerWaalsRadiusForAtoms_ ? vdwScaleFactor_ * defaultAtProp_->getWDWRadius(ID) : 0.3;
 
             if(mode == selmodeAtoms) glLoadName(i);
@@ -725,7 +724,7 @@ void C3DView::drawMolecules(ESelModes mode)
                 if((*atoms_)[i]->isSelected())
                 {
                     if(selCount >= (int)selColorRot_.size()) selCount = 0;
-                    drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, (float)r, (float)g, (float)b, true, selColorRot_[selCount]);
+                    drawAtom(currFrmAtVec(*(*atoms_)[i]), radius, 0.0f, 0.0f, 0.0f, true, selColorRot_[selCount]);
                     selCount++;
                 }
             }

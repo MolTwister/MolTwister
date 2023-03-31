@@ -22,6 +22,7 @@
 #include <vector>
 #include <string.h>
 #include <string>
+#include <tuple>
 #include "Utilities/3DVector.h"
 #include "Utilities/CUDAGeneralizations.h"
 #include "Utilities/Serializer.h"
@@ -40,8 +41,9 @@ public:
     public:
         C3DVector color_;
         std::string ID_;
-        double sigma_;
-        double RCov_;
+        double sigma_ = 0.0;
+        double RCov_ = 0.0;
+        bool isAltered_ = false;
     };
     
 public:
@@ -49,12 +51,18 @@ public:
     ~CDefaultAtomicProperties();
     
 public:
+    int size() const;
+    const CAtomicProperty operator[](const int& index) const;
     void serialize(CSerializer& io, bool saveToStream);
-    void getCPKColor(std::string ID, double& r, double& g, double& b) const;
+    std::tuple<double, double, double> getCPKColor(const std::string& ID) const;
+    void setCPKColor(const std::string& ID, const double& r, const double& g, const double& b);
     double getWDWRadius(std::string ID) const;
+    void setWDWRadius(std::string ID, const double& r);
     double getCovalentRadius(std::string ID) const;
+    void setCovalentRadius(std::string ID, const double& r);
     int identifyAtom(std::string ID) const;
-    std::string getRecognizedAtomType(std::string ID) const;
+    std::string getRecognizedAtomType(std::string ID) const;    
+    void resetAtomicPropertiesToDefault();
 
 private:
     void initAtomicPropertiesArray();

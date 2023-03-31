@@ -41,5 +41,6 @@ private:
     void parseMdinconsistencyCommand(std::string commandLine, int& arg);
     void parseBondinfoCommand(std::string commandLine, int& arg);
     void parseUserdefpbcCommand(std::string commandLine, int& arg);
+    void parseDefaultatompropsCommand(std::string commandLine, int& arg);
     void parseGpuinfoCommand(std::string commandLine, int& arg);
 };

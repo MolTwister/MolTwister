@@ -28,6 +28,7 @@
 #include "MolTwisterCmdMod/CmdMass.h"
 #include "MolTwisterCmdMod/CmdMobillity.h"
 #include "MolTwisterCmdMod/CmdSigma.h"
+#include "MolTwisterCmdMod/CmdDefaultAtomProps.h"
 #include "MolTwisterCmdMod/CmdAtomName.h"
 #include "MolTwisterCmdMod/CmdResname.h"
 #include "MolTwisterCmdMod/CmdUserDefPBC.h"
@@ -55,6 +56,7 @@ void CCmdMod::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdResname>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdRotateSel>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdSigma>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdDefaultAtomProps>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdUserDefPBC>(state_, stdOut_));
 }
 

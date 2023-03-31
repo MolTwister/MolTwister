@@ -33,7 +33,17 @@ CDefaultAtomicProperties::CDefaultAtomicProperties()
 
 CDefaultAtomicProperties::~CDefaultAtomicProperties()
 {
-    atomicProperties_.empty();
+
+}
+
+int CDefaultAtomicProperties::size() const
+{
+    return (int)atomicProperties_.size();
+}
+
+const CDefaultAtomicProperties::CAtomicProperty CDefaultAtomicProperties::operator[](const int &index) const
+{
+    return atomicProperties_[(size_t)index];
 }
 
 void CDefaultAtomicProperties::serialize(CSerializer& io, bool saveToStream)
@@ -41,12 +51,13 @@ void CDefaultAtomicProperties::serialize(CSerializer& io, bool saveToStream)
     if(saveToStream)
     {
         io << atomicProperties_.size();
-        for(CAtomicProperty item : atomicProperties_)
+        for(CAtomicProperty& item : atomicProperties_)
         {
             item.color_.serialize(io, saveToStream);
             io << item.ID_;
             io << item.sigma_;
             io << item.RCov_;
+            io << item.isAltered_;
         }
     }
     else
@@ -61,6 +72,7 @@ void CDefaultAtomicProperties::serialize(CSerializer& io, bool saveToStream)
             io >> prop.ID_;
             io >> prop.sigma_;
             io >> prop.RCov_;
+            io >> prop.isAltered_;
             atomicProperties_[i] = prop;
         }
     }
@@ -210,9 +222,9 @@ int CDefaultAtomicProperties::identifyAtom(std::string ID) const
     return -1;
 }
 
-void CDefaultAtomicProperties::getCPKColor(std::string ID, double& r, double& g, double& b) const
+std::tuple<double, double, double> CDefaultAtomicProperties::getCPKColor(const std::string &ID) const
 {
-    r=0.5; g=0.0; b=0.5;
+    double r=0.5, g=0.0, b=0.5;
 
     for(int j=0; j<(int)atomicProperties_.size(); j++)
     {
@@ -221,6 +233,23 @@ void CDefaultAtomicProperties::getCPKColor(std::string ID, double& r, double& g,
             r = atomicProperties_[j].color_.x_;
             g = atomicProperties_[j].color_.y_;
             b = atomicProperties_[j].color_.z_;
+            break;
+        }
+    }
+
+    return { r, g, b };
+}
+
+void CDefaultAtomicProperties::setCPKColor(const std::string &ID, const double &r, const double &g, const double &b)
+{
+    for(int j=0; j<(int)atomicProperties_.size(); j++)
+    {
+        if(CASCIIUtility::findString(atomicProperties_[j].ID_, ID) != -1)
+        {
+            atomicProperties_[j].color_.x_ = r;
+            atomicProperties_[j].color_.y_ = g;
+            atomicProperties_[j].color_.z_ = b;
+            atomicProperties_[j].isAltered_ = true;
             break;
         }
     }
@@ -235,6 +264,16 @@ double CDefaultAtomicProperties::getWDWRadius(std::string ID) const
     return 1.0;
 }
 
+void CDefaultAtomicProperties::setWDWRadius(std::string ID, const double& r)
+{
+    int j = identifyAtom(ID);
+    if(j != -1)
+    {
+        atomicProperties_[j].sigma_ = r;
+        atomicProperties_[j].isAltered_ = true;
+    }
+}
+
 double CDefaultAtomicProperties::getCovalentRadius(std::string ID) const
 {
     int j = identifyAtom(ID);
@@ -242,6 +281,16 @@ double CDefaultAtomicProperties::getCovalentRadius(std::string ID) const
         return atomicProperties_[j].RCov_;
     
     return 0.5;
+}
+
+void CDefaultAtomicProperties::setCovalentRadius(std::string ID, const double& r)
+{
+    int j = identifyAtom(ID);
+    if(j != -1)
+    {
+        atomicProperties_[j].RCov_ = r;
+        atomicProperties_[j].isAltered_ = true;
+    }
 }
 
 std::string CDefaultAtomicProperties::getRecognizedAtomType(std::string ID) const
@@ -253,6 +302,12 @@ std::string CDefaultAtomicProperties::getRecognizedAtomType(std::string ID) cons
     }
     
     return "?";
+}
+
+void CDefaultAtomicProperties::resetAtomicPropertiesToDefault()
+{
+    atomicProperties_.clear();
+    initAtomicPropertiesArray();
 }
 
 END_CUDA_COMPATIBLE()
