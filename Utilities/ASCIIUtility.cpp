@@ -360,7 +360,7 @@ std::string CASCIIUtility::argsToString(const std::vector<std::string>& argument
     std::string argsString;
 
     bool first = true;
-    for(auto argument : arguments)
+    for(const auto& argument : arguments)
     {
         if(!first) argsString+= " ";
         argsString+= argument;
@@ -399,4 +399,17 @@ std::string CASCIIUtility::createMarkDownCodeBlock(std::string str, int numSpace
     reconstructedString+= "````\r\n";
 
     return reconstructedString;
+}
+
+std::string CASCIIUtility::addTabsToDocument(const std::string& document)
+{
+    std::vector<std::string> lines = getLines(document);
+
+    std::string newDocument;
+    for(const std::string& line : lines)
+    {
+        newDocument+= std::string("\t") + line + std::string("\r\n");
+    }
+
+    return newDocument;
 }

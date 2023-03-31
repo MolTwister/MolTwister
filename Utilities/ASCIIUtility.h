@@ -44,4 +44,5 @@ public:
     static std::string argsToString(const std::vector<std::string>& arguments);
     static std::string argsToString(const std::vector<std::string>& arguments, size_t firstArgToInclude);
     static std::string createMarkDownCodeBlock(std::string str, int numSpaces, bool removeFirstTab=false);
+    static std::string addTabsToDocument(const std::string& document);
 };

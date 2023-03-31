@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <math.h>
 #include <stdlib.h>
+#include <filesystem>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <unistd.h>
@@ -38,6 +39,7 @@ std::vector<std::shared_ptr<CCmd>> CMolTwister::cmdList_;
 
 
 CMolTwister::CMolTwister()
+    : tutorialPool_({ "./moltwister-tutorials/", "/usr/local/bin/moltwister-tutorials/" })
 {
     startDir_ = dirWorking;
 }
@@ -146,6 +148,40 @@ std::string CMolTwister::readLine() const
 
 bool CMolTwister::_run()
 {
+    std::function<std::pair<FILE*, std::string>(const int&, const std::string&, std::function<void(FILE*)>)> handlePiping =
+            [](const int& pipeSymbIndex, const std::string& commandLine, std::function<void(FILE* fileStdOut)> onRedirectOutput)
+    {
+        // Check if '> <file>' (i.e. pipe) was requested. If so
+        // redirect all fprintf() output to <file> and keep all printf()
+        // statements directed to stdout
+        std::string fileName;
+        FILE* fileStdOut = stdout;
+        if(pipeSymbIndex != -1)
+        {
+            std::string commmandLineCpy = commandLine;
+
+            fileName = commmandLineCpy.substr(pipeSymbIndex+1, std::string::npos);
+            CASCIIUtility::removeWhiteSpace(fileName);
+            fileStdOut = fopen(fileName.data(), "w+");
+
+            if(fileStdOut)  onRedirectOutput(fileStdOut);
+            else            printf("Error: could not create file!");
+        }
+
+        return std::pair<FILE*, std::string>(fileStdOut, fileName);
+    };
+
+    std::function<void(FILE*, const std::string&, const bool&)> endPiping = [](FILE* fileStdOut, const std::string& fileName, const bool& skipTabRemove)
+    {
+        // Close file, if redirection was requested, then
+        // remove unwanted '\t' (i.e. tab) from that file
+        if(fileStdOut != stdout)
+        {
+            fclose(fileStdOut);
+            if(!skipTabRemove) CFileUtility::removeTabsFromFile(fileName);
+        }
+    };
+
     std::string command;
     std::string commandLine;
     bool quit = false;
@@ -184,7 +220,7 @@ bool CMolTwister::_run()
     printf(" the program. \r\n");
     printf("\r\n");
     CBashColor::setColor();
-    
+
     cmdList_.clear();
     CMolTwisterCommandPool::generateCmdList(&state_, cmdList_);
     
@@ -229,6 +265,20 @@ bool CMolTwister::_run()
                     CBashColor::setColor();
                     printf(" - %s\r\n", cmdList_[i]->getTopLevHelpString().data());
                 }
+
+                printf("\r\n");
+                for(int i=0; i<(int)tutorialPool_.getCount(); i++)
+                {
+                    const std::string tutorialString = std::string("tutorial") + std::to_string(i+1);
+                    const std::string tutorialDescription = tutorialPool_.getDocumentHeader(i);
+
+                    CBashColor::setColor(CBashColor::colMagenta);
+                    CBashColor::setSpecial(CBashColor::specBright);
+                    printf("\t%-15s", tutorialString.data());
+                    CBashColor::setColor();
+                    printf(" - %s\r\n", tutorialDescription.data());
+                }
+
                 printf("\r\n\tAny commands not recognized by MolTwister will be\r\n");
                 printf("\tredirected to the shell (e.g. ssh, vim, pico). Write\r\n");
                 printf("\t'help __MarkDown__' to create a Markdown help document.\r\n");
@@ -263,6 +313,15 @@ bool CMolTwister::_run()
                 printf("\r\n");
                 printf("\tNotes on units and conventions:\r\n");
                 printf("\t   * The Angstrom unit is denoted as AA\r\n");
+                printf("\r\n");
+                printf("\tTutorials:\r\n");
+                printf("\t   * To view a tutorial, execute the appropirate 'tutorial#' command\r\n");
+                printf("\t   * The tutorial is written in Markdown, which is human readable text\r\n");
+                printf("\t   * You can store the Markdown text to file by 'tutorial# > filename.md'\r\n");
+                printf("\t   * Use a Markdown compiler to convert to HTML or PDF.\r\n");
+                printf("\t     E.g., Visual Studio Code and a Markdown plugin\r\n");
+                printf("\t   * The tutorials are also included in the Markdown file created by\r\n");
+                printf("\t     the 'help __MarkDown__' command\r\n");
             }
             else if(cmdString == "__MarkDown__")
             {
@@ -271,6 +330,7 @@ bool CMolTwister::_run()
 
                 if(mkdFile)
                 {
+                    // List commands
                     fprintf(mkdFile, "# List of commands\r\n\r\n");
                     for(int i=0; i<(int)cmdList_.size(); i++)
                     {
@@ -299,6 +359,13 @@ bool CMolTwister::_run()
                         }
                     }
 
+                    // List tutorials
+                    for(int i=0; i<tutorialPool_.getCount(); i++)
+                    {
+                        fprintf(mkdFile, "\r\n%s\r\n", tutorialPool_.getDocument(i).data());
+                    }
+
+                    // Clean up
                     fclose(mkdFile);
                     printf("\r\n\tCreated file %s!\r\n", mkdFileName.data());
                 }
@@ -362,43 +429,43 @@ bool CMolTwister::_run()
         {
             bool foundCmd = false;
             int pipeSymbIndex = CASCIIUtility::findString("> ", commandLine);
-            FILE* fileStdOut;
 
             for(int i=0; i<(int)cmdList_.size(); i++)
             {
                 if(cmdList_[i] && cmdList_[i]->checkCmd(command.data()))
                 {
                     foundCmd = true;
-                    std::string fileName;
 
-                    // Check if '> <file>' (i.e. pipe) was requested. If so
-                    // redirect all fprintf() output to <file> and keep all printf()
-                    // statements directed to stdout
-                    fileStdOut = stdout;
-                    if(pipeSymbIndex != -1)
-                    {
-                        std::string commmandLineCpy = commandLine;
+                    // Do piping of command to desired location, if requested
+                    auto [fileStdOut, fileName] = handlePiping(pipeSymbIndex, commandLine, [this, i](FILE* fileStdOut) { cmdList_[i]->redirectOutput(fileStdOut); });
 
-                        fileName = commmandLineCpy.substr(pipeSymbIndex+1, std::string::npos);
-                        CASCIIUtility::removeWhiteSpace(fileName);
-                        fileStdOut = fopen(fileName.data(), "w+");
-
-                        if(fileStdOut)  cmdList_[i]->redirectOutput(fileStdOut);
-                        else            printf("Error: could not create file!");
-                    }
-                    
                     // Execute command
                     cmdList_[i]->execute(commandLine);
                     cmdList_[i]->redirectOutput(stdout);
                     bool skipTabRemove = cmdList_[i]->checkSkipTabRemoveReqFlagAndReset();
 
-                    // Close file, if redirection was requested, then
-                    // remove unwanted '\t' (i.e. tab) from that file
-                    if(fileStdOut != stdout)
-                    {
-                        fclose(fileStdOut);
-                        if(!skipTabRemove) CFileUtility::removeTabsFromFile(fileName);
-                    }
+                    // End piping, if it was started
+                    endPiping(fileStdOut, fileName, skipTabRemove);
+                }                
+            }
+
+            for(int i=0; i<tutorialPool_.getCount(); i++)
+            {
+                std::string tutorialCmd = std::string("tutorial") + std::to_string(i+1);
+
+                if(command == tutorialCmd)
+                {
+                    foundCmd = true;
+
+                    // Do piping of command to desired location, if requested
+                    auto [fileStdOut, fileName] = handlePiping(pipeSymbIndex, commandLine, [this, i](FILE* fileStdOut){ fprintf(fileStdOut, "%s", tutorialPool_.getDocument(i).data()); });
+
+                    // Print to stdout if this is the destination
+                    if(fileStdOut == stdout) printf("\r\n%s\r\n", CASCIIUtility::addTabsToDocument(tutorialPool_.getDocument(i)).data());
+
+                    // End piping, if it was started
+                    endPiping(fileStdOut, fileName, true);
+                    break;
                 }
             }
 

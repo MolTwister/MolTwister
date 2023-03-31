@@ -20,6 +20,7 @@
 
 #pragma once
 #include <vector>
+#include "MolTwisterTutorialPool.h"
 #include "3DView/MolTwister3DView.h"
 #include "Cmd/MolTwisterCmd.h"
 
@@ -58,4 +59,5 @@ public:
 private:
     CMolTwisterState state_;
     static std::vector<std::shared_ptr<CCmd>> cmdList_;
+    CMolTwisterTutorialPool tutorialPool_;
 };

@@ -42,6 +42,7 @@ void CCmdPrint::onAddKeywords()
     addKeyword("resname");
     addKeyword("atomnames");
     addKeyword("atomicunits");
+    addKeyword("tutorial");
 }
 
 std::string CCmdPrint::getHelpString() const

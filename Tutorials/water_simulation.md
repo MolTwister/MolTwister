@@ -1,4 +1,4 @@
-# Water simulation
+# Water simulation, thermalization, RDF, MSD, VACF, and VDOS
 
 ## Introduction
 
@@ -47,10 +47,6 @@ This can be stored for safe keeping to a pdb and xyz file by
 ## Assigning force field parameters
 
 We can now assign force field parameters to the newly created water molecule. We could enter the commands directly, but we may need to assign the force fields several times during a study. Hence, we instead create a file called 'water_ff.script' using our favourite text editor (e.g., from within MolTwister you can call vim or nano). The file should contain
-
-    // mod charge name Hw1 to 0.415;
-    // mod charge name Hw2 to 0.415;
-    // mod charge name Ow to -0.83;
 
     mod mass name Hw1 to 1.00784;
     mod mass name Hw2 to 1.00784;

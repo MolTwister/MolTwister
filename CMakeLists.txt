@@ -82,7 +82,7 @@ else()
     add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(Python3 COMPONENTS Interpreter Development)
 find_package(OpenGL REQUIRED)
@@ -109,6 +109,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterAtom.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.h
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.h
@@ -484,4 +486,6 @@ endif()
 target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util)
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
+file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)
 install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION /usr/local/bin/moltwister-tutorials/)
