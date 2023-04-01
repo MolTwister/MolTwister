@@ -88,7 +88,7 @@ static PyObject* moltwister_mt_exec(PyObject* , PyObject* args)
 
 static PyObject* moltwister_mt_get_num_atoms(PyObject*, PyObject* args)
 {
-    if(!PyArg_ParseTuple(args, ":mt_get_num_atoms")) return nullptr;
+    if(!PyArg_ParseTuple(args, ":get_num_atoms")) return nullptr;
     
     return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_.size());
 }
@@ -356,7 +356,7 @@ static PyObject* moltwister_mt_update_progress(PyObject*, PyObject* args)
 
 static PyObject* moltwister_mt_end_progress(PyObject*, PyObject* args)
 {
-    if(!PyArg_ParseTuple(args, ":mt_end_progress")) return nullptr;
+    if(!PyArg_ParseTuple(args, ":end_progress")) return nullptr;
     g_progBar.endProgress();
     
     Py_INCREF(Py_None);
@@ -365,6 +365,7 @@ static PyObject* moltwister_mt_end_progress(PyObject*, PyObject* args)
 
 static PyMethodDef MolTwisterMethods[] =
 {
+    // The mt_.. style commands are there for backward compatibility
     {"mt_exec", moltwister_mt_exec, METH_VARARGS, "Submit commandstring to MolTwister as a string. Result is returned as a string."},
     {"mt_get_num_atoms", moltwister_mt_get_num_atoms, METH_VARARGS, "Get number of atoms in 3D view."},
     {"mt_get_atom_pos", moltwister_mt_get_atom_pos, METH_VARARGS, "Get atom position."},
@@ -381,6 +382,25 @@ static PyMethodDef MolTwisterMethods[] =
     {"mt_begin_progress", moltwister_mt_begin_progress, METH_VARARGS, "Shows initial progress bar with given text."},
     {"mt_update_progress", moltwister_mt_update_progress, METH_VARARGS, "Updates progress bar according to given step information."},
     {"mt_end_progress", moltwister_mt_end_progress, METH_VARARGS, "Finishes progress bar, showing as 100 percent complete."},
+
+    // Below is an improved naming convention, since in Python the name of the import will identify the commands as being for MolTwister
+    {"exec", moltwister_mt_exec, METH_VARARGS, "Submit commandstring to MolTwister as a string. Result is returned as a string."},
+    {"get_num_atoms", moltwister_mt_get_num_atoms, METH_VARARGS, "Get number of atoms in 3D view."},
+    {"get_atom_pos", moltwister_mt_get_atom_pos, METH_VARARGS, "Get atom position."},
+    {"get_atom_type", moltwister_mt_get_atom_type, METH_VARARGS, "Get atom type."},
+    {"get_atom_mass", moltwister_mt_get_atom_mass, METH_VARARGS, "Get atom mass."},
+    {"get_atom_charge", moltwister_mt_get_atom_charge, METH_VARARGS, "Get atom charge."},
+    {"get_atom_resname", moltwister_mt_get_atom_resname, METH_VARARGS, "Get atom resname."},
+    {"get_atom_molindex", moltwister_mt_get_atom_molindex, METH_VARARGS, "Get atom molecular index."},
+    {"is_atom_sel", moltwister_mt_is_atom_sel, METH_VARARGS, "Check if atom is selected 1:yes, 0:no."},
+    {"create_xyz_file", moltwister_mt_create_xyz_file, METH_VARARGS, "Create XYZ file."},
+    {"append_to_xyz_file", moltwister_mt_append_to_xyz_file, METH_VARARGS, "Append to XYZ file from array of [atom type, x, y, z] lists."},
+    {"create_dcd_file", moltwister_mt_create_dcd_file, METH_VARARGS, "Create DCD file with basic header information."},
+    {"append_to_dcd_file", moltwister_mt_append_to_dcd_file, METH_VARARGS, "Append to DCD file from array of atom coordinates."},
+    {"begin_progress", moltwister_mt_begin_progress, METH_VARARGS, "Shows initial progress bar with given text."},
+    {"update_progress", moltwister_mt_update_progress, METH_VARARGS, "Updates progress bar according to given step information."},
+    {"end_progress", moltwister_mt_end_progress, METH_VARARGS, "Finishes progress bar, showing as 100 percent complete."},
+
     {nullptr, nullptr, 0, nullptr}
 };
 
