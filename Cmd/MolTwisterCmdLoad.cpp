@@ -69,7 +69,12 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
     szText+= "\t             each formated as: exec(\"<MolTwister command>\");. For example,\r\n";
-    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0)\r\n";
+    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0).\r\n";
+    szText+= "\t             It is also possible to leave out the exec() function, as well\r\n";
+    szText+= "\t             as the quotes to achieve the same effect. For example,\r\n";
+    szText+= "\t                    add atom C at 0 0 0;\r\n";
+    szText+= "\t             is equivalent to\r\n";
+    szText+= "\t                    exec(\"add atom C at 0 0 0\");\r\n";
     szText+= "\tmasscharge : Load charges and masses into the current molecular structure. In\r\n";
     szText+= "\t             the file each line defines a charge/mass in two possible ways:\r\n";
     szText+= "\t                   * ID <ID, e.g. H, C, C2, or similar> <partial charge> <mass>\r\n";
@@ -984,7 +989,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
         line = CFileUtility::readToNextDelimiterIgnoreCppComments(fileHandle, ';', lastLineInFile);
         CASCIIUtility::parseCLikeFuncCall(line, funcName, argument);
     
-        if(funcName == "exec")
+        if((funcName == "exec") || funcName.empty())
         {
             CASCIIUtility::removeWhiteSpace(argument, "\"");
             command = CASCIIUtility::getWord(argument, 0);

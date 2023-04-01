@@ -19,6 +19,7 @@
 //
 
 #include <iostream>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -301,9 +302,20 @@ void CASCIIUtility::parseCLikeFuncCall(std::string inputString, std::string& fun
     int strLen = (int)inputString.size();
     int i;
 
+    arguments = inputString;
     funcName.clear();
+
+    // If this is not a function style call, then leave with an empty function name,
+    // but fill in the entire string as one argument
+    size_t parenthesisIndexStart = inputString.find("(");
+    if(parenthesisIndexStart == std::string::npos) return;
+    if((int(parenthesisIndexStart) - 1) < 0) return;
+    if(CASCIIUtility::isWhiteSpace(inputString[parenthesisIndexStart - 1])) return;
+    size_t parenthesisIndexEnd = inputString.find(")");
+    if(parenthesisIndexEnd == std::string::npos) return;
+
     arguments.clear();
-    
+
     // Read function name
     for(i=0; i<strLen; i++)
     {
