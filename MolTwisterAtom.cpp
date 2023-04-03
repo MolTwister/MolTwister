@@ -97,7 +97,9 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         for(const CBondDest& dest : bonds_)
         {
             CAtom* atom = dest.getDest();
+            bool isDouble = dest.isDoubleBond();
             io << atom->atomIndex_;
+            io << isDouble;
         }
 
         io << listOf1to4Connections_.size();
@@ -145,8 +147,11 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         for(size_t i=0; i<size; i++)
         {
             int atomIndex;
+            bool isDouble;
             io >> atomIndex;
+            io >> isDouble;
             bonds_[i].setDest((*newAtomList)[atomIndex].get());
+            bonds_[i].setAsDoubleBond(isDouble);
         }
 
         io >> size;
