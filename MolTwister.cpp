@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -198,7 +198,7 @@ bool CMolTwister::_run()
     printf("----------------------------------------------------------------\r\n");
     CBashColor::setColor();
     CBashColor::setColor(CBashColor::colYellow);
-    printf(" Copyright (C) 2021 Richard Olsen.\r\n");
+    printf(" Copyright (C) 2023 Richard Olsen.\r\n");
     printf("\r\n");
     printf(" This program is free software: you can redistribute it and/or\r\n");
     printf(" modify it under the terms of the GNU General Public License as\r\n");
