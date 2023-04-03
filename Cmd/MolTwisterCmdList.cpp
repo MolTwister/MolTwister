@@ -327,9 +327,9 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
 
 void CCmdList::printListHeaderAtoms() const
 {
-    fprintf(stdOut_, "\r\n\r\n\t-------------------------------------------------------------- ATOMS ------------------------------------------------------------------------------------------------\r\n");
-    fprintf(stdOut_, "\t%-10s%-11s%-9s%-9s%-15s%-15s%-15s%-15s%-15s%-7s%-15s%-10s%-28s\r\n", "At.Index", "Mol.Index", "At.Name", "resname", " x", " y", " z", "Q", "m", "mobile", "sigma (vdW)", "Selected", "Bonded to:[At.Index,At.ID]");
-    fprintf(stdOut_, "\t---------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n");
+    fprintf(stdOut_, "\r\n\r\n\t-------------------------------------------------------------------------------------- ATOMS ------------------------------------------------------------------------------------------------------------------------\r\n");
+    fprintf(stdOut_, "\t%-10s%-11s%-9s%-9s%-15s%-15s%-15s%-15s%-15s%-7s%-15s%-10s%-28s%-28s\r\n", "At.Index", "Mol.Index", "At.Name", "resname", " x", " y", " z", "Q", "m", "mobile", "sigma (vdW)", "Selected", "Bonded to:[At.Index,At.ID]", "Double bonds");
+    fprintf(stdOut_, "\t---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n");
 }
 
 void CCmdList::printListHeaderMDNonBond() const
@@ -508,16 +508,27 @@ void CCmdList::printListAtomicItem(const CAtom* atom) const
     if(state_->currentFrame_ < (int)atom->r_.size()) r = atom->r_[state_->currentFrame_];
     else if(atom->r_.size() > 0)                r = atom->r_[0];
     else                                        return;
-    
-    fprintf(stdOut_, "\t%-10i%-11i%-9s%-9s% -15.4f% -15.4f% -15.4f% -15.4f% -15.4f%-7s% -15.4f%-10s\t", atom->getAtomIndex(), atom->getMolIndex(), ID1.data(),
-            atom->resname_.data(), r.x_, r.y_, r.z_, atom->Q_, atom->m_, atom->isMobile_ ? " " : "rigid", atom->sigma_, atom->isSelected() ? "[x]" : "[ ]");
-    
+        
+    std::string singleBonds;
     for(int j=0; j<atom->getNumBonds(); j++)
     {
         std::string ID2 = atom->getBondDest(j)->getID();
-        fprintf(stdOut_, "[%i,%s]", atom->getBondDest(j)->getAtomIndex(), ID2.data());
+        singleBonds+= std::string("[") + std::to_string(atom->getBondDest(j)->getAtomIndex()) + std::string(",") + ID2.data() + std::string("]");
     }
-    
+
+    std::string doubleBonds;
+    for(int j=0; j<atom->getNumBonds(); j++)
+    {
+        if(atom->isDoubleBond(j))
+        {
+            std::string ID2 = atom->getBondDest(j)->getID();
+            doubleBonds+= std::string("[") + std::to_string(atom->getBondDest(j)->getAtomIndex()) + std::string(",") + ID2.data() + std::string("]");
+        }
+    }
+
+    fprintf(stdOut_, "\t%-10i%-11i%-9s%-9s% -15.4f% -15.4f% -15.4f% -15.4f% -15.4f%-7s% -15.4f%-10s%-28s%-28s\t", atom->getAtomIndex(), atom->getMolIndex(), ID1.data(),
+            atom->resname_.data(), r.x_, r.y_, r.z_, atom->Q_, atom->m_, atom->isMobile_ ? " " : "rigid", atom->sigma_, atom->isSelected() ? "[x]" : "[ ]", singleBonds.data(), doubleBonds.data());
+
     fprintf(stdOut_, "\r\n");
 }
 
