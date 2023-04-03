@@ -36,7 +36,7 @@ void CMDSimulator::run(SMolDynConfigStruct config, FILE* stdOut, void* state)
 {
     COut::setStdOut(stdOut);
 
-    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_);
+    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_, config.includeXTCFile_, config.outXTCFile_, config.xtcPrecision_);
     mdLoop.setPDistrOutput(config.includePDistrFile_, config.maxPDistrOutput_, config.outPDistrFile_);
     mdLoop.setVDistrOutput(config.includeVDistrFile_, config.maxVDistrOutput_, config.outVDistrFile_);
     CSimulationBox simBox((CMolTwisterState*)state, stdOut, config);
@@ -57,7 +57,7 @@ void CMDSimulator::optimize(SMolDynConfigStruct config, FILE* stdOut, void* stat
 {
     COut::setStdOut(stdOut);
 
-    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_);
+    CMDLoop mdLoop(config.includeXYZFile_, config.outXYZFile_, config.includeDCDFile_, config.outDCDFile_, config.includeXTCFile_, config.outXTCFile_, config.xtcPrecision_);
     CSimulationBox simBox((CMolTwisterState*)state, stdOut, config);
 
     COut::setOutputFile(fopen(config.outInfoFile_.data(), "w"));

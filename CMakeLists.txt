@@ -89,10 +89,22 @@ find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(Threads REQUIRED)
 
+# Check if Gromacs library is available (used e.g., for XTC trajectory files)
+# If so, use it. Note that it can be installed by 'sudo apt install gromacs libgromacs6 libgromacs-dev'
+find_library(GROMACS_LIB gromacs NO_CACHE)
+if(NOT GROMACS_LIB)
+    message(STATUS "Gromacs library not found")
+    set(GROMACS_LIB "")
+    add_definitions(-DGROMACS_LIB_INSTALLED=0)
+else()
+    message(STATUS "Gromacs library ${GROMACS_LIB} found")
+    add_definitions(-DGROMACS_LIB_INSTALLED=1)
+endif()
+
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${Python3_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-link_libraries(Python3::Python OpenGL::GLU GLUT::GLUT)
+link_libraries(Python3::Python OpenGL::GLU GLUT::GLUT ${GROMACS_LIB})
 
 source_group("MolTwister" FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -131,6 +143,7 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/ConditionalOnXYZ.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/XTCFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FileUtility.h
@@ -347,6 +360,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdAtomicUnwrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.cpp
@@ -485,7 +500,7 @@ if(${INCLUDE_CUDA_COMMANDS})
     set(CUDA_MT_LIB MolTwisterCudaLib)
 endif()
 
-target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util)
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util ${GROMACS_LIB})
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
 file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)

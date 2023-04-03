@@ -22,6 +22,7 @@
 #include "Printf.h"
 #include "../Integrators/Constants.h"
 #include "../../../Utilities/DCDFile.h"
+#include "../../../Utilities/XTCFile.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -83,14 +84,17 @@ void CFctP::scaleMomentum(double coeff)
 
 
 
-CMDLoop::CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD)
+CMDLoop::CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD, bool includeXTCFile, std::string fileNameXTC, const float& xtcPrecision)
 {
     includeXYZFile_ = includeXYZFile;
     includeDCDFile_ = includeDCDFile;
+    includeXTCFile_ = includeXTCFile;
     includePDistrOutput_ = false;
     includeVDistrOutput_ = false;
+    xtcPrecision_ = xtcPrecision;
     fileNameXYZ_ = fileNameXYZ;
     fileNameDCD_ = fileNameDCD;
+    fileNameXTC_ = fileNameXTC;
 
     const double maxVelocity = 0.3; // Max v[AA/fs] in distr.
     maxPDistrOutput_ = maxVelocity / Conv_P; // m*v_max, m = 1g/mol
@@ -140,7 +144,7 @@ void CMDLoop::runOptimization(CSimulationBox& simBox, double accuracy, int maxSt
 {
     std::vector<int> momentumDistr[4];
     std::vector<int> volumeDistr;
-    C3DVector boxSizeOut;
+    C3DVector boxSizeOut = simBox.calcSimBox();
     mthost_vector<CMDFFMatrices::CForces> F;
 
     srand((unsigned int)time(nullptr));
@@ -222,7 +226,7 @@ void CMDLoop::printHeading(CSimulationBox& simBox, EHeading heading)
     }
 }
 
-void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox)
+void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox) const
 {
     FILE* filePtr = fopen(fileNameXYZ_.data(), "a+");
     
@@ -241,7 +245,7 @@ void CMDLoop::appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSim
     fclose(filePtr);
 }
 
-void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& numTimeSteps, const int& outputStride)
+void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& numTimeSteps, const int& outputStride) const
 {
     std::function<std::tuple<double, double, double>(const int&)> getAtomPos = [&particles](const int& atomIndex)
     {
@@ -251,6 +255,42 @@ void CMDLoop::appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulation
 
     CDCDFile::createDCDFileIfNotExists(fileNameDCD_, numTimeSteps, outputStride, simBox.getTimeStep(), (int)particles.size());
     CDCDFile::appendToDCDFile(fileNameDCD_, (int)particles.size(), { boxSize.x_, boxSize.y_, boxSize.z_ }, getAtomPos);
+}
+
+void CMDLoop::appendToXTCFile(std::vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& t, const int& numTimeSteps, const int& outputStride, const float& precision) const
+{
+    #if GROMACS_LIB_INSTALLED == 1
+        #ifdef GROMACS_XTC_HEADERS_INSTALLED
+            t_fileio* file = open_xtc(fileNameXTC_.c_str(), "a");
+            if(file)
+            {
+                const int atomCount = (int)particles.size();
+
+                std::vector<rvec> x(atomCount);
+                for(int i=0; i<atomCount; i++)
+                {
+                    particles[i].r_.get(x[i]);
+                    for(int j=0; j<3; j++)
+                    {
+                        x[i][j]*= 0.1f;         // Convert from AA to nm
+                    }
+                }
+
+                rvec box[3] = {{ (float)boxSize.x_*0.1f, 0.0f, 0.0f },
+                               { 0.0f, (float)boxSize.y_*0.1f, 0.0f },
+                               { 0.0f, 0.0f, (float)boxSize.z_*0.1f }};
+
+                write_xtc(file, atomCount, t, double(t) * simBox.getTimeStep(), box, x.data(), precision);
+                close_xtc(file);
+            }
+        #else
+            printf("Error, missing headers: MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Using DCD instead!\r\n");
+            appendToDCDFile(particles, simBox, boxSize, numTimeSteps, outputStride);
+        #endif
+    #else
+        printf("Error, missing library. MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Using DCD instead!\r\n");
+        appendToDCDFile(particles, simBox, boxSize, numTimeSteps, outputStride);
+    #endif
 }
 
 void CMDLoop::resizeDistrArrays(std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, int size, int NArrays)
@@ -356,6 +396,7 @@ void CMDLoop::updateOutput(int t, int totalSteps, int equilibSteps, int outputEv
 
         if(includeXYZFile_) appendToXYZFile(simBox.particles_, t, simBox);
         if(includeDCDFile_) appendToDCDFile(simBox.particles_, simBox, boxSize, totalSteps, outputEvery);
+        if(includeXTCFile_) appendToXTCFile(simBox.particles_, simBox, boxSize, t, totalSteps, outputEvery, xtcPrecision_);
 
         double T = simBox.calcTemp() * Conv_T;
         COut::printf("\t%-15i%-17.8f%-15g%-15g%-20g%-15g%-15g%-15g\r\n", readTimerAverage(), t, T,

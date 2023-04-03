@@ -39,7 +39,9 @@ public:
     HOSTDEV_CALLABLE void set(double x, double y, double z) { x_=x; y_=y; z_=z; }
     HOSTDEV_CALLABLE void set(const double* r) { x_=r[0]; y_=r[1]; z_=r[2]; }
     HOSTDEV_CALLABLE void get(double& x, double& y, double& z) const { x=x_; y=y_; z=z_; }
+    HOSTDEV_CALLABLE void get(float& x, float& y, float& z) const { x=(float)x_; y=(float)y_; z=(float)z_; }
     HOSTDEV_CALLABLE void get(double* r) const { r[0]=x_; r[1]=y_; r[2]=z_; }
+    HOSTDEV_CALLABLE void get(float* r) const { r[0]=(float)x_; r[1]=(float)y_; r[2]=(float)z_; }
     void print() const;
     HOSTDEV_CALLABLE double norm() const;
     HOSTDEV_CALLABLE double norm2() const;

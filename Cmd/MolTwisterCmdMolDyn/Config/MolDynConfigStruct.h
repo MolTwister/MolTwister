@@ -43,10 +43,13 @@ struct SMolDynConfigStruct
     std::string outInfoFile_;
     std::string outXYZFile_;
     std::string outDCDFile_;
+    std::string outXTCFile_;
     std::string outPDistrFile_;
     std::string outVDistrFile_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includeXTCFile_;
+    float xtcPrecision_;
     bool includePDistrFile_;
     bool includeVDistrFile_;
     double maxPDistrOutput_;

@@ -32,9 +32,9 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
              "cutoffradius", "neighshell", "cutoffforce",
-             "infofile", "xyzfile", "dcdfile", "pdistrfile", "vdistrfile",
-             "includexyzfile", "includedcdfile", "includepdistrfile", "includevdistrfile",
-             "maxpdistr", "maxvdistr", "verboseoutput",
+             "infofile", "xyzfile", "dcdfile", "xtcfile", "pdistrfile", "vdistrfile",
+             "includexyzfile", "includedcdfile", "includextcfile", "xtcprecision",
+             "includepdistrfile", "includevdistrfile", "maxpdistr", "maxvdistr", "verboseoutput",
              "scale12", "scale13", "scale14", "scale1N", "optmaxsteps", "optlearningrate",
              "optaccuracy"
            };
@@ -71,10 +71,13 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
     fprintf(stdOut, "\txyzfile = %s; Filename of XYZ file.\r\n", cfg_.outXYZFile_.data());
     fprintf(stdOut, "\tdcdfile = %s; Filename of DCD file.\r\n", cfg_.outDCDFile_.data());
+    fprintf(stdOut, "\txtcfile = %s; Filename of Gromacs XTC file.\r\n", cfg_.outXTCFile_.data());
     fprintf(stdOut, "\tpdistrfile = %s; Filename of momentum distribution file.\r\n", cfg_.outPDistrFile_.data());
     fprintf(stdOut, "\tvdistrfile = %s; Filename of volume distribution file.\r\n", cfg_.outVDistrFile_.data());
     fprintf(stdOut, "\tincludexyzfile {yes, no} = %s; Include XYZ file as output.\r\n", cfg_.includeXYZFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludedcdfile {yes, no} = %s; Include DCD file as output.\r\n", cfg_.includeDCDFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\tincludextcfile {yes, no} = %s; Include Gromacs XTC file as output.\r\n", cfg_.includeXTCFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\txtcprecision = %g; Gromacs XTC file precision.\r\n", cfg_.xtcPrecision_);
     fprintf(stdOut, "\tincludepdistrfile {yes, no} = %s; Include momentum distribution file as output.\r\n", cfg_.includePDistrFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludevdistrfile {yes, no} = %s; Include volume distribution file as output.\r\n", cfg_.includeVDistrFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tmaxpdistr = %g AA*g/(fs*mol); Desired maximum momentum to use for momentum distribution output.\r\n", cfg_.maxPDistrOutput_);
@@ -169,6 +172,10 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.outDCDFile_ = value.data();
     }
+    else if(parameter == "xtcfile")
+    {
+        cfg_.outXTCFile_ = value.data();
+    }
     else if(parameter == "pdistrfile")
     {
         cfg_.outPDistrFile_ = value.data();
@@ -194,6 +201,19 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
         {
             return "Error: 'includedcdfile' parameter should be either 'yes' or 'no'!";
         }
+    }
+    else if(parameter == "includextcfile")
+    {
+        if(value == "yes") cfg_.includeXTCFile_ = true;
+        else if(value == "no") cfg_.includeXTCFile_ = false;
+        else
+        {
+            return "Error: 'includextcfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
+    else if(parameter == "xtcprecision")
+    {
+        cfg_.xtcPrecision_ = std::atof(value.data());
     }
     else if(parameter == "includepdistrfile")
     {
@@ -286,10 +306,13 @@ void CMolDynConfig::resetToDefaults()
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
     cfg_.outDCDFile_ = "traj.dcd";
+    cfg_.outXTCFile_ = "traj.xtc";
     cfg_.outPDistrFile_ = "distr";
     cfg_.outVDistrFile_ = "distr";
     cfg_.includeXYZFile_ = false;
     cfg_.includeDCDFile_ = true;
+    cfg_.includeXTCFile_ = false;
+    cfg_.xtcPrecision_ = 1000.0f;
     cfg_.includePDistrFile_ = false;
     cfg_.includeVDistrFile_ = false;
     cfg_.maxPDistrOutput_ = 0.3; // AA*g/(fs*mol)

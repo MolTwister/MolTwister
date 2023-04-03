@@ -63,7 +63,7 @@ private:
     enum EHeading { headingMD=0, headingOptimization };
 public:
     CMDLoop() = delete;
-    CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD);
+    CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD, bool includeXTCFile, std::string fileNameXTC, const float& xtcPrecision);
 
 public:
     void runSimulation(CSimulationBox& simBox, int NStep, int outputEvery);
@@ -74,8 +74,9 @@ public:
 private:
     void calcInitialForces(CSimulationBox& simBox, mthost_vector<CMDFFMatrices::CForces>& F);
     void printHeading(CSimulationBox& simBox, EHeading heading);
-    void appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox);
-    void appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& numTimeSteps, const int& outputStride);
+    void appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox) const;
+    void appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& numTimeSteps, const int& outputStride) const;
+    void appendToXTCFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& t, const int& numTimeSteps, const int& outputStride, const float& precision) const;
     void resizeDistrArrays(std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, int size, int NArrays);
     void appendToMomentumDistribution(CSimulationBox& simBox, std::vector<int>& momentumDistr, double maxP, int axis);
     void appendToVolumeDistribution(double V, std::vector<int>& volumeDistr, double maxV);
@@ -93,10 +94,13 @@ private:
     double maxVDistrOutput_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includeXTCFile_;
     bool includePDistrOutput_;
     bool includeVDistrOutput_;
+    float xtcPrecision_;
     std::string fileNameXYZ_;
     std::string fileNameDCD_;
+    std::string fileNameXTC_;
     std::string fileNamePDistr_;
     std::string fileNameVDistr_;
     std::chrono::steady_clock::time_point lastStartingTimeStep_;
