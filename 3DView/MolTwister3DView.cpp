@@ -394,7 +394,7 @@ void C3DView::drawAtom(C3DVector R, double radius, float r, float g, float b, bo
     glTranslatef(-(float)R.x_, -(float)R.y_, -(float)R.z_);
 }
 
-bool C3DView::drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b)
+bool C3DView::drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b, const bool& doubleBond)
 {
     const double twoPi = 2.0*M_PI;
     const double deltaTheta = twoPi / double(primitiveRes_.cylinder_);
@@ -431,31 +431,47 @@ bool C3DView::drawBond(C3DVector R1, C3DVector R2, double radius, float r, float
     // Calculate unit vector v, used as v-axis for base disc of cylinder
     v = L.cross(u);
     v.normalize();
-    
-    // Calculate lines p1(theta) to p2(theta) along cylinder at angle theta
-    for(double theta=0; theta<=twoPi; theta+=deltaTheta)
-    {
-        na = u*cos(theta) + v*sin(theta);
-        p1a = R1 + na*radius;
-        p2a = p1a + L;
-        
-        if(theta > 1E-4)
-        {
-            glBegin(GL_POLYGON);
-            glNormal3f((float)na.x_, (float)na.y_, (float)na.z_);
-            glVertex3f((float)p1a.x_, (float)p1a.y_, (float)p1a.z_);
-            glNormal3f((float)na.x_, (float)na.y_, (float)na.z_);
-            glVertex3f((float)p2a.x_, (float)p2a.y_, (float)p2a.z_);
-            glNormal3f((float)nb.x_, (float)nb.y_, (float)nb.z_);
-            glVertex3f((float)p2b.x_, (float)p2b.y_, (float)p2b.z_);
-            glNormal3f((float)nb.x_, (float)nb.y_, (float)nb.z_);
-            glVertex3f((float)p1b.x_, (float)p1b.y_, (float)p1b.z_);
-            glEnd();
-        }
 
-        nb = na;
-        p1b = p1a;
-        p2b = p2a;
+    // Set up for single or double bond display
+    std::vector<C3DVector> bondDisplacements;
+    if(doubleBond)
+    {
+        radius*= 0.5f;
+        bondDisplacements.emplace_back(u * (radius*1.5f));
+        bondDisplacements.emplace_back(u * (-radius*1.5f));
+    }
+    else
+    {
+        bondDisplacements.emplace_back(C3DVector());
+    }
+    
+    for(const C3DVector& d : bondDisplacements)
+    {
+        // Calculate lines p1(theta) to p2(theta) along cylinder at angle theta
+        for(double theta=0; theta<=twoPi; theta+=deltaTheta)
+        {
+            na = u*cos(theta) + v*sin(theta);
+            p1a = R1 + d + na*radius;
+            p2a = p1a + L;
+
+            if(theta > 1E-4)
+            {
+                glBegin(GL_POLYGON);
+                glNormal3f((float)na.x_, (float)na.y_, (float)na.z_);
+                glVertex3f((float)p1a.x_, (float)p1a.y_, (float)p1a.z_);
+                glNormal3f((float)na.x_, (float)na.y_, (float)na.z_);
+                glVertex3f((float)p2a.x_, (float)p2a.y_, (float)p2a.z_);
+                glNormal3f((float)nb.x_, (float)nb.y_, (float)nb.z_);
+                glVertex3f((float)p2b.x_, (float)p2b.y_, (float)p2b.z_);
+                glNormal3f((float)nb.x_, (float)nb.y_, (float)nb.z_);
+                glVertex3f((float)p1b.x_, (float)p1b.y_, (float)p1b.z_);
+                glEnd();
+            }
+
+            nb = na;
+            p1b = p1a;
+            p2b = p2a;
+        }
     }
     
     return true;
@@ -708,7 +724,7 @@ void C3DView::drawMolecules(ESelModes mode)
                     
                     if(viewBondsAcrossPBC_ || !bondAcrossPBC)
                     {
-                        drawBond(currFrmAtVec(*A1), end, bondRadius, (float)r, (float)g, (float)b);
+                        drawBond(currFrmAtVec(*A1), end, bondRadius, (float)r, (float)g, (float)b, (*atoms_)[i]->isDoubleBond(j));
                         drawBondLabel(A1, A2);
                     }
                 }

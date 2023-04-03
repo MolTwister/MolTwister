@@ -22,6 +22,7 @@
 
 #include "MolTwisterCmdMod/CmdAtomPos.h"
 #include "MolTwisterCmdMod/CmdBondLength.h"
+#include "MolTwisterCmdMod/CmdBondType.h"
 #include "MolTwisterCmdMod/CmdAngle.h"
 #include "MolTwisterCmdMod/CmdDihedral.h"
 #include "MolTwisterCmdMod/CmdCharge.h"
@@ -49,6 +50,7 @@ void CCmdMod::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdAtomName>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdAtomPos>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdBondLength>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdBondType>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdCharge>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdDihedral>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdMass>(state_, stdOut_));
