@@ -37,6 +37,7 @@ does what we want. We should also set appropriate boundaries to properly view th
 
 and then lets make sure we view the entire boundary by invoking
 
+    autoscale
     genbonds
 
 This can be stored for safe keeping to a pdb and xyz file by
@@ -55,6 +56,8 @@ We can now assign force field parameters to the newly created water molecule. We
     add mdbond Ow Hw1 Harm all_r_less_than 1.1 1882.8 0.9572;
     add mdbond Ow Hw2 Harm all_r_less_than 1.1 1882.8 0.9572;
     add mdangle Hw1 Ow Hw2 Harm all_r_less_than 1.1 230.12 104.52;
+
+    add mdnonbonded Ow Ow LJ 0.426768 3.188;
 
 which defines TIP3P water molecules.
 
@@ -78,6 +81,11 @@ Note that for the below Python scripts to work, MatplotLib must be installed on 
     pip install matplotlib
 
 Python must be installed for MolTwister to work, so this should already be present on the system.
+
+Now load the required data into the system again by
+
+    load single_water.pdb
+    load water_ff.script
 
 We can output data to show plots of the assigned force field potentials, but first we need to know the indices of the assigned force fields, which can be done by invoking
 
@@ -147,12 +155,13 @@ First we load the water molecule:
 
 and say 'del' to delete anything previously there. Subsequently, select all atoms and make 512 copies that are placed randomly within a cubic box with 25 Å side lengths and a minimum distance between molecular atoms of 1.5 Å:
 
+    sel all
     copy sel random 25 25 25 512 1.5
 
 Check if we have managed to create 512 molecules by selecting all water oxygens (Ow) and counting them:
 
     sel none
-    sel name Ow
+    sel atomname Ow
     measure count sel
 
 The MD simulator only accepts systems with geometric centers placed at the origin. Hence, we need to displace the system to this position by invoking
@@ -290,6 +299,8 @@ Now we can run the simulation as
 
 On a relatively new CPU this simulation will take a few hours and produce a traj.dcd trajectory file and an out.txt output file.
 
+If the simulation fails, such as producing NaN (Not a Number), then it is possible to try reducing the time step. For example, from 0.5 to 0.2 fs to gain better equilibration that way.
+
 Once the simulation is done, we can load the trajectory file by
 
     load traj.dcd
@@ -376,11 +387,11 @@ Then, load the system
 
 We assign the residue names to each atom name by
 
-    mod resname name Ow to water
-    mod resname name Hw1 to water
-    mod resname name Hw2 to water
+    mod resname name Ow to wat
+    mod resname name Hw1 to wat
+    mod resname name Hw2 to wat
 
-where the water residue name was set to 'water'. We now generate a new PDB file containing residue names by
+where the water residue name was set to 'wat'. We now generate a new PDB file containing residue names by
 
     print pdb > initial.pdb
 
@@ -400,13 +411,14 @@ and then invoke
 
     load initial.pdb
     load pbc.script
-    load traj_unwrap.dcd
+    load water_ff.script
+    load traj_mtunwrap.dcd
 
 to load the system into the 3D viewer. In the 3D viewer, hit Alt+O to switch into orthographic view and then use the arrow keys to scroll though the frames, checking that the molecules move appropriately outside the periodic boundaries.
 
 Once this is done we can calulate the mean square displacement by
 
-    calculate msd traj_mtunwrap.dcd 800 9999 resname water > msd.dat
+    calculate msd traj_mtunwrap.dcd 800 9999 resname wat > msd.dat
 
 Note that the 'traj_mtunwrap.dcd' file does *not* need to be loaded into MolTwister memory in order to run the above command.
 
