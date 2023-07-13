@@ -112,7 +112,7 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         atomLabel_.serialize(io, saveToStream);
 
         io << bondLabels_.size();
-        for(auto item : bondLabels_)
+        for(auto& item : bondLabels_)
         {
             io << item.first->atomIndex_;
             item.second.serialize(io, saveToStream);

@@ -61,7 +61,7 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tcutoffradius = %g AA; Desired cutoff radius.\r\n", cfg_.cutoffRadius_);
     fprintf(stdOut, "\tneighshell = %g AA; Desired neighbor list shell distance.\r\n", cfg_.neighListShell_);
-    fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force (in reduced units).\r\n", cfg_.cutoffForce_);
+    fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force.\r\n", cfg_.cutoffForce_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tscale12 = %g; Desired factor to scale 1-2 non-bonded interactions with (i.e., between bonded atoms).\r\n", cfg_.scale12Interactions_);
     fprintf(stdOut, "\tscale13 = %g; Desired factor to scale 1-3 non-bonded interactions with (i.e., between bonded atoms).\r\n", cfg_.scale13Interactions_);
@@ -301,7 +301,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.pressureRESPASteps_ = 4;
     cfg_.cutoffRadius_ = 10.0; // AA
     cfg_.neighListShell_ = 2.0; // AA
-    cfg_.cutoffForce_ = 1000.0; // Reduced units
+    cfg_.cutoffForce_ = 1000.0;
     cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
