@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -19,6 +19,8 @@
 //
 
 #include "MolTwisterMDFFDihList.h"
+#include "MolTwisterMDFFDih_Fourier4t.h"
+#include "MolTwisterMDFFDih_Harm.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -57,7 +59,7 @@ void CMDFFDihList::serialize(CSerializer& io, bool saveToStream)
         {
             std::string ffType;
             io >> ffType;
-            for(std::shared_ptr<CMDFFDih> item : registeredForceFieldTypes_)
+            for(const std::shared_ptr<CMDFFDih>& item : registeredForceFieldTypes_)
             {
                 if(item->getFFType() == ffType)
                 {

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -22,9 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFBond.h"
-#include "MolTwisterMDFFBond_Harm.h"
-#include "MolTwisterMDFFBond_Morse.h"
-#include "MolTwisterMDFFBond_LJC.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

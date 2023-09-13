@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -39,6 +39,7 @@ protected:
 private:
     void parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parseDCDCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
+    void parseXTCCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
     void parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex);
@@ -48,6 +49,7 @@ private:
 
     bool readXYZFile(std::string xyzFileName, bool& genBonds);
     bool readDCDFile(std::string dcdFileName, bool& genBonds, int stride);
+    bool readXTCFile(std::string xtcFileName, bool& genBonds, int stride);
     bool readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery);
     bool readMTTFile(std::string mttFileName);
     bool readScriptFile(std::string scriptFileName);

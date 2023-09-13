@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -43,10 +43,13 @@ struct SMolDynConfigStruct
     std::string outInfoFile_;
     std::string outXYZFile_;
     std::string outDCDFile_;
+    std::string outXTCFile_;
     std::string outPDistrFile_;
     std::string outVDistrFile_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includeXTCFile_;
+    float xtcPrecision_;
     bool includePDistrFile_;
     bool includeVDistrFile_;
     double maxPDistrOutput_;
@@ -56,4 +59,7 @@ struct SMolDynConfigStruct
     double scale13Interactions_;
     double scale14Interactions_;
     double scaleAbove14BondedInteractions_;
+    double gradientDescentLearningRate_;
+    int gradientDescentMaxSteps_;
+    double gradientDescentAccuracy_;
 };

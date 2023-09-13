@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -94,9 +94,12 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         }
 
         io << bonds_.size();
-        for(CAtom* atom : bonds_)
+        for(const CBondDest& dest : bonds_)
         {
+            CAtom* atom = dest.getDest();
+            bool isDouble = dest.isDoubleBond();
             io << atom->atomIndex_;
+            io << isDouble;
         }
 
         io << listOf1to4Connections_.size();
@@ -109,7 +112,7 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         atomLabel_.serialize(io, saveToStream);
 
         io << bondLabels_.size();
-        for(auto item : bondLabels_)
+        for(auto& item : bondLabels_)
         {
             io << item.first->atomIndex_;
             item.second.serialize(io, saveToStream);
@@ -144,8 +147,11 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         for(size_t i=0; i<size; i++)
         {
             int atomIndex;
+            bool isDouble;
             io >> atomIndex;
-            bonds_[i] = (*newAtomList)[atomIndex].get();
+            io >> isDouble;
+            bonds_[i].setDest((*newAtomList)[atomIndex].get());
+            bonds_[i].setAsDoubleBond(isDouble);
         }
 
         io >> size;
@@ -216,7 +222,7 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms() const
     
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        index = bonds_[i]->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
+        index = bonds_[i].getDest()->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
         if(index > -1)
         {
             return index;
@@ -240,14 +246,14 @@ void CAtom::searchForLeafAtomsConnToBond(int bondDest, std::vector<CAtom*>& leaf
         alreadyVisited = false;
         for(int j=0; j<(int)leafAtoms.size(); j++)
         {
-            if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
+            if(bonds_[i].getDest() == leafAtoms[j]) alreadyVisited = true;
         }
-        if(bonds_[i] == bondDestPtr) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondDestPtr) alreadyVisited = true;
 
         if(alreadyVisited) continue;
 
-        leafAtoms.emplace_back(bonds_[i]);
-        bonds_[i]->searchForLeafAtomsConnToBond(bondDestPtr, this, leafAtoms);
+        leafAtoms.emplace_back(bonds_[i].getDest());
+        bonds_[i].getDest()->searchForLeafAtomsConnToBond(bondDestPtr, this, leafAtoms);
     }
 }
 
@@ -269,12 +275,12 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms(std::vector<const CAtom*>& vis
         alreadyVisited = false;
         for(int j=0; j<(int)visitedAtoms.size(); j++)
         {
-            if(visitedAtoms[j] == bonds_[i]) alreadyVisited = true;
+            if(visitedAtoms[j] == bonds_[i].getDest()) alreadyVisited = true;
         }
         
         if(alreadyVisited) continue;
 
-        index = bonds_[i]->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
+        index = bonds_[i].getDest()->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
         if(index > -1) return index;
     }
     
@@ -297,21 +303,21 @@ void CAtom::searchForLeafAtomsConnToBond(const CAtom* bondAt1, const CAtom* bond
         alreadyVisited = false;
         for(int j=0; j<(int)leafAtoms.size(); j++)
         {
-            if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
+            if(bonds_[i].getDest() == leafAtoms[j]) alreadyVisited = true;
         }
-        if(bonds_[i] == bondAt1) alreadyVisited = true;
-        if(bonds_[i] == bondAt2) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondAt1) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondAt2) alreadyVisited = true;
         
         if(alreadyVisited) continue;
         
-        leafAtoms.emplace_back(bonds_[i]);
-        bonds_[i]->searchForLeafAtomsConnToBond(bondAt1, bondAt2, leafAtoms);
+        leafAtoms.emplace_back(bonds_[i].getDest());
+        bonds_[i].getDest()->searchForLeafAtomsConnToBond(bondAt1, bondAt2, leafAtoms);
     }
 }
 
 int CAtom::attachBondTo(CAtom* atom)
 {
-    bonds_.emplace_back(atom);
+    bonds_.emplace_back(CBondDest(atom));
     return (int)bonds_.size();
 }
 
@@ -324,7 +330,7 @@ int CAtom::deleteBondTo(CAtom* atom)
     // Find element index to erase
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(bonds_[i] == atom)
+        if(bonds_[i].getDest() == atom)
         {
             index = i;
             break;
@@ -349,7 +355,7 @@ int CAtom::getBondDestIndex(const CAtom* atom) const
 {
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(bonds_[i] == atom) return i;
+        if(bonds_[i].getDest() == atom) return i;
     }
     
     return -1;
@@ -403,7 +409,7 @@ void CAtom::buildListOf1to4Connections()
     listOf1to4Connections_.clear();
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        atom1Ptr = bonds_[i];
+        atom1Ptr = bonds_[i].getDest();
         if(!atom1Ptr) continue;
         connect.atom_ = atom1Ptr;
         connect.numBondsAway_ = 1;
@@ -411,7 +417,7 @@ void CAtom::buildListOf1to4Connections()
 
         for(int j=0; j<(int)atom1Ptr->bonds_.size(); j++)
         {
-            atom2Ptr = atom1Ptr->bonds_[j];
+            atom2Ptr = atom1Ptr->bonds_[j].getDest();
             if(!atom2Ptr || (atom2Ptr == this) || (atom2Ptr == atom1Ptr)) continue;
             connect.atom_ = atom2Ptr;
             connect.numBondsAway_ = 2;
@@ -419,7 +425,7 @@ void CAtom::buildListOf1to4Connections()
 
             for(int k=0; k<(int)atom2Ptr->bonds_.size(); k++)
             {
-                atom3Ptr = atom2Ptr->bonds_[k];
+                atom3Ptr = atom2Ptr->bonds_[k].getDest();
                 if(!atom3Ptr || (atom3Ptr == this) || (atom3Ptr == atom1Ptr) || (atom3Ptr == atom2Ptr)) continue;
                 connect.atom_ = atom3Ptr;
                 connect.numBondsAway_ = 3;
@@ -427,7 +433,7 @@ void CAtom::buildListOf1to4Connections()
 
                 for(int l=0; l<(int)atom3Ptr->bonds_.size(); l++)
                 {
-                    atom4Ptr = atom3Ptr->bonds_[l];
+                    atom4Ptr = atom3Ptr->bonds_[l].getDest();
                     if(!atom4Ptr || (atom4Ptr == this) || (atom4Ptr == atom1Ptr) || (atom4Ptr == atom2Ptr) || (atom4Ptr == atom3Ptr)) continue;
                     connect.atom_ = atom4Ptr;
                     connect.numBondsAway_ = 4;
@@ -508,15 +514,15 @@ int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double
     
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        dist2 = getDistanceTo2(bonds_[i], frame);
+        dist2 = getDistanceTo2(bonds_[i].getDest(), frame);
         if(dist2 > longestDist2)
         {
             longestDist2 = dist2;
             indexLongestBond = i;
 
-            lenghtX = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-            lenghtY = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-            lenghtZ = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
+            lenghtX = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+            lenghtY = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+            lenghtZ = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
         }
     }
     
@@ -537,10 +543,10 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsAtPBCBdry1, std::vecto
     atomsAtPBCBdry[indexCurrBdry]->emplace_back(this);
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-        if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-        if(pbcDir == dirZ) length = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
-        bonds_[i]->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, indexCurrBdry, length, pbc, pbcDir, frame);
+        if(pbcDir == dirX) length = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+        if(pbcDir == dirY) length = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+        if(pbcDir == dirZ) length = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, indexCurrBdry, length, pbc, pbcDir, frame);
     }
 }
 
@@ -562,10 +568,10 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsAtPBCBdry[], std::map<
     atomsAtPBCBdry[currBdry]->emplace_back(this);
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-        if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-        if(pbcDir == dirZ) length = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
-        bonds_[i]->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, currBdry, length, pbc, pbcDir, frame);
+        if(pbcDir == dirX) length = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+        if(pbcDir == dirY) length = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+        if(pbcDir == dirZ) length = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, currBdry, length, pbc, pbcDir, frame);
     }
 }
 
@@ -580,7 +586,7 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsInMolecule, int frame)
 
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        bonds_[i]->findAtomsInMolecule(&atomsInMolecule, visitedAtoms, frame);
+        bonds_[i].getDest()->findAtomsInMolecule(&atomsInMolecule, visitedAtoms, frame);
     }
 }
 
@@ -594,7 +600,7 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsInMolecule, std::map<C
     atomsInMolecule->emplace_back(this);
     for(int i=0; i<(int)bonds_.size(); i++)
     {
-        bonds_[i]->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
     }
 }
 

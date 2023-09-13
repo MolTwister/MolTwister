@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -19,6 +19,7 @@
 //
 
 #include <iostream>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -301,9 +302,20 @@ void CASCIIUtility::parseCLikeFuncCall(std::string inputString, std::string& fun
     int strLen = (int)inputString.size();
     int i;
 
+    arguments = inputString;
     funcName.clear();
+
+    // If this is not a function style call, then leave with an empty function name,
+    // but fill in the entire string as one argument
+    size_t parenthesisIndexStart = inputString.find("(");
+    if(parenthesisIndexStart == std::string::npos) return;
+    if((int(parenthesisIndexStart) - 1) < 0) return;
+    if(CASCIIUtility::isWhiteSpace(inputString[parenthesisIndexStart - 1])) return;
+    size_t parenthesisIndexEnd = inputString.find(")");
+    if(parenthesisIndexEnd == std::string::npos) return;
+
     arguments.clear();
-    
+
     // Read function name
     for(i=0; i<strLen; i++)
     {
@@ -360,7 +372,7 @@ std::string CASCIIUtility::argsToString(const std::vector<std::string>& argument
     std::string argsString;
 
     bool first = true;
-    for(auto argument : arguments)
+    for(const auto& argument : arguments)
     {
         if(!first) argsString+= " ";
         argsString+= argument;
@@ -399,4 +411,17 @@ std::string CASCIIUtility::createMarkDownCodeBlock(std::string str, int numSpace
     reconstructedString+= "````\r\n";
 
     return reconstructedString;
+}
+
+std::string CASCIIUtility::addTabsToDocument(const std::string& document)
+{
+    std::vector<std::string> lines = getLines(document);
+
+    std::string newDocument;
+    for(const std::string& line : lines)
+    {
+        newDocument+= std::string("\t") + line + std::string("\r\n");
+    }
+
+    return newDocument;
 }

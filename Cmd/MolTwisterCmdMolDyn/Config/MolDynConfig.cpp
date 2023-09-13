@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -32,10 +32,11 @@ std::vector<std::string> CMolDynConfig::getKeyWords()
              "temperature", "temperaturerelax", "temperaturenhlen", "temperaturerespa",
              "pressure", "pressurerelax", "pressurenhlen", "pressurerespa",
              "cutoffradius", "neighshell", "cutoffforce",
-             "infofile", "xyzfile", "dcdfile", "pdistrfile", "vdistrfile",
-             "includexyzfile", "includedcdfile", "includepdistrfile", "includevdistrfile",
-             "maxpdistr", "maxvdistr", "verboseoutput",
-             "scale12", "scale13", "scale14", "scale1N"
+             "infofile", "xyzfile", "dcdfile", "xtcfile", "pdistrfile", "vdistrfile",
+             "includexyzfile", "includedcdfile", "includextcfile", "xtcprecision",
+             "includepdistrfile", "includevdistrfile", "maxpdistr", "maxvdistr", "verboseoutput",
+             "scale12", "scale13", "scale14", "scale1N", "optmaxsteps", "optlearningrate",
+             "optaccuracy"
            };
 }
 
@@ -60,7 +61,7 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tcutoffradius = %g AA; Desired cutoff radius.\r\n", cfg_.cutoffRadius_);
     fprintf(stdOut, "\tneighshell = %g AA; Desired neighbor list shell distance.\r\n", cfg_.neighListShell_);
-    fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force (in reduced units).\r\n", cfg_.cutoffForce_);
+    fprintf(stdOut, "\tcutoffforce = %g; Desired cutoff force.\r\n", cfg_.cutoffForce_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tscale12 = %g; Desired factor to scale 1-2 non-bonded interactions with (i.e., between bonded atoms).\r\n", cfg_.scale12Interactions_);
     fprintf(stdOut, "\tscale13 = %g; Desired factor to scale 1-3 non-bonded interactions with (i.e., between bonded atoms).\r\n", cfg_.scale13Interactions_);
@@ -70,16 +71,23 @@ void CMolDynConfig::print(FILE* stdOut)
     fprintf(stdOut, "\tinfofile = %s; Filename of info file.\r\n", cfg_.outInfoFile_.data());
     fprintf(stdOut, "\txyzfile = %s; Filename of XYZ file.\r\n", cfg_.outXYZFile_.data());
     fprintf(stdOut, "\tdcdfile = %s; Filename of DCD file.\r\n", cfg_.outDCDFile_.data());
+    fprintf(stdOut, "\txtcfile = %s; Filename of Gromacs XTC file.\r\n", cfg_.outXTCFile_.data());
     fprintf(stdOut, "\tpdistrfile = %s; Filename of momentum distribution file.\r\n", cfg_.outPDistrFile_.data());
     fprintf(stdOut, "\tvdistrfile = %s; Filename of volume distribution file.\r\n", cfg_.outVDistrFile_.data());
     fprintf(stdOut, "\tincludexyzfile {yes, no} = %s; Include XYZ file as output.\r\n", cfg_.includeXYZFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludedcdfile {yes, no} = %s; Include DCD file as output.\r\n", cfg_.includeDCDFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\tincludextcfile {yes, no} = %s; Include Gromacs XTC file as output.\r\n", cfg_.includeXTCFile_ ? "Yes" : "No");
+    fprintf(stdOut, "\txtcprecision = %g; Gromacs XTC file precision.\r\n", cfg_.xtcPrecision_);
     fprintf(stdOut, "\tincludepdistrfile {yes, no} = %s; Include momentum distribution file as output.\r\n", cfg_.includePDistrFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tincludevdistrfile {yes, no} = %s; Include volume distribution file as output.\r\n", cfg_.includeVDistrFile_ ? "Yes" : "No");
     fprintf(stdOut, "\tmaxpdistr = %g AA*g/(fs*mol); Desired maximum momentum to use for momentum distribution output.\r\n", cfg_.maxPDistrOutput_);
     fprintf(stdOut, "\tmaxvdistr = %g AA^3; Desired maximum volume to use for volume distribution output.\r\n", cfg_.maxVDistrOutput_);
     fprintf(stdOut, "\r\n");
     fprintf(stdOut, "\tverboseoutput {yes, no} = %s; Let output to screen be verbose.\r\n", cfg_.verboseOutput_ ? "Yes" : "No");
+    fprintf(stdOut, "\r\n");
+    fprintf(stdOut, "\toptlearningrate = %g; Learning rate, or step size, of gradient descent algorithm used for energy optimization.\r\n", cfg_.gradientDescentLearningRate_);
+    fprintf(stdOut, "\toptmaxsteps = %i; Maximum number of steps used for energy optimization.\r\n", cfg_.gradientDescentMaxSteps_);
+    fprintf(stdOut, "\toptaccuracy = %g; Accuracy, a, for energy optimization in kJ/mol, which terminates if |U_(n+1) - U_(n)| < a.\r\n", cfg_.gradientDescentAccuracy_);
 
     fprintf(stdOut, "\r\n\t------------------------------------------\r\n");
 }
@@ -164,6 +172,10 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.outDCDFile_ = value.data();
     }
+    else if(parameter == "xtcfile")
+    {
+        cfg_.outXTCFile_ = value.data();
+    }
     else if(parameter == "pdistrfile")
     {
         cfg_.outPDistrFile_ = value.data();
@@ -189,6 +201,19 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
         {
             return "Error: 'includedcdfile' parameter should be either 'yes' or 'no'!";
         }
+    }
+    else if(parameter == "includextcfile")
+    {
+        if(value == "yes") cfg_.includeXTCFile_ = true;
+        else if(value == "no") cfg_.includeXTCFile_ = false;
+        else
+        {
+            return "Error: 'includextcfile' parameter should be either 'yes' or 'no'!";
+        }
+    }
+    else if(parameter == "xtcprecision")
+    {
+        cfg_.xtcPrecision_ = std::atof(value.data());
     }
     else if(parameter == "includepdistrfile")
     {
@@ -241,6 +266,18 @@ std::string CMolDynConfig::set(std::string parameter, std::string value)
     {
         cfg_.scaleAbove14BondedInteractions_ = std::atof(value.data());
     }
+    else if(parameter == "optlearningrate")
+    {
+        cfg_.gradientDescentLearningRate_ = std::atof(value.data());
+    }
+    else if(parameter == "optmaxsteps")
+    {
+        cfg_.gradientDescentMaxSteps_ = std::atoi(value.data());
+    }
+    else if(parameter == "optaccuracy")
+    {
+        cfg_.gradientDescentAccuracy_ = std::atof(value.data());
+    }
     else
     {
         return "Error: unknown parameter!";
@@ -264,15 +301,18 @@ void CMolDynConfig::resetToDefaults()
     cfg_.pressureRESPASteps_ = 4;
     cfg_.cutoffRadius_ = 10.0; // AA
     cfg_.neighListShell_ = 2.0; // AA
-    cfg_.cutoffForce_ = 1000.0; // Reduced units
+    cfg_.cutoffForce_ = 1000.0;
     cfg_.numberOfTimeSteps_ = 50000;
     cfg_.outInfoFile_ = "out.txt";
     cfg_.outXYZFile_ = "traj.xyz";
     cfg_.outDCDFile_ = "traj.dcd";
+    cfg_.outXTCFile_ = "traj.xtc";
     cfg_.outPDistrFile_ = "distr";
     cfg_.outVDistrFile_ = "distr";
     cfg_.includeXYZFile_ = false;
     cfg_.includeDCDFile_ = true;
+    cfg_.includeXTCFile_ = false;
+    cfg_.xtcPrecision_ = 1000.0f;
     cfg_.includePDistrFile_ = false;
     cfg_.includeVDistrFile_ = false;
     cfg_.maxPDistrOutput_ = 0.3; // AA*g/(fs*mol)
@@ -282,4 +322,7 @@ void CMolDynConfig::resetToDefaults()
     cfg_.scale13Interactions_ = 0.0;
     cfg_.scale14Interactions_ = 0.5;
     cfg_.scaleAbove14BondedInteractions_ = 0.0;
+    cfg_.gradientDescentLearningRate_ = 1e-6;
+    cfg_.gradientDescentMaxSteps_ = 5000;
+    cfg_.gradientDescentAccuracy_ = 0.0;
 }

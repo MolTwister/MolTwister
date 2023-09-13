@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -22,8 +22,6 @@
 #include <stdio.h>
 #include "MDFF/MolTwisterMDFFList.h"
 #include "MolTwisterMDFFAngle.h"
-#include "MolTwisterMDFFAngle_Harm.h"
-#include "MolTwisterMDFFAngle_Class2.h"
 
 BEGIN_CUDA_COMPATIBLE()
 

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -39,7 +39,9 @@ public:
     HOSTDEV_CALLABLE void set(double x, double y, double z) { x_=x; y_=y; z_=z; }
     HOSTDEV_CALLABLE void set(const double* r) { x_=r[0]; y_=r[1]; z_=r[2]; }
     HOSTDEV_CALLABLE void get(double& x, double& y, double& z) const { x=x_; y=y_; z=z_; }
+    HOSTDEV_CALLABLE void get(float& x, float& y, float& z) const { x=(float)x_; y=(float)y_; z=(float)z_; }
     HOSTDEV_CALLABLE void get(double* r) const { r[0]=x_; r[1]=y_; r[2]=z_; }
+    HOSTDEV_CALLABLE void get(float* r) const { r[0]=(float)x_; r[1]=(float)y_; r[2]=(float)z_; }
     void print() const;
     HOSTDEV_CALLABLE double norm() const;
     HOSTDEV_CALLABLE double norm2() const;
@@ -55,6 +57,7 @@ public:
     HOSTDEV_CALLABLE double angleAcrossPBC(const C3DVector& v1, const C3DVector& v3, const C3DRect& pbc) const;
     HOSTDEV_CALLABLE C3DVector unit() const;
     HOSTDEV_CALLABLE void normalize();
+    HOSTDEV_CALLABLE void rotate(const C3DVector& rotCenter, const double& alpha, const double& beta, const double& gamma);
     HOSTDEV_CALLABLE C3DVector cross(const C3DVector& rhs) const;
     HOSTDEV_CALLABLE C3DVector operator+(const C3DVector& rhs) const;
     HOSTDEV_CALLABLE C3DVector operator+=(const C3DVector& rhs);

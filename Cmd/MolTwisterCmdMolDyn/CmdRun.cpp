@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -91,7 +91,7 @@ std::string CCmdRun::execute(std::vector<std::string> arguments)
     }
     #endif
 
-    if(text == "cpu" )
+    if(text == "cpu")
     {
         runOnGPU = false;
         if(compiledForGPU)

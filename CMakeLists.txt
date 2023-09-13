@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 Richard Olsen.
+# Copyright (C) 2023 Richard Olsen.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This file is part of MolTwister.
@@ -18,7 +18,7 @@
 # along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
 # ************************************************************************************
 # Function declataions
@@ -68,7 +68,7 @@ endfunction()
 # CMake main body
 # ************************************************************************************
 option(CUDA_DBG_INFO "Include CUDA debug info" OFF)
-option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" ON)
+option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" OFF)
 
 if(${INCLUDE_CUDA_COMMANDS})
     project(MolTwister LANGUAGES CXX CUDA)
@@ -82,17 +82,29 @@ else()
     add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
 endif()
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
-find_package(PythonLibs REQUIRED)
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(Threads REQUIRED)
 
+# Check if Gromacs library is available (used e.g., for XTC trajectory files)
+# If so, use it. Note that it can be installed by 'sudo apt install gromacs libgromacs6 libgromacs-dev'
+find_library(GROMACS_LIB gromacs NO_CACHE)
+if(NOT GROMACS_LIB)
+    message(STATUS "Gromacs library not found")
+    set(GROMACS_LIB "")
+    add_definitions(-DGROMACS_LIB_INSTALLED=0)
+else()
+    message(STATUS "Gromacs library ${GROMACS_LIB} found")
+    add_definitions(-DGROMACS_LIB_INSTALLED=1)
+endif()
+
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(${PYTHON_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-link_libraries(${PYTHON_LIBRARIES})
+include_directories(${Python3_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+link_libraries(Python3::Python OpenGL::GLU GLUT::GLUT ${GROMACS_LIB})
 
 source_group("MolTwister" FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -109,6 +121,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterAtom.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.h
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.h
@@ -129,6 +143,7 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/ConditionalOnXYZ.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/XTCFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FileUtility.h
@@ -345,6 +360,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdAtomicUnwrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.cpp
@@ -381,6 +398,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomPos.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondLength.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondLength.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondType.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondType.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAngle.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAngle.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDihedral.h
@@ -393,6 +412,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdMobillity.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdResname.h
@@ -402,6 +423,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.cpp
 
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdOptimizeEnergy.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdOptimizeEnergy.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.h
@@ -479,7 +502,9 @@ if(${INCLUDE_CUDA_COMMANDS})
     set(CUDA_MT_LIB MolTwisterCudaLib)
 endif()
 
-target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline util)
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util ${GROMACS_LIB})
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
+file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)
 install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION /usr/local/bin/moltwister-tutorials/)

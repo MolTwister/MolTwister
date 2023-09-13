@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -22,12 +22,14 @@
 #include <stdio.h>
 #include <vector>
 #include <string>
+#include <functional>
 #include "Utilities/FileUtility.h"
 #include "MolTwisterCommandPool.h"
 #include "MolTwisterCmdLoad.h"
 #include "Tools/MolTwisterStateTools.h"
 #include "Tools/ProgressBar.h"
 #include "../Utilities/DCDFile.h"
+#include "../Utilities/XTCFile.h"
 
 void CCmdLoad::onAddKeywords()
 {
@@ -63,13 +65,23 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
     szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
     szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
+    szText+= "\txtc :        XTC-coordinate files. Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
     szText+= "\tpdb :        PDB-coordinate files. Bonds can be ignored using 'ignore'.\r\n";
     szText+= "\t             To avoid query about delete ('del'), append ('app') or cancel ('can'),\r\n";
     szText+= "\t             use 'noquery <response>' with the appropriate response.\r\n";
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
     szText+= "\t             each formated as: exec(\"<MolTwister command>\");. For example,\r\n";
-    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0)\r\n";
+    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0).\r\n";
+    szText+= "\t             It is also possible to leave out the exec() function, as well\r\n";
+    szText+= "\t             as the quotes to achieve the same effect. For example,\r\n";
+    szText+= "\t                    add atom C at 0 0 0;\r\n";
+    szText+= "\t             is equivalent to\r\n";
+    szText+= "\t                    exec(\"add atom C at 0 0 0\");\r\n";
     szText+= "\tmasscharge : Load charges and masses into the current molecular structure. In\r\n";
     szText+= "\t             the file each line defines a charge/mass in two possible ways:\r\n";
     szText+= "\t                   * ID <ID, e.g. H, C, C2, or similar> <partial charge> <mass>\r\n";
@@ -99,6 +111,7 @@ void CCmdLoad::execute(std::string commandLine)
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     if((text != "xyz") &&
        (text != "dcd") &&
+       (text != "xtc") &&
        (text != "pdb") &&
        (text != "mtt") &&
        (text != "script") &&
@@ -109,6 +122,7 @@ void CCmdLoad::execute(std::string commandLine)
         std::string ext = CFileUtility::getExtension(text);
         if(ext == "xyz") { text = "xyz"; arg--; }
         if(ext == "dcd") { text = "dcd"; arg--; }
+        if(ext == "xtc") { text = "xtc"; arg--; }
         if(ext == "pdb") { text = "pdb"; arg--; }
         if(ext == "mtt") { text = "mtt"; arg--; }
         if(ext == "script") { text = "script"; arg--; }
@@ -122,6 +136,10 @@ void CCmdLoad::execute(std::string commandLine)
     else if(text == "dcd")
     {
         parseDCDCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
+    }
+    else if(text == "xtc")
+    {
+        parseXTCCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "pdb")
     {
@@ -272,7 +290,65 @@ void CCmdLoad::parseDCDCommand(std::string commandLine, int& arg, std::vector<st
             std::string filePath = CFileUtility::getCWD() + text;
 
             if(!readDCDFile(filePath.data(), genBonds, stride))
-                printf("Error loadingDCD file!");
+                printf("Error loading DCD file!");
+        }
+    }
+}
+
+void CCmdLoad::parseXTCCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex)
+{
+    std::string text = CASCIIUtility::getWord(commandLine, arg++);
+    CASCIIUtility::removeWhiteSpace(text);
+    if(text.length() == 0)
+    {
+        printf("Syntax Error: Second argument should be the filename!");
+    }
+    else
+    {
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
+        {
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
+        }
+
+        int stride = 1;
+        std::string strideString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(strideString);
+        if(strideString == "stride")
+        {
+            stride = atoi(CASCIIUtility::getWord(commandLine, arg++).data());
+        }
+        else arg++;
+
+        if(text[0] == '/')
+        {
+            if(!readXTCFile(text.data(), genBonds, stride))
+                printf("Error loading XTC file!");
+        }
+        else
+        {
+            std::string filePath = CFileUtility::getCWD() + text;
+
+            if(!readXTCFile(filePath.data(), genBonds, stride))
+                printf("Error loading XTC file!");
         }
     }
 }
@@ -634,6 +710,98 @@ bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
     return true;
 }
 
+bool CCmdLoad::readXTCFile(std::string xtcFileName, bool& genBonds, int stride)
+{
+    #if GROMACS_LIB_INSTALLED == 1
+        #ifdef GROMACS_XTC_HEADERS_INSTALLED
+            // Create lambdas to be used below
+            std::function<void(const int&, rvec*, const int&, const real&)> addCoordinatesToState = [this](const int& indexFrame, rvec* coordinates, const int& numAtoms, const real& precision)
+            {
+                for(int j=0; j<numAtoms; j++)
+                {
+                    double X = (double)coordinates[j][0] * 10.0f; // Convert from nm to AA
+                    double Y = (double)coordinates[j][1] * 10.0f; // Convert from nm to AA
+                    double Z = (double)coordinates[j][2] * 10.0f; // Convert from nm to AA
+
+                    std::string ID = state_->atoms_[j]->getID();
+
+                    if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, X, Y, Z);
+                    if(j < (int)state_->atoms_.size())
+                        state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
+                }
+            };
+
+            // Initialize variables
+            CProgressBar progBar;
+            double X, Y, Z;
+            std::string ID;
+
+            genBonds = false;
+
+            // Open XTC file
+            t_fileio* file = open_xtc(xtcFileName.c_str(), "r");
+            if(!file)
+            {
+                printf("\r\nCould not open file: %s!\r\n", xtcFileName.data());
+                return false;
+            }
+
+            // Read first entry
+            int numAtoms = 0;
+            int64_t step = 0;
+            real time = 0;
+            matrix box = {{ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }};
+            rvec* coordinates;
+            real precision = 0.0f;
+            gmx_bool xtcOK = false;
+            read_first_xtc(file, &numAtoms, &step, &time, box, &coordinates, &precision, &xtcOK);
+            if(!xtcOK)
+            {
+                printf("\r\nCould not read first XTC entry in %s!\r\n", xtcFileName.data());
+                close_xtc(file);
+                return false;
+            }
+            addCoordinatesToState(0, coordinates, numAtoms, precision);
+
+            if((int)state_->atoms_.size() !=  numAtoms)
+            {
+                printf("\r\nThe file, %s! It was found to have %i atoms per record (based on first record in file), while the loaded system has %i atoms. The number of atoms much match!\r\n", xtcFileName.data(), numAtoms, (int)state_->atoms_.size());
+                close_xtc(file);
+                return false;
+            }
+
+            int64_t prevStep = step;
+            progBar.beginProgress("Loading XTC file contents");
+            while(1)
+            {
+                read_next_xtc(file, numAtoms, &step, &time, box, coordinates, &precision, &xtcOK);
+                if(xtcOK && (step != prevStep))
+                {
+                    int indexFrame = state_->addFrame();
+                    if(indexFrame >= 0) addCoordinatesToState(indexFrame, coordinates, numAtoms, precision);
+
+                    progBar.updateProgress(step % 1000, 1000);
+                    prevStep = step;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            progBar.endProgress();
+
+            genBonds = true;
+            close_xtc(file);
+            return true;
+        #else
+            printf("\r\nError, missing headers: MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Could not load XTC file!\r\n");
+        #endif
+    #else
+        printf("\r\nError, missing library. MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Could not load XTC file!\r\n");
+    #endif
+}
+
 bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery)
 {
     std::string stringPart;
@@ -984,7 +1152,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
         line = CFileUtility::readToNextDelimiterIgnoreCppComments(fileHandle, ';', lastLineInFile);
         CASCIIUtility::parseCLikeFuncCall(line, funcName, argument);
     
-        if(funcName == "exec")
+        if((funcName == "exec") || funcName.empty())
         {
             CASCIIUtility::removeWhiteSpace(argument, "\"");
             command = CASCIIUtility::getWord(argument, 0);

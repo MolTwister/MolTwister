@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -127,6 +127,16 @@ void CMolecularTools::modBondLengthTo(const CAtom* atom1, CAtom* atom2, double d
     {
         (*atomsToMove)[i]->r_[frame]+= toMove;
     }
+}
+
+void CMolecularTools::modBondTypeTo(CAtom* atom1, CAtom* atom2, const std::string& type, int frame)
+{
+    bool doubleBond = (type == "double") ? true : false;
+    int bondDest1 = atom1->getBondDestIndex(atom2);
+    int bondDest2 = atom2->getBondDestIndex(atom1);
+
+    atom1->setAsdoubleBond(bondDest1, doubleBond);
+    atom2->setAsdoubleBond(bondDest2, doubleBond);
 }
 
 void CMolecularTools::modAngleTo(const CAtom* atom1, const CAtom* atom2, CAtom* atom3, double angle, int frame)

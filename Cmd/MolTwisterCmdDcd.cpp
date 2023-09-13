@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -28,6 +28,7 @@
 #include "MolTwisterCmdDcd/CmdUnwrap.h"
 #include "MolTwisterCmdDcd/CmdAtomicUnwrap.h"
 #include "MolTwisterCmdDcd/CmdWrap.h"
+#include "MolTwisterCmdDcd/CmdFromXTC.h"
 
 void CCmdDcd::onAddKeywords()
 {
@@ -46,6 +47,7 @@ void CCmdDcd::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdReadRecord>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdUnwrap>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdWrap>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdFromXTC>(state_, stdOut_));
 }
 
 std::string CCmdDcd::getHelpString() const

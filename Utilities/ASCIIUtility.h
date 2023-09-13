@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -44,4 +44,5 @@ public:
     static std::string argsToString(const std::vector<std::string>& arguments);
     static std::string argsToString(const std::vector<std::string>& arguments, size_t firstArgToInclude);
     static std::string createMarkDownCodeBlock(std::string str, int numSpaces, bool removeFirstTab=false);
+    static std::string addTabsToDocument(const std::string& document);
 };

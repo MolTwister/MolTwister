@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -38,6 +38,8 @@ public:
 public:
     static void run(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent);
     static void run(SMolDynConfigStruct config, FILE* stdOut, void* state);
+    static void optimize(SMolDynConfigStruct config, FILE* stdOut, CSerializer& stateContent);
+    static void optimize(SMolDynConfigStruct config, FILE* stdOut, void* state);
 };
 
 END_CUDA_COMPATIBLE()

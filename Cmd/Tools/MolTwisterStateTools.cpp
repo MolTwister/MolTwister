@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -1336,6 +1336,54 @@ C3DVector CMolTwisterStateTools::getCenterOfMass(const std::vector<int>& atomInd
     else
     {
         printf("Error: found vanishing total mass!");
+    }
+
+    return Rc;
+}
+
+C3DVector CMolTwisterStateTools::getGeometricCenter(const std::vector<int>& atomIndices, int frameIndex) const
+{
+    C3DVector Rc;
+    int atomCount = (int)atomIndices.size();
+
+    for(int i=0; i<atomCount; i++)
+    {
+        if((frameIndex < 0) || (frameIndex >= (int)state_->atoms_[atomIndices[i]]->r_.size()))
+        {
+            printf("Error: frame %i does not exist!", frameIndex);
+            return Rc;
+        }
+
+        Rc+= state_->atoms_[atomIndices[i]]->r_[frameIndex];
+    }
+    if(atomCount != 0) Rc*= (1.0 / (double)atomCount);
+    else
+    {
+        printf("Error: found vanishing total atom count!");
+    }
+
+    return Rc;
+}
+
+C3DVector CMolTwisterStateTools::getGeometricCenter(const std::vector<CAtom*>& atoms, int frameIndex)
+{
+    C3DVector Rc;
+    int atomCount = (int)atoms.size();
+
+    for(int i=0; i<atomCount; i++)
+    {
+        if((frameIndex < 0) || (frameIndex >= atoms[i]->r_.size()))
+        {
+            printf("Error: frame %i does not exist!", frameIndex);
+            return Rc;
+        }
+
+        Rc+= atoms[i]->r_[frameIndex];
+    }
+    if(atomCount != 0) Rc*= (1.0 / (double)atomCount);
+    else
+    {
+        printf("Error: found vanishing total atom count!");
     }
 
     return Rc;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -147,7 +147,7 @@ private:
     static void initSelColorRot();
     static void reinitBackgroundColorAndFog();
     static void drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection=false, C3DVector selColor=C3DVector(1.0, 1.0, 1.0));
-    static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b);
+    static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b, const bool& doubleBond);
     static void* getBitmapFont(int fontSize);
     static void drawAtomLabel(CAtom* atom);
     static void drawBondLabel(CAtom* atom1, CAtom* atom2);

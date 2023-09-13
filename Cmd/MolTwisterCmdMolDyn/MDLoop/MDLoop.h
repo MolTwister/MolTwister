@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -59,26 +59,30 @@ private:
 
 class CMDLoop
 {
+private:
+    enum EHeading { headingMD=0, headingOptimization };
 public:
     CMDLoop() = delete;
-    CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD);
+    CMDLoop(bool includeXYZFile, std::string fileNameXYZ, bool includeDCDFile, std::string fileNameDCD, bool includeXTCFile, std::string fileNameXTC, const float& xtcPrecision);
 
 public:
     void runSimulation(CSimulationBox& simBox, int NStep, int outputEvery);
+    void runOptimization(CSimulationBox& simBox, double accuracy, int maxSteps, int outputEvery);
     void setPDistrOutput(bool includePDistrOutput, double maxPDistrOutput, std::string fileNamePDistr);
     void setVDistrOutput(bool includeVDistrOutput, double setVDistrOutput, std::string fileNameVDistr);
     
 private:
     void calcInitialForces(CSimulationBox& simBox, mthost_vector<CMDFFMatrices::CForces>& F);
-    void printHeading(CSimulationBox& simBox);
-    void appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox);
-    void appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize);
+    void printHeading(CSimulationBox& simBox, EHeading heading);
+    void appendToXYZFile(mthost_vector<CParticle3D>& particles, int t, CSimulationBox& simBox) const;
+    void appendToDCDFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& numTimeSteps, const int& outputStride) const;
+    void appendToXTCFile(mthost_vector<CParticle3D>& particles, CSimulationBox& simBox, const C3DVector& boxSize, const int& t, const int& numTimeSteps, const int& outputStride, const float& precision) const;
     void resizeDistrArrays(std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, int size, int NArrays);
     void appendToMomentumDistribution(CSimulationBox& simBox, std::vector<int>& momentumDistr, double maxP, int axis);
     void appendToVolumeDistribution(double V, std::vector<int>& volumeDistr, double maxV);
     void storeMomentumDistribution(std::string fileName, std::vector<int>& momentumDistr, double maxP, int axis);
     void storeVolumeDistribution(std::string fileName, std::vector<int>& volumeDistr, double maxV);
-    void updateOutput(int t, int equilibSteps, int outputEvery, CSimulationBox& simBox, const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, const C3DVector& boxSize);
+    void updateOutput(int t, int totalSteps, int equilibSteps, int outputEvery, CSimulationBox& simBox, const mthost_vector<CMDFFMatrices::CForces>& F, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr, const C3DVector& boxSize);
     void finalizeOutput(CSimulationBox& simBox, std::vector<int>* momentumDistr, std::vector<int>& volumeDistr);
     double calcMaxPetaDistrOutput(CSimulationBox& simBox);
     void startTimer();
@@ -90,10 +94,13 @@ private:
     double maxVDistrOutput_;
     bool includeXYZFile_;
     bool includeDCDFile_;
+    bool includeXTCFile_;
     bool includePDistrOutput_;
     bool includeVDistrOutput_;
+    float xtcPrecision_;
     std::string fileNameXYZ_;
     std::string fileNameDCD_;
+    std::string fileNameXTC_;
     std::string fileNamePDistr_;
     std::string fileNameVDistr_;
     std::chrono::steady_clock::time_point lastStartingTimeStep_;

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2021 Richard Olsen.
+// Copyright (C) 2023 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -19,6 +19,8 @@
 //
 
 #include "MolTwisterMDFFAngleList.h"
+#include "MolTwisterMDFFAngle_Harm.h"
+#include "MolTwisterMDFFAngle_Class2.h"
 
 BEGIN_CUDA_COMPATIBLE()
 
@@ -57,7 +59,7 @@ void CMDFFAngleList::serialize(CSerializer& io, bool saveToStream)
         {
             std::string ffType;
             io >> ffType;
-            for(std::shared_ptr<CMDFFAngle> item : registeredForceFieldTypes_)
+            for(const std::shared_ptr<CMDFFAngle>& item : registeredForceFieldTypes_)
             {
                 if(item->getFFType() == ffType)
                 {
