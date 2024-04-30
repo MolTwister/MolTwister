@@ -800,6 +800,8 @@ bool CCmdLoad::readXTCFile(std::string xtcFileName, bool& genBonds, int stride)
     #else
         printf("\r\nError, missing library. MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Could not load XTC file!\r\n");
     #endif
+
+    return true;
 }
 
 bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery)
