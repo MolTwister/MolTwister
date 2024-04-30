@@ -1,4 +1,15 @@
 .DS_Store
-CMakeLists.txt.user
-build/
 
+# Files
+CMakeLists.txt.user
+CMakeCache.txt
+MakeFile
+Makefile
+launch.json
+tasks.json
+cmake_install*.cmake
+install_manifest.txt
+
+# Folders
+build
+CMakeFiles
