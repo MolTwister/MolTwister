@@ -1,6 +1,44 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFBond_Harm.h"
 #include "Utilities/LennardJonesUnits.h"
 #include "Utilities/ASCIIUtility.h"
+
+BEGIN_CUDA_COMPATIBLE()
+
+void CMDFFBond_Harm::serialize(CSerializer& io, bool saveToStream)
+{
+    CMDFFBond::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << k_;
+        io << r0_;
+    }
+    else
+    {
+        io >> k_;
+        io >> r0_;
+    }
+}
 
 size_t CMDFFBond_Harm::onParse(std::vector<std::string> arguments)
 {
@@ -70,3 +108,5 @@ void CMDFFBond_Harm::calcForces(C3DVector r1, C3DVector r2, C3DVector& f1, C3DVe
     f2 = F;
     f1 = F*(-1.0);
 }
+
+END_CUDA_COMPATIBLE()

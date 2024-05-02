@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterCmdParser.h"
 #include "../../Utilities/ASCIIUtility.h"
 
@@ -86,4 +106,24 @@ std::string CCmdParser::genHelpText(std::string parentCmd, std::string subComman
     }
 
     return std::string("\t") + subCommand + std::string(" is not a valid sub command argument for ") + parentCmd + std::string("!\r\n\r\n");
+}
+
+std::shared_ptr<std::vector<std::string>> CCmdParser::getListOfCmdEntryCommands()
+{
+    auto cmdStringList = std::make_shared<std::vector<std::string>>();
+
+    for(std::shared_ptr<CCmdEntry> cmdEntry : cmdEntryList_)
+    {
+        cmdStringList->emplace_back(cmdEntry->getCmd());
+    }
+
+    return cmdStringList;
+}
+
+void CCmdParser::redirectOutput(FILE* stdOut)
+{
+    for(std::shared_ptr<CCmdEntry> cmdEntry : cmdEntryList_)
+    {
+        cmdEntry->redirectOutput(stdOut);
+    }
 }

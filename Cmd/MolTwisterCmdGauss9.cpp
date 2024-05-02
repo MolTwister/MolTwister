@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <math.h>
 #include <vector>
@@ -481,7 +501,7 @@ void CCmdGauss9::parseBondstretchCommand(std::string commandLine, int& arg)
                             // (i.e. relaxed scan)
                             std::string str;
                             str.resize(512);
-                            sprintf((char*)str.data(), "Relaxed bond length scan in range R=[%g, %g]Å, Step=%g", startDist, endDist, step);
+                            sprintf((char*)str.data(), "Relaxed bond length scan in range R=[%g, %g]AA, Step=%g", startDist, endDist, step);
                             printGaussianModRedScript(baseSetSpec.data(), charge, spinMul, str.data(),
                                                       atomIndex1, atomIndex2, startDist, endDist, step);
                         }
@@ -500,7 +520,7 @@ void CCmdGauss9::parseBondstretchCommand(std::string commandLine, int& arg)
                                     index++;
                                     std::string str;
                                     str.resize(512);
-                                    sprintf((char*)str.data(), "Single point energy calculation R=%g Å", dDist);
+                                    sprintf((char*)str.data(), "Single point energy calculation R=%g AA", dDist);
                                     printGaussianSPScript(baseSetSpec.data(), charge, spinMul, str.data());
                                 }
                                 state_->retrieveSavedCoordinates(state_->getCurrFrameIndex());

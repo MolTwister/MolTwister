@@ -1,6 +1,27 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <functional>
 #include "CmdAtom.h"
 #include "../../Utilities/ASCIIUtility.h"
 
@@ -11,17 +32,17 @@ std::string CCmdAtom::getCmd()
 
 std::vector<std::string> CCmdAtom::getCmdLineKeywords()
 {
-    return { "atom", "at", "from", "dist", "dir", "bond", "angle", "cubecpy", "spherecpy", "random" };
+    return { "atom", "at", "from", "dist", "dir", "bond", "angle", "cubecpy", "spherecpy", "random", "atomlabel", "bondlabel" };
 }
 
 std::vector<std::string> CCmdAtom::getCmdHelpLines()
 {
     return {
-                "atom <ID> at <x> <y> <z> [cubecpy <nx> <ny> <nz> <dx> <dy> <dz>, spherecpy <N> <R> [random]]",
-                "atom <ID> from atom <n> dist <d> [cubecpy...]",
-                "atom <ID> from atom <n> dir <dx> <dy> <dz> dist <d> [cubecpy...]",
-                "atom <ID> from bond <n1> <n2> angle <angle> <dih> dist <d> [cubecpy...]",
-                "atom <ID> from angle <n1> <n2> <n3> angle <angle> <dih> dist <d> [cubecpy...]"
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] at <x> <y> <z> [cubecpy <nx> <ny> <nz> <dx> <dy> <dz>, spherecpy <N> <R> [random]]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from atom <n> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] dir <dx> <dy> <dz> dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from bond <n1> <n2> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]",
+                "atom <ID> [atomlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] from angle <n1> <n2> <n3> [bondlabel <name> <x-displ> <y-displ> <z-displ> <r>, <g>, <b>] angle <angle> <dih> dist <d> [cubecpy...]"
            };
 }
 
@@ -33,6 +54,12 @@ std::string CCmdAtom::getCmdFreetextHelp()
     text+= "\toxygen). It is also possible to give names such as C1 or C2. As long as\r\n";
     text+= "\tthe name contains a C it is recognized as a carbon atom. Similarly, any\r\n";
     text+= "\tname containing O will be recognized as oxygen, etc. \r\n";
+    text+= "\r\n";
+
+    text+= "\tThe 'atomlabel' keyword can be used to add a label with any <name>, without white\r\n";
+    text+= "\tcharacters, that can be displayed a displacement (<x-disp>, <y-disp>, <z-displ>) away\r\n";
+    text+= "\tfrom the atomic position, with the color {<r>, <g>, <b>}. Similarly, a label can be\r\n";
+    text+= "\tadded relative to each bond center by applying the 'bondlabel' keyword.\r\n";
     text+= "\r\n";
 
     text+= "\tWhen atoms are added they attain a new index starting at index 0. The list\r\n";
@@ -63,6 +90,49 @@ std::string CCmdAtom::getCmdFreetextHelp()
 
 std::string CCmdAtom::execute(std::vector<std::string> arguments)
 {
+    std::function<void(const std::vector<std::string>&, size_t&, CAtom&, const std::string&, bool, CAtom*)> parseLabelParameters =
+            [](const std::vector<std::string>& arguments, size_t& arg, CAtom& addedAtom, const std::string& cmd, bool setAtomLabel, CAtom* bondDest)
+    {
+        std::string text = CASCIIUtility::getArg(arguments, arg++);
+        if(text == cmd)
+        {
+            C3DVector displacement;
+            C3DVector color;
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            std::string name = text;
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            displacement.x_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            displacement.y_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            displacement.z_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            color.x_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            color.y_ = atof(text.data());
+
+            text = CASCIIUtility::getArg(arguments, arg++);
+            color.z_ = atof(text.data());
+
+            if(setAtomLabel)
+            {
+                addedAtom.setAtomLabel(name, displacement, color);
+            }
+            else
+            {
+                addedAtom.addBondLabel(bondDest, name, displacement, color);
+            }
+        }
+        else arg--;
+    };
+
+
     lastError_ = "";
 
     size_t arg = 0;
@@ -72,6 +142,8 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
     text = CASCIIUtility::getArg(arguments, arg++);
     atom.setID(text.data());
     atom.sigma_ = state_->defaultAtProp_.getWDWRadius(text.data());
+
+    parseLabelParameters(arguments, arg, atom, "atomlabel", true, nullptr);
 
     text = CASCIIUtility::getArg(arguments, arg++);
     if(text == "at")
@@ -95,6 +167,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
         else
         {
             state_->addAtom(atom);
+            arg--;
         }
     }
     else if(text == "from")
@@ -113,6 +186,8 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                 refAtom = state_->atoms_[atomIndex].get();
                 if(refAtom)
                 {
+                    parseLabelParameters(arguments, arg, atom, "bondlabel", false, refAtom);
+
                     text = CASCIIUtility::getArg(arguments, arg++);
                     if(text == "dist")
                     {
@@ -124,6 +199,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                         if(state_->currentFrame_ < refAtom->r_.size())
                         {
                             atom.r_[0] = refAtom->r_[state_->currentFrame_] + C3DVector(0.0, dist, 0.0);
+                            text = CASCIIUtility::getArg(arguments, arg++);
                             if(text == "cubecpy")
                             {
                                 addAtomByCubeCopy(atom, arguments, arg);
@@ -135,6 +211,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                             else
                             {
                                 state_->addAtom(atom);
+                                arg--;
                             }
                         }
                     }
@@ -174,6 +251,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                                 else
                                 {
                                     state_->addAtom(atom);
+                                    arg--;
                                 }
                             }
                         }
@@ -215,6 +293,8 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                 refAtom2 = state_->atoms_[atomIndex2].get();
                 if(refAtom1 && refAtom2)
                 {
+                    parseLabelParameters(arguments, arg, atom, "bondlabel", false, refAtom2);
+
                     text = CASCIIUtility::getArg(arguments, arg++);
                     if(text =="angle")
                     {
@@ -240,6 +320,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                                 vDir = calcDirVecFromBond(refAtom1, refAtom2, angleAroundBond, angleDirBond, len, state_->currentFrame_);
 
                                 atom.r_[0] = refAtom2->r_[state_->currentFrame_] + vDir;
+                                text = CASCIIUtility::getArg(arguments, arg++);
                                 if(text == "cubecpy")
                                 {
                                     addAtomByCubeCopy(atom, arguments, arg);
@@ -251,6 +332,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                                 else
                                 {
                                     state_->addAtom(atom);
+                                    arg--;
                                 }
                             }
                         }
@@ -298,6 +380,8 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                 refAtom3 = state_->atoms_[atomIndex3].get();
                 if(refAtom1 && refAtom2 && refAtom3)
                 {
+                    parseLabelParameters(arguments, arg, atom, "bondlabel", false, refAtom3);
+
                     text = CASCIIUtility::getArg(arguments, arg++);
                     if(text == "angle")
                     {
@@ -329,6 +413,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                                 }
 
                                 atom.r_[0] = refAtom3->r_[state_->currentFrame_] + vDir;
+                                text = CASCIIUtility::getArg(arguments, arg++);
                                 if(text == "cubecpy")
                                 {
                                     addAtomByCubeCopy(atom, arguments, arg);
@@ -340,6 +425,7 @@ std::string CCmdAtom::execute(std::vector<std::string> arguments)
                                 else
                                 {
                                     state_->addAtom(atom);
+                                    arg--;
                                 }
                             }
                         }
@@ -434,6 +520,7 @@ bool CCmdAtom::addAtomBySphereCopy(const CAtom& atom, const std::vector<std::str
 
     text = CASCIIUtility::getArg(arguments, arg++);
     if(text =="random") random = true;
+    else arg--;
 
     if(N < 1)
     {

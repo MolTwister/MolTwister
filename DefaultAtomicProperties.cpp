@@ -1,6 +1,28 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include "Utilities/ASCIIUtility.h"
 #include "DefaultAtomicProperties.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 CDefaultAtomicProperties::CDefaultAtomicProperties()
 {
@@ -11,15 +33,57 @@ CDefaultAtomicProperties::CDefaultAtomicProperties()
 
 CDefaultAtomicProperties::~CDefaultAtomicProperties()
 {
-    atomicProperties_.empty();
+
+}
+
+int CDefaultAtomicProperties::size() const
+{
+    return (int)atomicProperties_.size();
+}
+
+const CDefaultAtomicProperties::CAtomicProperty CDefaultAtomicProperties::operator[](const int &index) const
+{
+    return atomicProperties_[(size_t)index];
+}
+
+void CDefaultAtomicProperties::serialize(CSerializer& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        io << atomicProperties_.size();
+        for(CAtomicProperty& item : atomicProperties_)
+        {
+            item.color_.serialize(io, saveToStream);
+            io << item.ID_;
+            io << item.sigma_;
+            io << item.RCov_;
+            io << item.isAltered_;
+        }
+    }
+    else
+    {
+        size_t size;
+        io >> size;
+        atomicProperties_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            CAtomicProperty prop;
+            prop.color_.serialize(io, saveToStream);
+            io >> prop.ID_;
+            io >> prop.sigma_;
+            io >> prop.RCov_;
+            io >> prop.isAltered_;
+            atomicProperties_[i] = prop;
+        }
+    }
 }
 
 void CDefaultAtomicProperties::initAtomicPropertiesArray()
 {
     // Initialize CPK colors, van der Waals radius (always place two character ID's berfore single 
     // character ID's). Most radii have been taken from [Dalton Trans., 2013, 42, 8617]. Radii that were
-    // not found have been set to 1.0Å. Covalent radii are taken from [Chem. Eur. J. 2009, 15, 186].
-    // Radii not found there are set to 0.5Å.
+    // not found have been set to 1.0AA. Covalent radii are taken from [Chem. Eur. J. 2009, 15, 186].
+    // Radii not found there are set to 0.5AA.
     atomicProperties_.emplace_back(CAtomicProperty("Uut", C3DVector(0.5, 0.0, 0.5), 1.00, 1.36)); // vdW def. 1.0
     atomicProperties_.emplace_back(CAtomicProperty("Uup", C3DVector(0.5, 0.0, 0.5), 1.00, 1.62)); // vdW def. 1.0
     atomicProperties_.emplace_back(CAtomicProperty("Uus", C3DVector(0.5, 0.0, 0.5), 1.00, 1.65)); // vdW def. 1.0
@@ -147,7 +211,7 @@ int CDefaultAtomicProperties::identifyAtom(std::string ID) const
     // This function will return an ID that corresponds to an index
     // in the m_aAtomicProperties list specified in InitAtomicPropertiesArray()
     
-    for(int j=0; j<atomicProperties_.size(); j++)
+    for(int j=0; j<(int)atomicProperties_.size(); j++)
     {
         if(CASCIIUtility::findString(atomicProperties_[j].ID_, ID) != -1)
         {
@@ -158,17 +222,34 @@ int CDefaultAtomicProperties::identifyAtom(std::string ID) const
     return -1;
 }
 
-void CDefaultAtomicProperties::getCPKColor(std::string ID, double& r, double& g, double& b) const
+std::tuple<double, double, double> CDefaultAtomicProperties::getCPKColor(const std::string &ID) const
 {
-    r=0.5; g=0.0; b=0.5;
+    double r=0.5, g=0.0, b=0.5;
 
-    for(int j=0; j<atomicProperties_.size(); j++)
+    for(int j=0; j<(int)atomicProperties_.size(); j++)
     {
         if(CASCIIUtility::findString(atomicProperties_[j].ID_, ID) != -1)
         { 
             r = atomicProperties_[j].color_.x_;
             g = atomicProperties_[j].color_.y_;
             b = atomicProperties_[j].color_.z_;
+            break;
+        }
+    }
+
+    return { r, g, b };
+}
+
+void CDefaultAtomicProperties::setCPKColor(const std::string &ID, const double &r, const double &g, const double &b)
+{
+    for(int j=0; j<(int)atomicProperties_.size(); j++)
+    {
+        if(CASCIIUtility::findString(atomicProperties_[j].ID_, ID) != -1)
+        {
+            atomicProperties_[j].color_.x_ = r;
+            atomicProperties_[j].color_.y_ = g;
+            atomicProperties_[j].color_.z_ = b;
+            atomicProperties_[j].isAltered_ = true;
             break;
         }
     }
@@ -183,6 +264,16 @@ double CDefaultAtomicProperties::getWDWRadius(std::string ID) const
     return 1.0;
 }
 
+void CDefaultAtomicProperties::setWDWRadius(std::string ID, const double& r)
+{
+    int j = identifyAtom(ID);
+    if(j != -1)
+    {
+        atomicProperties_[j].sigma_ = r;
+        atomicProperties_[j].isAltered_ = true;
+    }
+}
+
 double CDefaultAtomicProperties::getCovalentRadius(std::string ID) const
 {
     int j = identifyAtom(ID);
@@ -192,13 +283,31 @@ double CDefaultAtomicProperties::getCovalentRadius(std::string ID) const
     return 0.5;
 }
 
+void CDefaultAtomicProperties::setCovalentRadius(std::string ID, const double& r)
+{
+    int j = identifyAtom(ID);
+    if(j != -1)
+    {
+        atomicProperties_[j].RCov_ = r;
+        atomicProperties_[j].isAltered_ = true;
+    }
+}
+
 std::string CDefaultAtomicProperties::getRecognizedAtomType(std::string ID) const
 {
     int index = identifyAtom(ID);
-    if((index >= 0) && (index < atomicProperties_.size()))
+    if((index >= 0) && (index < (int)atomicProperties_.size()))
     {
         return atomicProperties_[index].ID_;
     }
     
     return "?";
 }
+
+void CDefaultAtomicProperties::resetAtomicPropertiesToDefault()
+{
+    atomicProperties_.clear();
+    initAtomicPropertiesArray();
+}
+
+END_CUDA_COMPATIBLE()

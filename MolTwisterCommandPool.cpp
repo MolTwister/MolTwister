@@ -1,7 +1,28 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterCommandPool.h"
 
 #include "Cmd/MolTwisterCmdCd.h"
 #include "Cmd/MolTwisterCmdLs.h"
+#include "Cmd/MolTwisterCmdLl.h"
 #include "Cmd/MolTwisterCmdGenBonds.h"
 #include "Cmd/MolTwisterCmdList.h"
 #include "Cmd/MolTwisterCmdAutoscale.h"
@@ -24,12 +45,13 @@
 #include "Cmd/MolTwisterCmdDcd.h"
 #include "Cmd/MolTwisterCmdPython.h"
 #include "Cmd/MolTwisterCmdLoad.h"
-
+#include "Cmd/MolTwisterCmdMolDyn.h"
 
 void CMolTwisterCommandPool::generateCmdList(CMolTwisterState* mtState, std::vector<std::shared_ptr<CCmd>>& cmdList)
 {
     cmdList.emplace_back(std::make_shared<CCmdCd>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdLs>(mtState));
+    cmdList.emplace_back(std::make_shared<CCmdLl>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdLoad>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdGenBonds>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdList>(mtState));
@@ -52,6 +74,7 @@ void CMolTwisterCommandPool::generateCmdList(CMolTwisterState* mtState, std::vec
     cmdList.emplace_back(std::make_shared<CCmdMmol>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdDcd>(mtState));
     cmdList.emplace_back(std::make_shared<CCmdPython>(mtState));
-    
-    for(int i=0; i<cmdList.size(); i++) cmdList[i]->init();
+    cmdList.emplace_back(std::make_shared<CCmdMolDyn>(mtState));
+
+    for(size_t i=0; i<cmdList.size(); i++) cmdList[i]->init();
 }

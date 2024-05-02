@@ -1,9 +1,33 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #pragma once
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <tuple>
+#include <functional>
 #include "3DVector.h"
 #include "3DRect.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 #ifndef _UINT32_T
 #define _UINT32_T
@@ -65,7 +89,7 @@ public:
     public:
         bool read(FILE* handle, int& numBytesRead);
         bool write(FILE* handle, int& numBytesWritten) const;
-        void init(uint32_t numCoordinates);
+        void init(uint32_t numCoordinates, bool resizeArray=false);
         void setPos(uint32_t coordIndex, double x, double y, double z);
         void setXPos(uint32_t coordIndex, double x) { xPositions_[coordIndex] = (float)x; }
         void setYPos(uint32_t coordIndex, double y) { yPositions_[coordIndex] = (float)y; }
@@ -114,6 +138,8 @@ public:
     CRecordHeader getCurrentRecordHeader() const { return currentRecord_.getRecordHeader(); }
     C3DRect getCurrentBoundingBox() const;
     C3DRect getCurrentPBC() const;
+    static void createDCDFileIfNotExists(const std::string& filePath, int numTimeSteps, int stride, double timeStep, int numAtoms);
+    static void appendToDCDFile(const std::string& filePath, int numAtoms, std::tuple<int, int, int> boxSize, std::function<std::tuple<double, double, double>(const int& atomPos)> getAtomPos);
     
 private:
     FILE* file_;
@@ -122,3 +148,5 @@ private:
     CRecord currentRecord_;
     long ptToFirstRecord_;
 };
+
+END_CUDA_COMPATIBLE()

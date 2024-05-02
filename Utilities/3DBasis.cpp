@@ -1,4 +1,26 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "3DBasis.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 void C3DBasis::generateCartessianBasisAt(C3DVector, C3DVector newBasisZ)
 {
@@ -28,3 +50,5 @@ void C3DBasis::generateCartessianBasisAt(C3DVector, C3DVector newBasisZ)
     // Calculate Y unit vector of new basis, v, described in old system
     v_ = w_.cross(u_);
 }
+
+END_CUDA_COMPATIBLE()

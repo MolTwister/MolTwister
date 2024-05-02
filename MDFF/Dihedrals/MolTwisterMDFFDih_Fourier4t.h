@@ -1,5 +1,27 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #pragma once
 #include "MolTwisterMDFFDih.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMDFFDih_Fourier4t : public CMDFFDih
 {
@@ -7,6 +29,7 @@ public:
     CMDFFDih_Fourier4t() : CMDFFDih() { V_[0] = V_[1] = V_[2] = V_[3] = 0.0; }
     
 public:
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "Fourier4t"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }
@@ -28,3 +51,5 @@ public:
 private:
     double V_[4];
 };
+
+END_CUDA_COMPATIBLE()

@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "DCDTools.h"
 
 double CDCDTools::CHBondCriteria::calcSizeOfGridToFitHBondPairs() const
@@ -6,7 +26,7 @@ double CDCDTools::CHBondCriteria::calcSizeOfGridToFitHBondPairs() const
 
     // To estimate, we will find the longest lenght (not equal to DBL_MAX)
     // and double that length to estimate the minumum length of a d-h...a pair.
-    // If all lenghts are DBL_MAX, then return a generic length of 3Å
+    // If all lenghts are DBL_MAX, then return a generic length of 3AA
     if(fabs((double)maxLenR_dh_ - DBL_MAX) > double(FLT_MIN) ) distances.emplace_back(maxLenR_dh_);
     if(fabs((double)maxLenR_ha_ - DBL_MAX) > double(FLT_MIN)) distances.emplace_back(maxLenR_ha_);
     if(fabs((double)maxLenR_da_ - DBL_MAX) > double(FLT_MIN)) distances.emplace_back(maxLenR_da_);

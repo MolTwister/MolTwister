@@ -1,4 +1,26 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolecularSystemTools.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 void CMolecularSystemTools::removeDuplicateBondIndices(std::vector<int>& atoms1, std::vector<int>& atoms2, std::vector<int>* auxList) const
 {
@@ -221,14 +243,14 @@ void CMolecularSystemTools::genMolIndices(const std::vector<std::vector<int>>& b
     // a molecule ID (where the array index correspond to an atom index)
     molIndices.resize(bondDestIndices.size(), -1);
 
-    for(int i=0; i<bondDestIndices.size(); i++)
+    for(int i=0; i<(int)bondDestIndices.size(); i++)
     {
         if(molIndices[i] != -1) continue;
 
         std::vector<int> aMolecule;
         getMoleculeConnectedToIndex(i, bondDestIndices, aMolecule);
 
-        for(int j=0; j<aMolecule.size(); j++)
+        for(int j=0; j<(int)aMolecule.size(); j++)
             molIndices[aMolecule[j]] = nextMolIndex;
 
         nextMolIndex++;
@@ -248,11 +270,13 @@ void CMolecularSystemTools::getMoleculeConnectedToIndex(int index, const std::ve
     molecule.emplace_back(index);
     visitationTracker[index] = 1;
 
-    for(int i=0; i<bondDestIndices[index].size(); i++)
+    for(int i=0; i<(int)bondDestIndices[index].size(); i++)
     {
         int iNextIndex = bondDestIndices[index][i];
-        if(iNextIndex >= bondDestIndices.size()) continue;
+        if(iNextIndex >= (int)bondDestIndices.size()) continue;
 
         getMoleculeConnectedToIndex(iNextIndex, bondDestIndices, molecule, visitationTracker);
     }
 }
+
+END_CUDA_COMPATIBLE()

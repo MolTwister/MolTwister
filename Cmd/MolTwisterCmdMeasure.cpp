@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterCmdMeasure.h"
 
 #include "MolTwisterCmdMeasure/CmdBondLength.h"
@@ -14,6 +34,7 @@
 #include "MolTwisterCmdMeasure/CmdCount.h"
 #include "MolTwisterCmdMeasure/CmdBondCount.h"
 #include "MolTwisterCmdMeasure/CmdOverlap.h"
+#include "MolTwisterCmdMeasure/CmdRadiusOfGyration.h"
 
 using namespace MolTwisterCmdMeasure;
 
@@ -40,6 +61,7 @@ void CCmdMeasure::onRegisterSubCommands()
     parser_->registerCmd(std::make_shared<CCmdDihedral>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdOverlap>(state_, stdOut_));
     parser_->registerCmd(std::make_shared<CCmdPBC>(state_, stdOut_));
+    parser_->registerCmd(std::make_shared<CCmdRadiusOfGyration>(state_, stdOut_));
 }
 
 std::string CCmdMeasure::getHelpString() const

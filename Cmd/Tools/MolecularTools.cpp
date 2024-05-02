@@ -1,4 +1,26 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolecularTools.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 double CMolecularTools::calcDistance2(const CAtom* fromAtom, const CAtom* toAtom, int frame, const C3DRect& pbc, bool distAcrossPBC) const
 {
@@ -101,10 +123,20 @@ void CMolecularTools::modBondLengthTo(const CAtom* atom1, CAtom* atom2, double d
     toMove = newDist - oldDist;
 
     atom2->r_[frame]+= toMove;
-    for(int i=0; i<atomsToMove->size(); i++)
+    for(int i=0; i<(int)atomsToMove->size(); i++)
     {
         (*atomsToMove)[i]->r_[frame]+= toMove;
     }
+}
+
+void CMolecularTools::modBondTypeTo(CAtom* atom1, CAtom* atom2, const std::string& type, int frame)
+{
+    bool doubleBond = (type == "double") ? true : false;
+    int bondDest1 = atom1->getBondDestIndex(atom2);
+    int bondDest2 = atom2->getBondDestIndex(atom1);
+
+    atom1->setAsdoubleBond(bondDest1, doubleBond);
+    atom2->setAsdoubleBond(bondDest2, doubleBond);
 }
 
 void CMolecularTools::modAngleTo(const CAtom* atom1, const CAtom* atom2, CAtom* atom3, double angle, int frame)
@@ -178,7 +210,7 @@ void CMolecularTools::modAngleTo(const CAtom* atom1, const CAtom* atom2, CAtom* 
         double deltaPhi = angle - phi;
 
         // Rotate atoms i by DeltaPhi
-        for(int i=0; i<atomsToMove->size(); i++)
+        for(int i=0; i<(int)atomsToMove->size(); i++)
         {
             if((*atomsToMove)[i] == atom1) continue;
 
@@ -291,7 +323,7 @@ void CMolecularTools::modDihedralTo(const CAtom* atom1, const CAtom* atom2, cons
     double deltaPhi = angle - phi;
 
     // Rotate atoms i by DeltaPhi around l
-    for(int i=0; i<atomsToMove->size(); i++)
+    for(int i=0; i<(int)atomsToMove->size(); i++)
     {
         if((*atomsToMove)[i] == atom1) continue;
         if((*atomsToMove)[i] == atom2) continue;
@@ -329,3 +361,5 @@ void CMolecularTools::modDihedralTo(const CAtom* atom1, const CAtom* atom2, cons
         }
     }
 }
+
+END_CUDA_COMPATIBLE()

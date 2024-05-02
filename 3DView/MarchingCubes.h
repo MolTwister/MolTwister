@@ -4,6 +4,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMarchingCubesVoxel
 {
@@ -44,3 +47,5 @@ private:
     static int edgeTable_[256];
     static int triTable_[256][16];
 };
+
+END_CUDA_COMPATIBLE()

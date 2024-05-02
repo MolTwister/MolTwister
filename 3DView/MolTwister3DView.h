@@ -1,10 +1,35 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #pragma once
 #include "Utilities/3DVector.h"
 #include "Utilities/3DRect.h"
+#include "Utilities/CUDAGeneralizations.h"
+#include "Utilities/Serializer.h"
 #include "DefaultAtomicProperties.h"
 #include "ExpLookup.h"
 #include "MolTwisterAtom.h"
 #include "MolTwisterGLObject.h"
+#include <memory>
+
+BEGIN_CUDA_COMPATIBLE()
 
 class C3DView
 {
@@ -16,7 +41,10 @@ private:
     {
     public:
         CCamera() { pos_ = C3DVector(3.0, 0.0, 0.0); lookAt_ = C3DVector(0.0, 0.0, 0.0); up_ = C3DVector(0.0, 0.0, 1.0); zoomFactor_ = 1.0; }
-        
+
+    public:
+        void serialize(CSerializer& io, bool saveToStream);
+
     public:
         C3DVector pos_;
         C3DVector lookAt_;
@@ -30,8 +58,9 @@ private:
         CScreenCoord() { x_ = y_ = 0; }
         CScreenCoord(int X, int Y) { x_ = X; y_ = Y; }
         CScreenCoord(const CScreenCoord& src) { x_ = src.x_; y_ = src.y_; }
-        
+
     public:
+        void serialize(CSerializer& io, bool saveToStream);
         double length2() const { return double(x_*x_ + y_*y_); }
         CScreenCoord operator-(const CScreenCoord& rhs) const { CScreenCoord ret(x_ - rhs.x_, y_ - rhs.y_); return ret; }
         CScreenCoord operator+(const CScreenCoord& rhs) const { CScreenCoord ret(x_ + rhs.x_, y_ + rhs.y_); return ret; }
@@ -46,7 +75,10 @@ private:
     {
     public:
         CResolution() { sphere_ = 24; cylinder_ = 36; }
-        
+
+    public:
+        void serialize(CSerializer& io, bool saveToStream);
+
     public:
         int sphere_;
         int cylinder_;
@@ -55,24 +87,40 @@ private:
     class CArg
     {
     public:
-        CArg() { argc_ = 0; argv_ = nullptr; }
-        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; }
-        
+        CArg() { argc_ = 0; argv_ = nullptr; deleteArgs_ = false; }
+        CArg(int argc, char *argv[]) { argc_ = argc; argv_ = argv; deleteArgs_ = false; }
+        ~CArg();
+
+    public:
+        void serialize(CSerializer& io, bool saveToStream);
+
     public:
         int argc_;
         char** argv_;
+
+    private:
+        bool deleteArgs_;
     };
     
 public:
     C3DView(int argc, char *argv[]);
     
 public:
+    void serialize(CSerializer& io, bool saveToStream,
+                   std::vector<std::shared_ptr<CAtom>>* atoms=nullptr, std::vector<std::shared_ptr<CGLObject>>* glObjects=nullptr,
+                   int* currentFrame=nullptr, CDefaultAtomicProperties* defAtProp=nullptr);
+
     void show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp);
     void requestUpdate(bool updateCameraPos) { if(updateCameraPos) updateRequested_ = 2; else updateRequested_ = 1; }
     void requestFullScreen(bool on) { if(on) fullscreenRequested_ = 1; else fullscreenRequested_ = 2; }
     void setOrthoView(bool set=true) { orthoView_ = set; }
     static void setRedrawLimit(int numAtoms) { numAtomsBeforeNoDraw_ = numAtoms; }
     void setFog(bool enabled) { fogEnabled_ = enabled; }
+    void useVDWRadiusForAtoms(bool enabled) { useVanDerWaalsRadiusForAtoms_ = enabled; }
+    void setVDWScaleFactor(double scaleFactor) { vdwScaleFactor_ = scaleFactor; }
+    void setLabelVisibility(bool visible=true) { labelsVisible_ = visible; }
+    void setLabelFontSize(int fontSize=12) { labelsFontSize_ = fontSize; }
+    void setBackgroundColor(C3DVector color = C3DVector(0.3, 0.3, 0.3));
     void enableViewOfBondsAcrossPBC(bool set=true) { viewBondsAcrossPBC_ = set; }
     void requestQuit() { requestQuit_ = true; }
     C3DRect getPBC() const { return pbc_; }
@@ -89,14 +137,20 @@ protected:
     static void onMouseClick(int button, int state, int x, int y);
     static void onMouseMove(int x, int y);
     static void onKeyboard(unsigned char key, int x, int y);
+    static void onKeyboardUp(unsigned char key, int x, int y);
     static void onSpecialFunc(int key, int x, int y);
-    
+    static void onSpecialFuncUp(int key, int x, int y);
+
 private:
     static void initOpenGL();
     static void initScene();
     static void initSelColorRot();
+    static void reinitBackgroundColorAndFog();
     static void drawAtom(C3DVector R, double radius, float r, float g, float b, bool selection=false, C3DVector selColor=C3DVector(1.0, 1.0, 1.0));
-    static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b);
+    static bool drawBond(C3DVector R1, C3DVector R2, double radius, float r, float g, float b, const bool& doubleBond);
+    static void* getBitmapFont(int fontSize);
+    static void drawAtomLabel(CAtom* atom);
+    static void drawBondLabel(CAtom* atom1, CAtom* atom2);
     static double drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, double r, double g, double b);
     static double drawBitmapText(const char* text, void* glutBitmapFont, double x, double y, C3DVector color);
     static void drawPBCGrid(ESelModes mode);
@@ -110,6 +164,7 @@ private:
     static void recalcFrustum(double& frustLow, double& frustHigh, ESelModes mode=selmodeNone);
     static void pickAtoms(int x, int y);
     static C3DVector currFrmAtVec(const CAtom& atom);
+    static C3DVector worldCoordsToViewportCoords(const C3DVector& worldCoords);
     
 private:
     static int updateRequested_;
@@ -130,8 +185,7 @@ private:
     static CScreenCoord lastWindowSize_;
     static CResolution primitiveRes_;
     static CArg progArg_;
-    static int numSelRotColors_;
-    static C3DVector selColorRot_[50];
+    static std::vector<C3DVector> selColorRot_;
     static CDefaultAtomicProperties* defaultAtProp_;
     static CExpLookup expLookup_;
     static bool applyUserDefPBC_;
@@ -139,4 +193,11 @@ private:
     static C3DRect pbc_;
     static int numAtomsBeforeNoDraw_;
     static bool fogEnabled_;
+    static bool labelsVisible_;
+    static int labelsFontSize_;
+    static C3DVector backgroundColor_;
+    static bool useVanDerWaalsRadiusForAtoms_;
+    static double vdwScaleFactor_;
 };
+
+END_CUDA_COMPATIBLE()

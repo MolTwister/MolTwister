@@ -1,15 +1,110 @@
-cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-project(MolTwister LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 14)
+#
+# Copyright (C) 2023 Richard Olsen.
+# DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+#
+# This file is part of MolTwister.
+#
+# MolTwister is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# MolTwister is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+#
 
-find_package(PythonLibs REQUIRED)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+
+# ************************************************************************************
+# Function declataions
+# ************************************************************************************
+function(generate_auto_cuda_files FOLDER_TO_SEARCH GENERATED_LIST_OF_CU_MODULES)
+    message(STATUS " ")
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    message(STATUS " Automatic generation of CUDA files from CPP files containing the BEGIN_CUDA_COMPATIBLE() macro")
+    message(STATUS " Base folder for recursive CPP file search: " ${FOLDER_TO_SEARCH})
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+
+    list(APPEND LIST_OF_CU_MODULES ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h)
+
+    file(GLOB_RECURSE CPP_FILES ${FOLDER_TO_SEARCH}/*.cpp)
+    foreach(file ${CPP_FILES})
+        message(STATUS ${file})
+        file(READ ${file} FILE_CONTENTS)
+        string(FIND "${FILE_CONTENTS}" "BEGIN_CUDA_COMPATIBLE()" IS_CUDA_COMPATIBLE)
+        if(NOT ${IS_CUDA_COMPATIBLE} EQUAL -1)
+            string(REPLACE ".cpp" "_auto_cuda.cu" CUDA_FILE_NAME "${file}")
+            string(REPLACE ".cpp" ".h" HEADER_FILE_NAME "${file}")
+            message(STATUS "Found BEGIN_CUDA_COMPATIBLE() macro. Hence, the " ${CUDA_FILE_NAME} " file will be created")
+            message(STATUS "CUDA module (" ${HEADER_FILE_NAME} ", " ${CUDA_FILE_NAME} ") will be added to the build list for NVCC")
+            configure_file(${file} ${CUDA_FILE_NAME} COPYONLY)
+            list(APPEND LIST_OF_CU_MODULES ${HEADER_FILE_NAME})
+            list(APPEND LIST_OF_CU_MODULES ${CUDA_FILE_NAME})
+        endif()
+    endforeach(file ${CPP_FILES})
+
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    SET(${GENERATED_LIST_OF_CU_MODULES} ${LIST_OF_CU_MODULES} PARENT_SCOPE)
+endfunction(generate_auto_cuda_files)
+
+function(display_list_contents LIST_HEADER LIST_TO_TRAVERS)
+    message(STATUS " ")
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    message(STATUS " " ${LIST_HEADER})
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+    set(_LIST_TO_TRAVERS ${LIST_TO_TRAVERS} ${ARGN})
+    foreach(item ${_LIST_TO_TRAVERS})
+        message(STATUS ${item})
+    endforeach()
+    message(STATUS "------------------------------------------------------------------------------------------------------------------------------------------")
+endfunction()
+
+# ************************************************************************************
+# CMake main body
+# ************************************************************************************
+option(CUDA_DBG_INFO "Include CUDA debug info" OFF)
+option(INCLUDE_CUDA_COMMANDS "Include commands that require CUDA" OFF)
+
+if(${INCLUDE_CUDA_COMMANDS})
+    project(MolTwister LANGUAGES CXX CUDA)
+
+    # Equivalent to #define INCLUDE_CUDA_COMMANDS=1
+    add_definitions(-DINCLUDE_CUDA_COMMANDS=1)
+else()
+    project(MolTwister LANGUAGES CXX)
+
+    # Equivalent to #define INCLUDE_CUDA_COMMANDS=0
+    add_definitions(-DINCLUDE_CUDA_COMMANDS=0)
+endif()
+
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
+find_package(Threads REQUIRED)
+
+# Check if Gromacs library is available (used e.g., for XTC trajectory files)
+# If so, use it. Note that it can be installed by 'sudo apt install gromacs libgromacs6 libgromacs-dev'
+find_library(GROMACS_LIB gromacs NO_CACHE)
+if(NOT GROMACS_LIB)
+    message(STATUS "Gromacs library not found")
+    set(GROMACS_LIB "")
+    add_definitions(-DGROMACS_LIB_INSTALLED=0)
+else()
+    message(STATUS "Gromacs library ${GROMACS_LIB} found")
+    add_definitions(-DGROMACS_LIB_INSTALLED=1)
+endif()
 
 include_directories(/usr/include/readline)
 include_directories(${CMAKE_SOURCE_DIR})
-include_directories(${PYTHON_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
-link_libraries(${PYTHON_LIBRARIES})
+include_directories(${Python3_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+link_libraries(Python3::Python OpenGL::GLU GLUT::GLUT ${GROMACS_LIB})
 
 source_group("MolTwister" FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -26,11 +121,14 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterAtom.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterCommandPool.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.h
+    ${CMAKE_CURRENT_LIST_DIR}/MolTwisterTutorialPool.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.h
     ${CMAKE_CURRENT_LIST_DIR}/MolTwisterVariable.cpp
 
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/CUDAGeneralizations.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DVector.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/3DRect.h
@@ -45,6 +143,7 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/ConditionalOnXYZ.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/XTCFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FileUtility.h
@@ -53,6 +152,7 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/LennardJonesUnits.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.h
 
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp
@@ -140,6 +240,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLoad.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLs.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLs.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLl.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdLl.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMmol.h
@@ -158,6 +260,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdVar.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdVarlist.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdVarlist.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ToolsBase.cpp
@@ -175,8 +279,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/ProgressBar.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdParser.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdParser.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/MolTwisterCmdEntry.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdAdd/CmdAtom.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdAdd/CmdAtom.cpp
@@ -237,6 +341,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMomPerturbZPos.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMom.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdDipMom.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdVolumeFromDensity.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdCalculate/CmdVolumeFromDensity.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdReadRecord.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdReadRecord.cpp
@@ -254,6 +360,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdAtomicUnwrap.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdWrap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdDcd/CmdFromXTC.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondLength.cpp
@@ -283,11 +391,15 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdBondCount.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdOverlap.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdOverlap.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdRadiusOfGyration.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMeasure/CmdRadiusOfGyration.cpp
 
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomPos.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomPos.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondLength.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondLength.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondType.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdBondType.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAngle.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAngle.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDihedral.h
@@ -300,6 +412,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdMobillity.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdSigma.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdDefaultAtomProps.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdAtomName.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdResname.h
@@ -308,8 +422,89 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdUserDefPBC.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.h
     ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMod/CmdRotateSel.cpp
+
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdOptimizeEnergy.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdOptimizeEnergy.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdRun.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdFF.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCfg.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCfg.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Constants.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Math.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/Particle3D.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/NHChain.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Integrators/VelVerlet.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/MDLoop.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/MDLoop/Printf.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/SimulationBox/SimulationBox.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/MDFFMatrices.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorCalcForce.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorGenCellList.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorGenCellList.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorGenNeighList.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/ForceFields/FunctorGenNeighList.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Simulator/MDSimulator.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfigStruct.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfig.h
+    ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/Config/MolDynConfig.cpp
     )
 
-add_executable(MolTwister ${MT_SOURCE_FILES})
-target_link_libraries(MolTwister ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} readline)
+if(${INCLUDE_CUDA_COMMANDS})
+    set(MT_CPP_SOURCE_FILES_REQUIRING_CUDA
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdCudaTest.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CmdResetGPU.cpp
+        )
+
+    generate_auto_cuda_files(${CMAKE_CURRENT_LIST_DIR} AUTO_GENERATED_LIST_OF_CU_MODULES)
+    set(MANUALLY_GENERATED_LIST_OF_CU_MODULES
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/MolTwisterCmdMolDyn/CudaTests/CudaTests.cu
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.h
+        ${CMAKE_CURRENT_LIST_DIR}/Cmd/Tools/CudaDeviceList.cu
+        )
+
+    set(MT_CUDALIB_SOURCE_FILES ${MANUALLY_GENERATED_LIST_OF_CU_MODULES} ${AUTO_GENERATED_LIST_OF_CU_MODULES})
+    display_list_contents("Modules that will be added to the NVCC CUDA build" ${MT_CUDALIB_SOURCE_FILES})
+endif()
+
+add_executable(MolTwister ${MT_SOURCE_FILES} ${MT_CPP_SOURCE_FILES_REQUIRING_CUDA})
+
+if(${INCLUDE_CUDA_COMMANDS})
+    if(${CUDA_DBG_INFO})
+        set(NVIDIA_FLAGS_DBG "${CUDA_NVCC_FLAGS} -g -G -gencode arch=compute_50,code=sm_50")
+        set(CUDA_NVCC_FLAGS ${NVIDIA_FLAGS_DBG})
+        set(CUDA_NVCC_FLAGS_DEBUG ${NVIDIA_FLAGS_DBG})
+        set(CMAKE_CUDA_FLAGS ${NVIDIA_FLAGS_DBG})
+        set(CUDA_NVCC_FLAGS_RELEASE ${NVIDIA_FLAGS_DBG})
+        message(STATUS "CUDA debug info included...")
+    else()
+        message(STATUS "CUDA debug info NOT included...")
+    endif()
+
+    add_library(MolTwisterCudaLib STATIC ${MT_CUDALIB_SOURCE_FILES})
+    target_compile_features(MolTwisterCudaLib PUBLIC cxx_std_14)
+    set_target_properties(MolTwisterCudaLib PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_property(TARGET MolTwister PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    set(CUDA_MT_LIB MolTwisterCudaLib)
+endif()
+
+target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util ${GROMACS_LIB})
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
+
+file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)
+install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION /usr/local/bin/moltwister-tutorials/)

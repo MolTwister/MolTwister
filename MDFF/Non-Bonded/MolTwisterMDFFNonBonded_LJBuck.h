@@ -1,5 +1,27 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #pragma once
 #include "MolTwisterMDFFNonBonded.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 class CMDFFNonBonded_LJBuck : public CMDFFNonBonded
 {
@@ -7,6 +29,7 @@ public:
     CMDFFNonBonded_LJBuck() : CMDFFNonBonded() { sigma_ = 0.0; epsilon_ = 0.0; A_ = 0.0; rho_ = 1.0; C_ = 0.0; ljBuckType_ = 0; }
     
 public:
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const { return "LJBuck"; }
     virtual std::string getLammpsDef(int index, bool convertToCal) const;
     virtual int getNumLammpsDef() const { return 1; }
@@ -35,3 +58,5 @@ private:
     double rho_;
     double C_;
 };
+
+END_CUDA_COMPATIBLE()

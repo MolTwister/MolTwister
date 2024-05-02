@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "CmdAtomPos.h"
 #include "../../Utilities/ASCIIUtility.h"
 
@@ -84,13 +104,13 @@ namespace MolTwisterCmdMeasure
         else if(text1 == "sel")
         {
             fprintf(stdOut_, "\r\n");
-            for(int i=0; i<state_->atoms_.size(); i++)
+            for(int i=0; i<(int)state_->atoms_.size(); i++)
             {
                 if(state_->atoms_[i]->isSelected())
                 {
                     atomPtr = state_->atoms_[i].get();
                     text1 = atomPtr->getID();
-                    if(!(state_->currentFrame_ < atomPtr->r_.size())) continue;
+                    if(!(state_->currentFrame_ < (int)atomPtr->r_.size())) continue;
                     fprintf(stdOut_, "\t[%i,%s,%s]: (%.4f, %.4f, %.4f)\r\n", i, text1.data(), atomPtr->resname_.data(),
                             atomPtr->r_[state_->currentFrame_].x_, atomPtr->r_[state_->currentFrame_].y_, atomPtr->r_[state_->currentFrame_].z_);
                 }
@@ -105,12 +125,12 @@ namespace MolTwisterCmdMeasure
 
         if(foundIndex)
         {
-            if(atomIndex < state_->atoms_.size())
+            if(atomIndex < (int)state_->atoms_.size())
             {
                 atomPtr = state_->atoms_[atomIndex].get();
                 if(atomPtr)
                 {
-                    if(state_->currentFrame_ < atomPtr->r_.size())
+                    if(state_->currentFrame_ < (int)atomPtr->r_.size())
                     {
                         fprintf(stdOut_, "\r\n\t(%.4f, %.4f, %.4f)\r\n", atomPtr->r_[state_->currentFrame_].x_, atomPtr->r_[state_->currentFrame_].y_, atomPtr->r_[state_->currentFrame_].z_);
                     }

@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <vector>
 #include "MolTwisterCmdList.h"
@@ -64,7 +84,7 @@ void CCmdList::execute(std::string commandLine)
 void CCmdList::parseAllCommand(std::string, int&)
 {
     printListHeaderAtoms();
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         printListAtomicItem(state_->atoms_[i].get());
     }
@@ -118,7 +138,7 @@ void CCmdList::parseMolCommand(std::string commandLine, int& arg)
     molIndex = atoi(text.data());
 
     printListHeaderAtoms();
-    for(int i=0; i<state_->atoms_.size(); i++)
+    for(int i=0; i<(int)state_->atoms_.size(); i++)
     {
         if(molIndex == state_->atoms_[i]->getMolIndex())
             printListAtomicItem(state_->atoms_[i].get());
@@ -263,7 +283,7 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
         fprintf(stdOut_, "\t\t\t\t\\toprule Atom & $Q$ & Atom & $Q$ & Atom & $Q$ \\\\ \\midrule\r\n");
     }
     
-    for(int i=0; i<listOfAtomTypes.size(); i++)
+    for(int i=0; i<(int)listOfAtomTypes.size(); i++)
     {
         if(useLongTable)   fprintf(stdOut_, "\t\t\t");
         else               fprintf(stdOut_, "\t\t\t\t\t");
@@ -271,7 +291,7 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
         for(int j=0; j<3; j++)
         {
             if(j != 0) fprintf(stdOut_, "& ");
-            if(i < listOfAtomTypes.size())
+            if(i < (int)listOfAtomTypes.size())
             {
                 atomPtr = state_->getFirstOccurenceOf(listOfAtomTypes[i]);
                 fprintf(stdOut_, "%s & %.8f ", listOfAtomTypes[i].data(), atomPtr ? atomPtr->Q_ : 0.0);
@@ -307,9 +327,9 @@ void CCmdList::printLaTeXListCharges(bool useLongTable) const
 
 void CCmdList::printListHeaderAtoms() const
 {
-    fprintf(stdOut_, "\r\n\r\n\t-------------------------------------------------------------- ATOMS ------------------------------------------------------------------------------------------------\r\n");
-    fprintf(stdOut_, "\t%-10s%-11s%-9s%-9s%-15s%-15s%-15s%-15s%-15s%-7s%-15s%-10s%-28s\r\n", "At.Index", "Mol.Index", "At.Name", "resname", " x", " y", " z", "Q", "m", "mobile", "sigma (vdW)", "Selected", "Bonded to:[At.Index,At.ID]");
-    fprintf(stdOut_, "\t---------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n");
+    fprintf(stdOut_, "\r\n\r\n\t-------------------------------------------------------------------------------------- ATOMS ------------------------------------------------------------------------------------------------------------------------\r\n");
+    fprintf(stdOut_, "\t%-10s%-11s%-9s%-9s%-15s%-15s%-15s%-15s%-15s%-7s%-15s%-10s%-28s%-28s\r\n", "At.Index", "Mol.Index", "At.Name", "resname", " x", " y", " z", "Q", "m", "mobile", "sigma (vdW)", "Selected", "Bonded to:[At.Index,At.ID]", "Double bonds");
+    fprintf(stdOut_, "\t---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\r\n");
 }
 
 void CCmdList::printListHeaderMDNonBond() const
@@ -485,19 +505,30 @@ void CCmdList::printListAtomicItem(const CAtom* atom) const
     C3DVector r;
        
     std::string ID1 = atom->getID();
-    if(state_->currentFrame_ < atom->r_.size()) r = atom->r_[state_->currentFrame_];
+    if(state_->currentFrame_ < (int)atom->r_.size()) r = atom->r_[state_->currentFrame_];
     else if(atom->r_.size() > 0)                r = atom->r_[0];
     else                                        return;
-    
-    fprintf(stdOut_, "\t%-10i%-11i%-9s%-9s% -15.4f% -15.4f% -15.4f% -15.4f% -15.4f%-7s% -15.4f%-10s\t", atom->getAtomIndex(), atom->getMolIndex(), ID1.data(),
-            atom->resname_.data(), r.x_, r.y_, r.z_, atom->Q_, atom->m_, atom->isMobile_ ? " " : "rigid", atom->sigma_, atom->isSelected() ? "[x]" : "[ ]");
-    
+        
+    std::string singleBonds;
     for(int j=0; j<atom->getNumBonds(); j++)
     {
         std::string ID2 = atom->getBondDest(j)->getID();
-        fprintf(stdOut_, "[%i,%s]", atom->getBondDest(j)->getAtomIndex(), ID2.data());
+        singleBonds+= std::string("[") + std::to_string(atom->getBondDest(j)->getAtomIndex()) + std::string(",") + ID2.data() + std::string("]");
     }
-    
+
+    std::string doubleBonds;
+    for(int j=0; j<atom->getNumBonds(); j++)
+    {
+        if(atom->isDoubleBond(j))
+        {
+            std::string ID2 = atom->getBondDest(j)->getID();
+            doubleBonds+= std::string("[") + std::to_string(atom->getBondDest(j)->getAtomIndex()) + std::string(",") + ID2.data() + std::string("]");
+        }
+    }
+
+    fprintf(stdOut_, "\t%-10i%-11i%-9s%-9s% -15.4f% -15.4f% -15.4f% -15.4f% -15.4f%-7s% -15.4f%-10s%-28s%-28s\t", atom->getAtomIndex(), atom->getMolIndex(), ID1.data(),
+            atom->resname_.data(), r.x_, r.y_, r.z_, atom->Q_, atom->m_, atom->isMobile_ ? " " : "rigid", atom->sigma_, atom->isSelected() ? "[x]" : "[ ]", singleBonds.data(), doubleBonds.data());
+
     fprintf(stdOut_, "\r\n");
 }
 

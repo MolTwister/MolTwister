@@ -1,7 +1,47 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFNonBonded_LJ1208.h"
 #include "Utilities/LennardJonesUnits.h"
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
+
+BEGIN_CUDA_COMPATIBLE()
+
+void CMDFFNonBonded_LJ1208::serialize(CSerializer& io, bool saveToStream)
+{
+    CMDFFNonBonded::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << sigma_;
+        io << epsilon_;
+        io << alpha_;
+    }
+    else
+    {
+        io >> sigma_;
+        io >> epsilon_;
+        io >> alpha_;
+    }
+}
 
 std::pair<bool, size_t> CMDFFNonBonded_LJ1208::onParse(std::vector<std::string> arguments)
 {
@@ -128,3 +168,5 @@ void CMDFFNonBonded_LJ1208::calcForces(C3DVector r1, C3DVector r2, C3DVector& f1
     f2 = F;
     f1 = F*(-1.0);
 }
+
+END_CUDA_COMPATIBLE()

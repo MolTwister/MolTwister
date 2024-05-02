@@ -1,7 +1,59 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFDih.h"
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
 #include <float.h>
+
+BEGIN_CUDA_COMPATIBLE()
+
+void CMDFFDih::serialize(CSerializer& io, bool saveToStream)
+{
+    int bondDetectionCriteria;
+
+    if(saveToStream)
+    {
+        bondDetectionCriteria = (int)bondDetectionCriteria_;
+
+        io << atomNamesToBond_[0];
+        io << atomNamesToBond_[1];
+        io << atomNamesToBond_[2];
+        io << atomNamesToBond_[3];
+        io << comments_;
+        io << bondDetectionCriteria;
+        io << detCritR0_;
+    }
+    else
+    {
+        io >> atomNamesToBond_[0];
+        io >> atomNamesToBond_[1];
+        io >> atomNamesToBond_[2];
+        io >> atomNamesToBond_[3];
+        io >> comments_;
+        io >> bondDetectionCriteria;
+        io >> detCritR0_;
+
+        bondDetectionCriteria_ = (EDetCrit)bondDetectionCriteria;
+    }
+}
 
 void CMDFFDih::parse(std::vector<std::string> arguments)
 {
@@ -216,3 +268,55 @@ bool CMDFFDih::calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector r3, C
     
     return foundReliableResult;
 }
+
+std::vector<std::pair<float, float>> CMDFFDih::calc1DForceProfile(float phiStart, float phiEnd, int points) const
+{
+    // We first note that for U=U(phi), the force is F_4=-grad_4 U = -dU/dphi * (dphi/dx_4, dphi/dy_4, dphi/dz_4),
+    // where phi = phi(r_1, r_2, r_3, r4). We which to calculate dU/dphi. This, is done by calling calcForces()
+    // to obtain F_4.x and then calcDihedralForceCoeffs14() to obtain dr/dx_4. Thus, (-dU/dphi) = F_4.x / (dr/dx_4).
+    std::vector<std::pair<float, float>> profile;
+
+    if(points <= 0) return profile;
+
+    C3DVector r1(0.0, 1.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 1.0);
+    C3DVector r4(0.0, 1.0, 1.0);
+    C3DVector f1, f2, f3, f4;
+    float phiDelta = (phiEnd - phiStart) / float(points-1);
+    for(int i=0; i<points; i++)
+    {
+        float phi = phiStart + float(i)*phiDelta;
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0);
+        calcForces(r1, r2, r3, r4, f1, f2, f3, f4);
+        C3DVector c = calcDihedralForceCoeffs14(r1, r2, r3, r4);
+
+        profile.emplace_back(std::pair<float, float>(phi, (c.x_ != 0.0) ? f4.x_ / c.x_ : 0.0));
+    }
+
+    return profile;
+}
+
+std::vector<std::pair<float, float>> CMDFFDih::calc1DPotentialProfile(float phiStart, float phiEnd, int points) const
+{
+    std::vector<std::pair<float, float>> profile;
+
+    C3DVector r1(0.0, 1.0, 0.0);
+    C3DVector r2(0.0, 0.0, 0.0);
+    C3DVector r3(0.0, 0.0, 1.0);
+    C3DVector r4(0.0, 1.0, 1.0);
+    C3DVector f1, f2, f3, f4;
+    float phiDelta = (phiEnd - phiStart) / float(points-1);
+    for(int i=0; i<points; i++)
+    {
+        float phi = phiStart + float(i)*phiDelta;
+        r4 = C3DVector(sin((double)phi), cos((double)phi), 1.0);
+        float E = (float)calcPotential(r1, r2, r3, r4);
+
+        profile.emplace_back(std::pair<float, float>(phi, E));
+    }
+
+    return profile;
+}
+
+END_CUDA_COMPATIBLE()

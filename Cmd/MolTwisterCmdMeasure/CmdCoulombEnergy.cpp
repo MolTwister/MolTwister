@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "CmdCoulombEnergy.h"
 #include "../../Utilities/ASCIIUtility.h"
 #include "../Tools/MolTwisterStateTools.h"
@@ -43,7 +63,7 @@ std::string CCmdCoulombEnergy::getCmdFreetextHelp()
     text+= "\t* 'bondstretch': performs a 'single' for bond stretching, specified by the\r\n";
     text+= "\t                 <bond>, <start dist>, <end dist>, <dist step size>\r\n";
     text+= "\t                 parameters. The output is a two column space sepatated list\r\n";
-    text+= "\t                 with header 'Dist [Å] Etot [kJ/mol]'.\r\n";
+    text+= "\t                 with header 'Dist [AA] Etot [kJ/mol]'.\r\n";
     text+= "\t* 'allframes':   performs a 'single' for all the loaded frames and produces\r\n";
     text+= "\t                 a two column output of the form 'Frame Etot [kJ/mol].'\r\n";
     text+= "\r\n";
@@ -247,7 +267,7 @@ std::string CCmdCoulombEnergy::execute(std::vector<std::string> arguments)
 
                 special1to4 = CParsingTools(state_, stdOut_).retrieve1to4BondSepCoeffs(arguments, arg, a1to4BondSepCoeffs);
 
-                fprintf(stdOut_, "\r\n\t%-15s%-15s\r\n\t------------------------------------\r\n", "Dist [Å]", "Etot [kJ/mol]");
+                fprintf(stdOut_, "\r\n\t%-15s%-15s\r\n\t------------------------------------\r\n", "Dist [AA]", "Etot [kJ/mol]");
                 if(state_->saveCoordinates(state_->getCurrFrameIndex()))
                 {
                     for(double dist=startDist; dist<=endDist; dist+=step)

@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "CmdOverlap.h"
 #include "../../Utilities/ASCIIUtility.h"
 #include "../Tools/ProgressBar.h"
@@ -25,8 +45,8 @@ std::string CCmdOverlap::getCmdFreetextHelp()
 
     text+= "\tCounts number of overlaping atoms within the current frame by counting the\r\n";
     text+= "\tnumber of atoms that are closer than the distance <within>. The count is\r\n";
-    text+= "\tlimited to the currently selected atoms, which is specified by the 'sel'\r\n";
-    text+= "\tkeyword.\r\n";
+    text+= "\tdone for all atoms. Specifying the 'sel' keyword will select one atom of\r\n";
+    text+= "\tevery overlapping pair of atoms.\r\n";
     text+= "\r\n";
     text+= "\tOutput:\r\n";
     text+= "\t1. Total number of overlaps within <within> = N\r\n";

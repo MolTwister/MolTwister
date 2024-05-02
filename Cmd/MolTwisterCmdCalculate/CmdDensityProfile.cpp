@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "CmdDensityProfile.h"
 #include "../../Utilities/ASCIIUtility.h"
 #include "../Tools/ProgressBar.h"
@@ -49,7 +69,8 @@ std::string CCmdDensityProfile::getCmdFreetextHelp()
     text+= "\t                 .\r\n";
     text+= "\tN+1. <x abs> <y <bs> <z abs> <x rel> <y rel> <z rel> <particle density> <mass density> <charge density>\r\n";
     text+= "\twhere N is the number of bins. Relative positions (rel) are relative to <vec. from>, while absolute\r\n";
-    text+= "\tpositions (abs) are relative to the simulation box.";
+    text+= "\tpositions (abs) are relative to the simulation box. Mass density is in [g/mol], while charge density\r\n";
+    text+= "\tis in units of partial charges.";
 
     return text;
 }
@@ -241,7 +262,7 @@ std::string CCmdDensityProfile::execute(std::vector<std::string> arguments)
             {
                 numDensitiesAlong_k[n]++;
                 massDensitiesAlong_k[n]+= atomicMasses[j]; // g/mol
-                chargeDensitiesAlong_k[n]+= atomicCharges[j]; // g/mol
+                chargeDensitiesAlong_k[n]+= atomicCharges[j]; // Partial charges
             }
         }
 

@@ -1,7 +1,30 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <math.h>
+#include <assert.h>
 #include "Utilities/3DRect.h"
 #include "MolTwisterAtom.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 CAtom::CAtom()
 {
@@ -53,7 +76,6 @@ CAtom::CAtom(const C3DVector &R, std::string ID, int atomIndex)
 CAtom::CAtom(const CAtom& src)
 { 
     ID_[0] = '\0';
-
     copy(src); 
 }
 
@@ -61,9 +83,121 @@ CAtom::~CAtom()
 {
 }
 
+void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std::shared_ptr<CAtom>>* newAtomList)
+{
+    if(saveToStream)
+    {
+        io << r_.size();
+        for(C3DVector item : r_)
+        {
+            item.serialize(io, saveToStream);
+        }
+
+        io << bonds_.size();
+        for(const CBondDest& dest : bonds_)
+        {
+            CAtom* atom = dest.getDest();
+            bool isDouble = dest.isDoubleBond();
+            io << atom->atomIndex_;
+            io << isDouble;
+        }
+
+        io << listOf1to4Connections_.size();
+        for(C1to4Conn item : listOf1to4Connections_)
+        {
+            io << item.atom_->atomIndex_;
+            io << item.numBondsAway_;
+        }
+
+        atomLabel_.serialize(io, saveToStream);
+
+        io << bondLabels_.size();
+        for(auto& item : bondLabels_)
+        {
+            io << item.first->atomIndex_;
+            item.second.serialize(io, saveToStream);
+        }
+
+        io << Q_;
+        io << sigma_;
+        io << m_;
+        io << resname_;
+        io << isMobile_;
+        io << ignoreBondFrom_;
+        io << ID_;
+        io << atomIndex_;
+        io << molIndex_;
+        io << isSelected_;
+    }
+    else
+    {
+        assert(newAtomList != nullptr);
+
+        size_t size;
+
+        io >> size;
+        r_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            r_[i].serialize(io, saveToStream);
+        }
+
+        io >> size;
+        bonds_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            int atomIndex;
+            bool isDouble;
+            io >> atomIndex;
+            io >> isDouble;
+            bonds_[i].setDest((*newAtomList)[atomIndex].get());
+            bonds_[i].setAsDoubleBond(isDouble);
+        }
+
+        io >> size;
+        listOf1to4Connections_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            C1to4Conn conn;
+
+            int atomIndex;
+            io >> atomIndex;
+            conn.atom_ = (*newAtomList)[atomIndex].get();
+            io >> conn.numBondsAway_;
+
+            listOf1to4Connections_[i] = conn;
+        }
+
+        atomLabel_.serialize(io, saveToStream);
+
+        io >> size;
+        bondLabels_.clear();
+        for(size_t i=0; i<size; i++)
+        {
+            int atomIndex;
+            io >> atomIndex;
+            CLabel label;
+            label.serialize(io, saveToStream);
+
+            bondLabels_[(*newAtomList)[atomIndex].get()] = label;
+        }
+
+        io >> Q_;
+        io >> sigma_;
+        io >> m_;
+        io >> resname_;
+        io >> isMobile_;
+        io >> ignoreBondFrom_;
+        io >> ID_;
+        io >> atomIndex_;
+        io >> molIndex_;
+        io >> isSelected_;
+    }
+}
+
 int CAtom::addFrame()
 {
-    if(r_.size() == 0)   r_.emplace_back(C3DVector(0.0, 0.0, 0.0));
+    if(r_.size() == 0)  r_.emplace_back(C3DVector(0.0, 0.0, 0.0));
     else                r_.emplace_back(r_[r_.size()-1]);
     
     return (int)r_.size() - 1;
@@ -71,7 +205,7 @@ int CAtom::addFrame()
 
 int CAtom::deleteFrame(int frame)
 {
-    if(frame < r_.size())
+    if(frame < (int)r_.size())
         r_.erase(r_.begin() + frame);
 
     return (int)r_.size();
@@ -86,9 +220,9 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms() const
 
     visitedAtoms.emplace_back(this);
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        index = bonds_[i]->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
+        index = bonds_[i].getDest()->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
         if(index > -1)
         {
             return index;
@@ -101,25 +235,25 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms() const
 void CAtom::searchForLeafAtomsConnToBond(int bondDest, std::vector<CAtom*>& leafAtoms) const
 {
     CAtom* bondDestPtr = nullptr;
-    if((bondDest >= 0) && (bondDest < bonds_.size()))
+    if((bondDest >= 0) && (bondDest < (int)bonds_.size()))
         bondDestPtr = getBondDest(bondDest);
 
     leafAtoms.clear();
 
     bool alreadyVisited;
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<leafAtoms.size(); j++)
+        for(int j=0; j<(int)leafAtoms.size(); j++)
         {
-            if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
+            if(bonds_[i].getDest() == leafAtoms[j]) alreadyVisited = true;
         }
-        if(bonds_[i] == bondDestPtr) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondDestPtr) alreadyVisited = true;
 
         if(alreadyVisited) continue;
 
-        leafAtoms.emplace_back(bonds_[i]);
-        bonds_[i]->searchForLeafAtomsConnToBond(bondDestPtr, this, leafAtoms);
+        leafAtoms.emplace_back(bonds_[i].getDest());
+        bonds_[i].getDest()->searchForLeafAtomsConnToBond(bondDestPtr, this, leafAtoms);
     }
 }
 
@@ -136,17 +270,17 @@ int CAtom::searchForNonNegMolIndexInAttachedAtoms(std::vector<const CAtom*>& vis
         return -1;
     }
 
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<visitedAtoms.size(); j++)
+        for(int j=0; j<(int)visitedAtoms.size(); j++)
         {
-            if(visitedAtoms[j] == bonds_[i]) alreadyVisited = true;
+            if(visitedAtoms[j] == bonds_[i].getDest()) alreadyVisited = true;
         }
         
         if(alreadyVisited) continue;
 
-        index = bonds_[i]->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
+        index = bonds_[i].getDest()->searchForNonNegMolIndexInAttachedAtoms(visitedAtoms);
         if(index > -1) return index;
     }
     
@@ -164,27 +298,26 @@ void CAtom::searchForLeafAtomsConnToBond(const CAtom* bondAt1, const CAtom* bond
 {
     bool alreadyVisited;
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
         alreadyVisited = false;
-        for(int j=0; j<leafAtoms.size(); j++)
+        for(int j=0; j<(int)leafAtoms.size(); j++)
         {
-            if(bonds_[i] == leafAtoms[j]) alreadyVisited = true;
+            if(bonds_[i].getDest() == leafAtoms[j]) alreadyVisited = true;
         }
-        if(bonds_[i] == bondAt1) alreadyVisited = true;
-        if(bonds_[i] == bondAt2) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondAt1) alreadyVisited = true;
+        if(bonds_[i].getDest() == bondAt2) alreadyVisited = true;
         
         if(alreadyVisited) continue;
         
-        leafAtoms.emplace_back(bonds_[i]);
-        bonds_[i]->searchForLeafAtomsConnToBond(bondAt1, bondAt2, leafAtoms);
+        leafAtoms.emplace_back(bonds_[i].getDest());
+        bonds_[i].getDest()->searchForLeafAtomsConnToBond(bondAt1, bondAt2, leafAtoms);
     }
 }
 
 int CAtom::attachBondTo(CAtom* atom)
 {
-    bonds_.emplace_back(atom);
-
+    bonds_.emplace_back(CBondDest(atom));
     return (int)bonds_.size();
 }
 
@@ -195,9 +328,9 @@ int CAtom::deleteBondTo(CAtom* atom)
     if(bonds_.size() < 1) return -1;
     
     // Find element index to erase
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(bonds_[i] == atom)
+        if(bonds_[i].getDest() == atom)
         {
             index = i;
             break;
@@ -220,9 +353,9 @@ void CAtom::deleteAllBonds()
 
 int CAtom::getBondDestIndex(const CAtom* atom) const
 {
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(bonds_[i] == atom) return i;
+        if(bonds_[i].getDest() == atom) return i;
     }
     
     return -1;
@@ -274,33 +407,33 @@ void CAtom::buildListOf1to4Connections()
     // make a note of the atomic pointer and how many bond lengths
     // from this atom it is located.
     listOf1to4Connections_.clear();
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        atom1Ptr = bonds_[i];
+        atom1Ptr = bonds_[i].getDest();
         if(!atom1Ptr) continue;
         connect.atom_ = atom1Ptr;
         connect.numBondsAway_ = 1;
         listOf1to4Connections_.emplace_back(connect);
 
-        for(int j=0; j<atom1Ptr->bonds_.size(); j++)
+        for(int j=0; j<(int)atom1Ptr->bonds_.size(); j++)
         {
-            atom2Ptr = atom1Ptr->bonds_[j];
+            atom2Ptr = atom1Ptr->bonds_[j].getDest();
             if(!atom2Ptr || (atom2Ptr == this) || (atom2Ptr == atom1Ptr)) continue;
             connect.atom_ = atom2Ptr;
             connect.numBondsAway_ = 2;
             listOf1to4Connections_.emplace_back(connect);
 
-            for(int k=0; k<atom2Ptr->bonds_.size(); k++)
+            for(int k=0; k<(int)atom2Ptr->bonds_.size(); k++)
             {
-                atom3Ptr = atom2Ptr->bonds_[k];
+                atom3Ptr = atom2Ptr->bonds_[k].getDest();
                 if(!atom3Ptr || (atom3Ptr == this) || (atom3Ptr == atom1Ptr) || (atom3Ptr == atom2Ptr)) continue;
                 connect.atom_ = atom3Ptr;
                 connect.numBondsAway_ = 3;
                 listOf1to4Connections_.emplace_back(connect);
 
-                for(int l=0; l<atom3Ptr->bonds_.size(); l++)
+                for(int l=0; l<(int)atom3Ptr->bonds_.size(); l++)
                 {
-                    atom4Ptr = atom3Ptr->bonds_[l];
+                    atom4Ptr = atom3Ptr->bonds_[l].getDest();
                     if(!atom4Ptr || (atom4Ptr == this) || (atom4Ptr == atom1Ptr) || (atom4Ptr == atom2Ptr) || (atom4Ptr == atom3Ptr)) continue;
                     connect.atom_ = atom4Ptr;
                     connect.numBondsAway_ = 4;
@@ -313,7 +446,7 @@ void CAtom::buildListOf1to4Connections()
 
 int CAtom::getBondSepTo(const CAtom* atom) const
 {
-    for(int i=0; i<listOf1to4Connections_.size(); i++)
+    for(int i=0; i<(int)listOf1to4Connections_.size(); i++)
     {
         if(listOf1to4Connections_[i].atom_ == atom)
             return listOf1to4Connections_[i].numBondsAway_;
@@ -329,29 +462,49 @@ void CAtom::copy(const CAtom& src)
     m_ = src.m_;
     sigma_ = src.sigma_;
     ID_ = src.ID_;
+    atomLabel_ = src.atomLabel_;
     resname_ = src.resname_;
     isMobile_ = src.isMobile_;
     ignoreBondFrom_ = src.ignoreBondFrom_;
 
     bonds_.clear();
-    for(int i=0; i<src.bonds_.size(); i++) bonds_.emplace_back(src.bonds_[i]);
+    for(int i=0; i<(int)src.bonds_.size(); i++) bonds_.emplace_back(src.bonds_[i]);
+
+    bondLabels_.clear();
+    for(auto item : src.bondLabels_) { bondLabels_[item.first] = item.second; }
 
     atomIndex_ = src.atomIndex_;
     molIndex_ = src.molIndex_;
     isSelected_ = src.isSelected_;
 
     listOf1to4Connections_.clear();
-    for(int i=0; i<listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
+    for(int i=0; i<(int)listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
 }
 
-void CAtom::copyIntrinsicAtomProperties(const CAtom &src)
+void CAtom::copyIntrinsicAtomProperties(const CAtom& src)
 {
     Q_ = src.Q_;
     sigma_ = src.sigma_;
     m_ = src.m_;
     ID_ = src.ID_;
+    atomLabel_ = src.atomLabel_;
     isMobile_ = src.isMobile_;
     ignoreBondFrom_ = src.ignoreBondFrom_;
+
+    bondLabels_.clear();
+    for(auto item : src.bondLabels_) { bondLabels_[item.first] = item.second; }
+}
+
+CAtom::CLabel CAtom::getBondLabel(CAtom* bondDest) const
+{
+    try
+    {
+        return bondLabels_.at(bondDest);
+    }
+    catch(...)
+    {
+        return CLabel();
+    }
 }
 
 int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double& lenghtZ) const
@@ -359,17 +512,17 @@ int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double
     double dist2, longestDist2 = 0.0;
     int indexLongestBond = -1;
     
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        dist2 = getDistanceTo2(bonds_[i], frame);
+        dist2 = getDistanceTo2(bonds_[i].getDest(), frame);
         if(dist2 > longestDist2)
         {
             longestDist2 = dist2;
             indexLongestBond = i;
 
-            lenghtX = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-            lenghtY = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-            lenghtZ = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
+            lenghtX = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+            lenghtY = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+            lenghtZ = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
         }
     }
     
@@ -380,26 +533,20 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsAtPBCBdry1, std::vecto
 {
     int indexCurrBdry = 0;
     double length=0.0;
-    double distPBC=0.0, distPBC_2=0.0;
     std::vector<CAtom*>* atomsAtPBCBdry[2] = { &atomsAtPBCBdry1, &atomsAtPBCBdry2 };
     std::map<CAtom*, int> visitedAtoms;
-    
-    if(pbcDir == dirX) distPBC = pbc.getWidthX();
-    if(pbcDir == dirY) distPBC = pbc.getWidthY();
-    if(pbcDir == dirZ) distPBC = pbc.getWidthZ();
-    distPBC_2 = distPBC / 2.0;
-    
+
     atomsAtPBCBdry1.clear();
     atomsAtPBCBdry2.clear();
     
     visitedAtoms.insert(std::pair<CAtom*, int>(this, 0));
     atomsAtPBCBdry[indexCurrBdry]->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-        if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-        if(pbcDir == dirZ) length = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
-        bonds_[i]->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, indexCurrBdry, length, pbc, pbcDir, frame);
+        if(pbcDir == dirX) length = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+        if(pbcDir == dirY) length = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+        if(pbcDir == dirZ) length = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, indexCurrBdry, length, pbc, pbcDir, frame);
     }
 }
 
@@ -419,12 +566,12 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsAtPBCBdry[], std::map<
     
     if(distFromCaller > distPBC_2) switchBdry(currBdry);
     atomsAtPBCBdry[currBdry]->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        if(pbcDir == dirX) length = fabs(bonds_[i]->r_[frame].x_ - r_[frame].x_);
-        if(pbcDir == dirY) length = fabs(bonds_[i]->r_[frame].y_ - r_[frame].y_);
-        if(pbcDir == dirZ) length = fabs(bonds_[i]->r_[frame].z_ - r_[frame].z_);
-        bonds_[i]->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, currBdry, length, pbc, pbcDir, frame);
+        if(pbcDir == dirX) length = fabs(bonds_[i].getDest()->r_[frame].x_ - r_[frame].x_);
+        if(pbcDir == dirY) length = fabs(bonds_[i].getDest()->r_[frame].y_ - r_[frame].y_);
+        if(pbcDir == dirZ) length = fabs(bonds_[i].getDest()->r_[frame].z_ - r_[frame].z_);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsAtPBCBdry, visitedAtoms, currBdry, length, pbc, pbcDir, frame);
     }
 }
 
@@ -437,9 +584,9 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>& atomsInMolecule, int frame)
     visitedAtoms.insert(std::pair<CAtom*, int>(this, 0));
     atomsInMolecule.emplace_back(this);
 
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        bonds_[i]->findAtomsInMolecule(&atomsInMolecule, visitedAtoms, frame);
+        bonds_[i].getDest()->findAtomsInMolecule(&atomsInMolecule, visitedAtoms, frame);
     }
 }
 
@@ -451,8 +598,28 @@ void CAtom::findAtomsInMolecule(std::vector<CAtom*>* atomsInMolecule, std::map<C
     if(ret.second == false) return;
 
     atomsInMolecule->emplace_back(this);
-    for(int i=0; i<bonds_.size(); i++)
+    for(int i=0; i<(int)bonds_.size(); i++)
     {
-        bonds_[i]->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
+        bonds_[i].getDest()->findAtomsInMolecule(atomsInMolecule, visitedAtoms, frame);
     }
 }
+
+void CAtom::CLabel::serialize(CSerializer& io, bool saveToStream)
+{
+    if(saveToStream)
+    {
+        displacement_.serialize(io, saveToStream);
+        color_.serialize(io, saveToStream);
+
+        io << name_;
+    }
+    else
+    {
+        displacement_.serialize(io, saveToStream);
+        color_.serialize(io, saveToStream);
+
+        io >> name_;
+    }
+}
+
+END_CUDA_COMPATIBLE()

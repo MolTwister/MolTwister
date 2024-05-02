@@ -1,16 +1,41 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <stdio.h>
 #include <vector>
 #include <string>
+#include <functional>
 #include "Utilities/FileUtility.h"
 #include "MolTwisterCommandPool.h"
 #include "MolTwisterCmdLoad.h"
 #include "Tools/MolTwisterStateTools.h"
+#include "Tools/ProgressBar.h"
+#include "../Utilities/DCDFile.h"
+#include "../Utilities/XTCFile.h"
 
 void CCmdLoad::onAddKeywords()
 {
     addKeyword("load");
     addKeyword("xyz");
+    addKeyword("dcd");
     addKeyword("pdb");
     addKeyword("mtt");
     addKeyword("script");
@@ -18,6 +43,8 @@ void CCmdLoad::onAddKeywords()
     addKeyword("qepos");
     addKeyword("ignore");
     addKeyword("all");
+    addKeyword("frame");
+    addKeyword("noquery");
 }
 
 std::string CCmdLoad::getHelpString() const
@@ -29,13 +56,32 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\tLoad data into MolTwister. The allowed data types are:\r\n";
     szText+= "\r\n";
     szText+= "\txyz :        XYZ-coordinate files (including XYZ files containing\r\n";
-    szText+= "\t             several frames). Bonds can be ignored using 'ignore',\r\n";
-    szText+= "\t             see genbonds.\r\n";
+    szText+= "\t             several frames). Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame'.\r\n";
+    szText+= "\tdcd :        DCD-coordinate files. Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
+    szText+= "\txtc :        XTC-coordinate files. Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
     szText+= "\tpdb :        PDB-coordinate files. Bonds can be ignored using 'ignore'.\r\n";
+    szText+= "\t             To avoid query about delete ('del'), append ('app') or cancel ('can'),\r\n";
+    szText+= "\t             use 'noquery <response>' with the appropriate response.\r\n";
     szText+= "\tmtt :        MolTwister trajectory file.\r\n";
     szText+= "\tscript :     MolTwister script containing a sequence of MolTwister commands,\r\n";
     szText+= "\t             each formated as: exec(\"<MolTwister command>\");. For example,\r\n";
-    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0)\r\n";
+    szText+= "\t             exec(\"add atom C at 0 0 0\"); would add a C atom at (0, 0, 0).\r\n";
+    szText+= "\t             It is also possible to leave out the exec() function, as well\r\n";
+    szText+= "\t             as the quotes to achieve the same effect. For example,\r\n";
+    szText+= "\t                    add atom C at 0 0 0;\r\n";
+    szText+= "\t             is equivalent to\r\n";
+    szText+= "\t                    exec(\"add atom C at 0 0 0\");\r\n";
     szText+= "\tmasscharge : Load charges and masses into the current molecular structure. In\r\n";
     szText+= "\t             the file each line defines a charge/mass in two possible ways:\r\n";
     szText+= "\t                   * ID <ID, e.g. H, C, C2, or similar> <partial charge> <mass>\r\n";
@@ -57,12 +103,15 @@ void CCmdLoad::execute(std::string commandLine)
     std::vector<std::string> bondAtomsToIgnore;
     bool genBonds = true;
     bool ignoreAllBonds = false;
+    int baseFrameIndex = 0;
     int arg = 1;
     
     if(!state_) return;
     
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     if((text != "xyz") &&
+       (text != "dcd") &&
+       (text != "xtc") &&
        (text != "pdb") &&
        (text != "mtt") &&
        (text != "script") &&
@@ -72,6 +121,8 @@ void CCmdLoad::execute(std::string commandLine)
         // and not a specification of file type
         std::string ext = CFileUtility::getExtension(text);
         if(ext == "xyz") { text = "xyz"; arg--; }
+        if(ext == "dcd") { text = "dcd"; arg--; }
+        if(ext == "xtc") { text = "xtc"; arg--; }
         if(ext == "pdb") { text = "pdb"; arg--; }
         if(ext == "mtt") { text = "mtt"; arg--; }
         if(ext == "script") { text = "script"; arg--; }
@@ -80,31 +131,39 @@ void CCmdLoad::execute(std::string commandLine)
     
     if(text == "xyz")
     {
-        parseXYZCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseXYZCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
+    }
+    else if(text == "dcd")
+    {
+        parseDCDCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
+    }
+    else if(text == "xtc")
+    {
+        parseXTCCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "pdb")
     {
-        parsePDBCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parsePDBCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "mtt")
     {
-        parseMTTCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseMTTCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "script")
     {
-        parseScriptCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseScriptCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "python")
     {
-        parsePythonCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parsePythonCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "masscharge")
     {
-        parseMasschargeCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseMasschargeCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "qepos")
     {
-        parseQeposCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds);
+        parseQeposCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else
     {
@@ -115,15 +174,21 @@ void CCmdLoad::execute(std::string commandLine)
     {
         if(ignoreAllBonds)
             state_->searchForAtomTypes(bondAtomsToIgnore);
-        
-        for(int i=0; i<state_->atoms_[0]->r_.size(); i++)
-            CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, i, nullptr, &bondAtomsToIgnore);
+        if((baseFrameIndex < 0) || (baseFrameIndex >= (int)state_->atoms_[0]->r_.size()))
+        {
+            for(int i=0; i<(int)state_->atoms_[0]->r_.size(); i++)
+                CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, i, nullptr, &bondAtomsToIgnore);
+        }
+        else
+        {
+            CMolTwisterStateTools(state_, stdOut_).generateBonds(0.8, false, true, baseFrameIndex, nullptr, &bondAtomsToIgnore);
+        }
     }
     
     if(state_->view3D_) state_->view3D_->requestUpdate(true);    
 }
 
-void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&)
+void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&, int& baseFrameIndex)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -133,15 +198,28 @@ void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<st
     }
     else
     {
-        std::string typeString;
-
-        typeString = CASCIIUtility::getWord(commandLine, arg++);
-        CASCIIUtility::removeWhiteSpace(typeString);
-        if(typeString == "ignore")
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
         {
-            typeString = CASCIIUtility::getWord(commandLine, arg++);
-            CASCIIUtility::removeWhiteSpace(typeString);
-            bondAtomsToIgnore = CASCIIUtility::getWords(typeString, ",");
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
         }
 
         if(text[0] == '/')
@@ -159,7 +237,123 @@ void CCmdLoad::parseXYZCommand(std::string commandLine, int& arg, std::vector<st
     }
 }
 
-void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds)
+void CCmdLoad::parseDCDCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool&, int& baseFrameIndex)
+{
+    std::string text = CASCIIUtility::getWord(commandLine, arg++);
+    CASCIIUtility::removeWhiteSpace(text);
+    if(text.length() == 0)
+    {
+        printf("Syntax Error: Second argument should be the filename!");
+    }
+    else
+    {
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
+        {
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
+        }
+
+        int stride = 1;
+        std::string strideString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(strideString);
+        if(strideString == "stride")
+        {
+            stride = atoi(CASCIIUtility::getWord(commandLine, arg++).data());
+        }
+        else arg++;
+
+        if(text[0] == '/')
+        {
+            if(!readDCDFile(text.data(), genBonds, stride))
+                printf("Error loading DCD file!");
+        }
+        else
+        {
+            std::string filePath = CFileUtility::getCWD() + text;
+
+            if(!readDCDFile(filePath.data(), genBonds, stride))
+                printf("Error loading DCD file!");
+        }
+    }
+}
+
+void CCmdLoad::parseXTCCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex)
+{
+    std::string text = CASCIIUtility::getWord(commandLine, arg++);
+    CASCIIUtility::removeWhiteSpace(text);
+    if(text.length() == 0)
+    {
+        printf("Syntax Error: Second argument should be the filename!");
+    }
+    else
+    {
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
+        {
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
+        }
+
+        int stride = 1;
+        std::string strideString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(strideString);
+        if(strideString == "stride")
+        {
+            stride = atoi(CASCIIUtility::getWord(commandLine, arg++).data());
+        }
+        else arg++;
+
+        if(text[0] == '/')
+        {
+            if(!readXTCFile(text.data(), genBonds, stride))
+                printf("Error loading XTC file!");
+        }
+        else
+        {
+            std::string filePath = CFileUtility::getCWD() + text;
+
+            if(!readXTCFile(filePath.data(), genBonds, stride))
+                printf("Error loading XTC file!");
+        }
+    }
+}
+
+void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -186,23 +380,34 @@ void CCmdLoad::parsePDBCommand(std::string commandLine, int& arg, std::vector<st
                 bondAtomsToIgnore = CASCIIUtility::getWords(typeString, ",");
             }
         }
+        else arg--;
+
+        typeString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(typeString);
+        auto noQuery = std::pair<bool, std::string>(false, "");
+        if(typeString == "noquery")
+        {
+            noQuery.first = true;
+            noQuery.second = CASCIIUtility::getWord(commandLine, arg++);
+        }
+        else arg--;
 
         if(text[0] == '/')
         {
-            if(!readPDBFile(text.data(), genBonds))
+            if(!readPDBFile(text.data(), genBonds, noQuery))
                 printf("Error loading PDB file!");
         }
         else
         {
             std::string filePath = CFileUtility::getCWD() + text;
 
-            if(!readPDBFile(filePath.data(), genBonds))
+            if(!readPDBFile(filePath.data(), genBonds, noQuery))
                 printf("Error loading PDB file!");
         }
     }
 }
 
-void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -229,7 +434,7 @@ void CCmdLoad::parseMTTCommand(std::string commandLine, int& arg, std::vector<st
     genBonds = false;
 }
 
-void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -256,7 +461,7 @@ void CCmdLoad::parseScriptCommand(std::string commandLine, int& arg, std::vector
     genBonds = false;
 }
 
-void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -283,7 +488,7 @@ void CCmdLoad::parsePythonCommand(std::string commandLine, int& arg, std::vector
     genBonds = false;
 }
 
-void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&)
+void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool& genBonds, bool&, int&)
 {
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text);
@@ -311,7 +516,7 @@ void CCmdLoad::parseMasschargeCommand(std::string commandLine, int& arg, std::ve
     genBonds = false;
 }
 
-void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool&, bool&)
+void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<std::string>&, bool&, bool&, int&)
 {
     std::string text1 = CASCIIUtility::getWord(commandLine, arg++);
     CASCIIUtility::removeWhiteSpace(text1);
@@ -344,6 +549,7 @@ void CCmdLoad::parseQeposCommand(std::string commandLine, int& arg, std::vector<
 
 bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
 {
+    CProgressBar progBar;
     double X, Y, Z;
     std::string ID, line, text;
     FILE* fileHandle = fopen(xyzFileName.data(), "r");
@@ -355,7 +561,7 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", xyzFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", xyzFileName.data());
         return false;
     }
 
@@ -371,14 +577,31 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
     else if(action == "del")   state_->purgeAtomsList();
     else                       return true;
 
+
+    // Count lines in the file
+    int numLinesInFile = 0;
+    do
+    {
+        line = CFileUtility::readLine(fileHandle, lastLineInFile);
+        numLinesInFile++;
+
+    } while(!lastLineInFile);
+    fseek(fileHandle, 0, SEEK_SET);
+
     
     // Read coordinates from file
+    progBar.beginProgress("Loading XYZ file contents");
+    int lineIndex = 0;
     do
     {
         // Read num coordinates in XYZ file
         line = CFileUtility::readLine(fileHandle, lastLineInFile);
+        lineIndex++;
+
         CASCIIUtility::removeWhiteSpace(line);
         numCoordinates = atoi(line.data());
+
+        // Read comment line and positions of XYZ file
         if(!lastLineInFile && (numCoordinates > 0))
         {
             int indexFrame=0;
@@ -387,11 +610,13 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
             
             // Read comment line of XYZ file
             line = CFileUtility::readLine(fileHandle, lastLineInFile);
+            lineIndex++;
             
             // Read positions
             for(int i=0; i<numCoordinates; i++)
             {
                 line = CFileUtility::readLine(fileHandle, lastLineInFile);
+                lineIndex++;
                 
                 ID = CASCIIUtility::getWord(line, 0);
                 
@@ -410,21 +635,176 @@ bool CCmdLoad::readXYZFile(std::string xyzFileName, bool& genBonds)
                 {
                     if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, i, X, Y, Z);
                 }
-                if(i < state_->atoms_.size())
+                if(i < (int)state_->atoms_.size())
                     state_->atoms_[i]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
             }
 
             firstFrameAdded = true;
         }
+
+        progBar.updateProgress(lineIndex, numLinesInFile);
    
     } while(!lastLineInFile);
+    progBar.endProgress();
 
     genBonds = true;
     fclose(fileHandle);
     return true;
 }
 
-bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
+bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
+{
+    CProgressBar progBar;
+    double X, Y, Z;
+    std::string ID;
+
+    genBonds = false;
+    CDCDFile dcdFile;
+
+    if(!dcdFile.open(dcdFileName.data(), stride))
+    {
+        printf("\r\nCould not open file: %s!\r\n", dcdFileName.data());
+        return false;
+    }
+
+    int numAtoms = dcdFile.getNumCoordinatesInRecord();
+    if((int)state_->atoms_.size() !=  numAtoms)
+    {
+        printf("\r\nThe file, %s! It was found to have %i atoms per record (based on first record in file), while the loaded system has %i atoms. The number of atoms much match!\r\n", dcdFileName.data(), numAtoms, (int)state_->atoms_.size());
+        return false;
+    }
+
+    progBar.beginProgress("Loading DCD file contents");
+    int numRecords = dcdFile.getNumRecords();
+    bool firstFrameAdded = false;
+    for(int i=0; i<numRecords; i++)
+    {
+        dcdFile.gotoRecord(i);
+
+        int indexFrame=0;
+        if(firstFrameAdded) indexFrame = state_->addFrame();
+
+        numAtoms = dcdFile.getNumCoordinatesInRecord();
+        const float* coordDataX = dcdFile.getCoordinateDataX();
+        const float* coordDataY = dcdFile.getCoordinateDataY();
+        const float* coordDataZ = dcdFile.getCoordinateDataZ();
+        for(int j=0; j<numAtoms; j++)
+        {
+            X = (double)coordDataX[j];
+            Y = (double)coordDataY[j];
+            Z = (double)coordDataZ[j];
+
+            ID = state_->atoms_[j]->getID();
+
+            if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, X, Y, Z);
+            if(j < (int)state_->atoms_.size())
+                state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
+        }
+
+        firstFrameAdded = true;
+        progBar.updateProgress(i+1, numRecords);
+    }
+    progBar.endProgress();
+
+    genBonds = true;
+    return true;
+}
+
+bool CCmdLoad::readXTCFile(std::string xtcFileName, bool& genBonds, int stride)
+{
+    #if GROMACS_LIB_INSTALLED == 1
+        #ifdef GROMACS_XTC_HEADERS_INSTALLED
+            // Create lambdas to be used below
+            std::function<void(const int&, rvec*, const int&, const real&)> addCoordinatesToState = [this](const int& indexFrame, rvec* coordinates, const int& numAtoms, const real& precision)
+            {
+                for(int j=0; j<numAtoms; j++)
+                {
+                    double X = (double)coordinates[j][0] * 10.0f; // Convert from nm to AA
+                    double Y = (double)coordinates[j][1] * 10.0f; // Convert from nm to AA
+                    double Z = (double)coordinates[j][2] * 10.0f; // Convert from nm to AA
+
+                    std::string ID = state_->atoms_[j]->getID();
+
+                    if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, X, Y, Z);
+                    if(j < (int)state_->atoms_.size())
+                        state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
+                }
+            };
+
+            // Initialize variables
+            CProgressBar progBar;
+            double X, Y, Z;
+            std::string ID;
+
+            genBonds = false;
+
+            // Open XTC file
+            t_fileio* file = open_xtc(xtcFileName.c_str(), "r");
+            if(!file)
+            {
+                printf("\r\nCould not open file: %s!\r\n", xtcFileName.data());
+                return false;
+            }
+
+            // Read first entry
+            int numAtoms = 0;
+            int64_t step = 0;
+            real time = 0;
+            matrix box = {{ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }};
+            rvec* coordinates;
+            real precision = 0.0f;
+            gmx_bool xtcOK = false;
+            read_first_xtc(file, &numAtoms, &step, &time, box, &coordinates, &precision, &xtcOK);
+            if(!xtcOK)
+            {
+                printf("\r\nCould not read first XTC entry in %s!\r\n", xtcFileName.data());
+                close_xtc(file);
+                return false;
+            }
+            addCoordinatesToState(0, coordinates, numAtoms, precision);
+
+            if((int)state_->atoms_.size() !=  numAtoms)
+            {
+                printf("\r\nThe file, %s! It was found to have %i atoms per record (based on first record in file), while the loaded system has %i atoms. The number of atoms much match!\r\n", xtcFileName.data(), numAtoms, (int)state_->atoms_.size());
+                close_xtc(file);
+                return false;
+            }
+
+            int64_t prevStep = step;
+            progBar.beginProgress("Loading XTC file contents");
+            while(1)
+            {
+                read_next_xtc(file, numAtoms, &step, &time, box, coordinates, &precision, &xtcOK);
+                if(xtcOK && (step != prevStep))
+                {
+                    int indexFrame = state_->addFrame();
+                    if(indexFrame >= 0) addCoordinatesToState(indexFrame, coordinates, numAtoms, precision);
+
+                    progBar.updateProgress(step % 1000, 1000);
+                    prevStep = step;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            progBar.endProgress();
+
+            genBonds = true;
+            close_xtc(file);
+            return true;
+        #else
+            printf("\r\nError, missing headers: MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Could not load XTC file!\r\n");
+        #endif
+    #else
+        printf("\r\nError, missing library. MolTwister was not built with the Gromacs XTC library, likely because it was not available during the MolTwister build. Could not load XTC file!\r\n");
+    #endif
+
+    return true;
+}
+
+bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds, const std::pair<bool, std::string>& noQuery)
 {
     std::string stringPart;
     double X, Y, Z;
@@ -438,17 +818,26 @@ bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", pdbFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", pdbFileName.data());
         return false;
     }
     
     
     // Get confiramation from user and purge everything if 'del'
     genBonds = false;
-    printf("Delete all atoms (del), Append (app) or Cancel (can)?: ");
-    char stringAnswer[20];
-    fgets(stringAnswer, 19, stdin);
-    std::string action = CASCIIUtility::removeCRLF(stringAnswer);
+    std::string action;
+    if(!noQuery.first)
+    {
+        printf("Delete all atoms (del), Append (app) or Cancel (can)?: ");
+        char stringAnswer[20];
+        fgets(stringAnswer, 19, stdin);
+        action = CASCIIUtility::removeCRLF(stringAnswer);
+    }
+    else
+    {
+        printf("Delete all atoms (del), Append (app) or Cancel (can)?: %s\r\n", noQuery.second.data());
+        action = noQuery.second;
+    }
     if(action == "can")        return true;
     else if(action == "app")   { /*no action required*/ }
     else if(action == "del")   state_->purgeAtomsList();
@@ -489,7 +878,7 @@ bool CCmdLoad::readPDBFile(std::string pdbFileName, bool& genBonds)
                 
                 coordIndex = state_->addAtom(X, Y, Z, ID.data());
                 
-                if(coordIndex < state_->atoms_.size())
+                if(coordIndex < (int)state_->atoms_.size())
                 {
                     state_->atoms_[coordIndex]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
                     state_->atoms_[coordIndex]->resname_ = resname;
@@ -515,7 +904,7 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
     
     if(!fileHandle)
     {
-        printf("\r\nCould not open file: %s!!!\r\n", mttFileName.data());
+        printf("\r\nCould not open file: %s!\r\n", mttFileName.data());
         return false;
     }
     
@@ -708,7 +1097,7 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
             {
                 coordIndex = state_->addAtom(X, Y, Z, ID.data());
                 
-                if(coordIndex < state_->atoms_.size())
+                if(coordIndex < (int)state_->atoms_.size())
                 {
                     state_->atoms_[coordIndex]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
                     state_->atoms_[coordIndex]->resname_ = sresname;
@@ -720,10 +1109,10 @@ bool CCmdLoad::readMTTFile(std::string mttFileName)
                     
                     if(bondsAvailable)
                     {
-                        for(int l=0; l<bondsTo.size(); l++)
+                        for(int l=0; l<(int)bondsTo.size(); l++)
                         {
                             int atomToConnectTo = numPrevLoadAtoms + (int)bondsTo[l];
-                            if(atomToConnectTo < state_->atoms_.size())
+                            if(atomToConnectTo < (int)state_->atoms_.size())
                             {
                                 CAtom* pAtom = state_->atoms_[atomToConnectTo].get();
                                 state_->atoms_[coordIndex]->attachBondTo(pAtom);
@@ -752,7 +1141,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
 
     if(!fileHandle)
     {
-        printf("\r\nError, could not open file: %s!!!\r\n", scriptFileName.data());
+        printf("\r\nError, could not open file: %s!\r\n", scriptFileName.data());
         return false;
     }
     
@@ -765,14 +1154,14 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
         line = CFileUtility::readToNextDelimiterIgnoreCppComments(fileHandle, ';', lastLineInFile);
         CASCIIUtility::parseCLikeFuncCall(line, funcName, argument);
     
-        if(funcName == "exec")
+        if((funcName == "exec") || funcName.empty())
         {
             CASCIIUtility::removeWhiteSpace(argument, "\"");
             command = CASCIIUtility::getWord(argument, 0);
 
             int pipeSymbIndex = CASCIIUtility::findString("> ", argument);
             
-            for(int i=0; i<cmdList.size(); i++)
+            for(int i=0; i<(int)cmdList.size(); i++)
             {
                 if(cmdList[i] && cmdList[i]->checkCmd(command.data()))
                 {
@@ -788,7 +1177,7 @@ bool CCmdLoad::readScriptFile(std::string scriptFileName)
                         CASCIIUtility::removeWhiteSpace(fileName);
                         stdOutFile = fopen(fileName.data(), "w+");
                         
-                        if(stdOutFile)     cmdList[i]->redirectOutput(stdOutFile);
+                        if(stdOutFile)  cmdList[i]->redirectOutput(stdOutFile);
                         else            printf("Error: could not create file %s!", fileName.data());
                     }
                     
@@ -824,7 +1213,7 @@ bool CCmdLoad::readPythonFile(std::string scriptFileName)
     
     if(!fileHandle)
     {
-        printf("\r\nError, could not open file: %s!!!\r\n", scriptFileName.data());
+        printf("\r\nError, could not open file: %s!\r\n", scriptFileName.data());
         return false;
     }
     
@@ -871,7 +1260,7 @@ bool CCmdLoad::readMassChargeFile(std::string massChargeFileName)
             text = CASCIIUtility::getWord(line, 3);
             m = (double)atof(text.data());
             
-            for(int i=0; i<state_->atoms_.size(); i++)
+            for(int i=0; i<(int)state_->atoms_.size(); i++)
             {
                 std::string ID = state_->atoms_[i]->getID();
                 if(ID == IDCmp)
@@ -895,7 +1284,7 @@ bool CCmdLoad::readMassChargeFile(std::string massChargeFileName)
             text = CASCIIUtility::getWord(line, 3);
             m = (double)atof(text.data());
             
-            if(atomIndex < state_->atoms_.size())
+            if(atomIndex < (int)state_->atoms_.size())
             {
                 state_->atoms_[atomIndex]->Q_ = Q;
                 state_->atoms_[atomIndex]->m_ = m;
@@ -926,7 +1315,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
     
     if(!fileHandlePos || !fileHandleInput)
     {
-        printf("\r\nCould not open files: %s, %s!!!\r\n", qePosFileName.data(), qeInputFileName.data());
+        printf("\r\nCould not open files: %s, %s!\r\n", qePosFileName.data(), qeInputFileName.data());
         return false;
     }
     
@@ -976,7 +1365,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
     // and make a corresponding list of all atoms in the correct order (i.e.
     // in the order of the species listed in the ATOMIC_SPECIES section)
     atomsList.clear();
-    for(int i=0; i<speciesList.size(); i++)
+    for(int i=0; i<(int)speciesList.size(); i++)
     {
         fseek(fileHandleInput, 0, SEEK_SET);
         do
@@ -1039,7 +1428,7 @@ bool CCmdLoad::readQEPosFile(std::string qePosFileName, std::string qeInputFileN
                 {
                     if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, i, X, Y, Z);
                 }
-                if(i < state_->atoms_.size())
+                if(i < (int)state_->atoms_.size())
                     state_->atoms_[i]->sigma_ = state_->defaultAtProp_.getWDWRadius(atomsList[i].data());
             }
             

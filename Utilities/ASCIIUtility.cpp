@@ -1,4 +1,25 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
+#include <string>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -49,6 +70,58 @@ void CASCIIUtility::removeWhiteSpace(std::string& string, const char* whiteSpace
     }
     
     string = newStr;
+}
+
+std::string CASCIIUtility::trimFromLeft(const std::string& str, const char* whiteSpaceChars, int maxTrim)
+{
+    std::string newStr;
+
+    int numTrimmedChars = 0;
+    int startFrom = 0;
+    for(int i=0; i<str.length(); i++)
+    {
+        if(isWhiteSpace(str[i], whiteSpaceChars))
+        {
+            numTrimmedChars++;
+            if(numTrimmedChars <= maxTrim)
+                continue;
+        }
+        startFrom = i;
+        break;
+    }
+
+    for(int i=startFrom; i<str.length(); i++)
+    {
+        newStr+= str[i];
+    }
+
+    return newStr;
+}
+
+std::string CASCIIUtility::trimFromRight(const std::string& str, const char* whiteSpaceChars, int maxTrim)
+{
+    std::string newStr;
+
+    int numTrimmedChars = 0;
+    int endIndex = int(str.length()-1);
+    for(int i=int(str.length()-1); i>=0; i--)
+    {
+        if(isWhiteSpace(str[i], whiteSpaceChars))
+        {
+            numTrimmedChars++;
+            if(numTrimmedChars <= maxTrim)
+                continue;
+        }
+        endIndex = i;
+        break;
+    }
+
+    for(int i=0; i<=endIndex; i++)
+    {
+        newStr+= str[i];
+    }
+
+    return newStr;
 }
 
 std::string CASCIIUtility::getWord(std::string line, int wordIndex, const char* whiteSpaceChars)
@@ -119,6 +192,31 @@ std::vector<std::string> CASCIIUtility::getWords(std::string line, const char* w
     } while(foundWord && (wordIndex < 10000000));
 
     return words;
+}
+
+std::vector<std::string> CASCIIUtility::getLines(std::string text)
+{
+    removeWhiteSpace(text, "\r");
+
+    std::vector<std::string> lines;
+    int len = (int)text.size();
+    std::string line;
+    for(int i=0; i<len; i++)
+    {
+        if(text[i] == '\n')
+        {
+            lines.emplace_back(line);
+            line.clear();
+        }
+        else
+        {
+            line+= text[i];
+        }
+    }
+
+    if(!line.empty()) lines.emplace_back(line);
+
+    return lines;
 }
 
 std::string CASCIIUtility::getDelimitedWord(std::string line, int wordIndex, char startDelimiter, char endDelimiter)
@@ -204,9 +302,20 @@ void CASCIIUtility::parseCLikeFuncCall(std::string inputString, std::string& fun
     int strLen = (int)inputString.size();
     int i;
 
+    arguments = inputString;
     funcName.clear();
+
+    // If this is not a function style call, then leave with an empty function name,
+    // but fill in the entire string as one argument
+    size_t parenthesisIndexStart = inputString.find("(");
+    if(parenthesisIndexStart == std::string::npos) return;
+    if((int(parenthesisIndexStart) - 1) < 0) return;
+    if(CASCIIUtility::isWhiteSpace(inputString[parenthesisIndexStart - 1])) return;
+    size_t parenthesisIndexEnd = inputString.find(")");
+    if(parenthesisIndexEnd == std::string::npos) return;
+
     arguments.clear();
-    
+
     // Read function name
     for(i=0; i<strLen; i++)
     {
@@ -263,7 +372,7 @@ std::string CASCIIUtility::argsToString(const std::vector<std::string>& argument
     std::string argsString;
 
     bool first = true;
-    for(auto argument : arguments)
+    for(const auto& argument : arguments)
     {
         if(!first) argsString+= " ";
         argsString+= argument;
@@ -283,4 +392,36 @@ std::string CASCIIUtility::argsToString(const std::vector<std::string>& argument
     }
 
     return "";
+}
+
+std::string CASCIIUtility::createMarkDownCodeBlock(std::string str, int numSpaces, bool removeFirstTab)
+{
+    std::vector<std::string> lines = getLines(str);
+
+    std::string reconstructedString;
+    reconstructedString+= "````text\r\n";
+    for(std::string line : lines)
+    {
+        if(removeFirstTab) line = trimFromLeft(line, "\t", 1);
+        line = trimFromRight(line);
+
+        reconstructedString+= line;
+        reconstructedString+= "\r\n";
+    }
+    reconstructedString+= "````\r\n";
+
+    return reconstructedString;
+}
+
+std::string CASCIIUtility::addTabsToDocument(const std::string& document)
+{
+    std::vector<std::string> lines = getLines(document);
+
+    std::string newDocument;
+    for(const std::string& line : lines)
+    {
+        newDocument+= std::string("\t") + line + std::string("\r\n");
+    }
+
+    return newDocument;
 }

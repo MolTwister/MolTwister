@@ -1,7 +1,28 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <string.h>
 #include <float.h>
 #include "DCDFile.h"
 
+BEGIN_CUDA_COMPATIBLE()
 
 ////////////////////////////////////////////////////////////////////////
 // CDCDFile::CMainHeader
@@ -9,9 +30,10 @@
 
 CDCDFile::CMainHeader::CMainHeader()
 {
-    for(int i=0; i<4; i++) ID_[i] = ' ';
-    for(int i=0; i<80; i++) descriptA_[i] = ' ';
-    for(int i=0; i<80; i++) descriptB_[i] = ' ';
+    ID_ = "    ";
+    descriptA_.resize(80, ' ');
+    descriptB_.resize(80, ' ');
+
     nSets_ = 0;
     initStep_ = 0;
     wrtFreq_ = 0;
@@ -442,9 +464,15 @@ bool CDCDFile::CRecord::write(FILE* handle, int& numBytesWritten) const
     return true;
 }
 
-void CDCDFile::CRecord::init(uint32_t numCoordinates)
+void CDCDFile::CRecord::init(uint32_t numCoordinates, bool resizeArray)
 {
     numCoordinates_ = numCoordinates;
+    if(resizeArray)
+    {
+        xPositions_.resize(numCoordinates);
+        yPositions_.resize(numCoordinates);
+        zPositions_.resize(numCoordinates);
+    }
 }
 
 void CDCDFile::CRecord::setPos(uint32_t coordIndex, double x, double y, double z)
@@ -639,6 +667,67 @@ C3DRect CDCDFile::getCurrentPBC() const
     return pbc;
 }
 
+void CDCDFile::createDCDFileIfNotExists(const std::string& filePath, int numTimeSteps, int stride, double timeStep, int numAtoms)
+{
+    FILE* file = fopen(filePath.data(), "r");
+
+    // Check if DCD file exists. If not, create it and add an appropriate header
+    if(!file)
+    {
+        file = fopen(filePath.data(), "w");
+        if(file)
+        {
+            CDCDFile::CMainHeader mainHeader;
+            mainHeader.ID_ = "CORD";
+            mainHeader.nSets_ = numTimeSteps / stride;
+            mainHeader.initStep_ = 0;
+            mainHeader.wrtFreq_ = stride;
+            mainHeader.timeStep_ = (float)timeStep;
+            mainHeader.descriptA_ = "Written by MolTwister";
+            mainHeader.descriptB_ = "---";
+            mainHeader.nAtoms_ = numAtoms;
+
+            int numBytesWritten = 0;
+            mainHeader.write(file, numBytesWritten);
+        }
+
+        fclose(file);
+    }
+    else
+    {
+        fclose(file);
+    }
+}
+
+void CDCDFile::appendToDCDFile(const std::string& filePath, int numAtoms, std::tuple<int, int, int> boxSize, std::function<std::tuple<double, double, double>(const int& atomIndex)> getAtomPos)
+{
+    // Open the DCD file and place the file pointer at the end of the file
+    FILE* file = fopen(filePath.data(), "a+");
+    if(!file) return;
+
+    // Write a DCD record, starting at the end of the file
+    CDCDFile::CRecordHeader recordHeader;
+    recordHeader.boxX_ = std::get<0>(boxSize);
+    recordHeader.boxY_ = std::get<1>(boxSize);
+    recordHeader.boxZ_ = std::get<2>(boxSize);
+
+    CDCDFile::CRecord record;
+    record.setRecordHeader(recordHeader);
+
+    int numBytesWritten = 0;
+    record.init(numAtoms, true);
+
+    for(size_t i=0; i<numAtoms; i++)
+    {
+        auto atomPos = getAtomPos((int)i);
+        C3DVector r(std::get<0>(atomPos), std::get<1>(atomPos), std::get<2>(atomPos));
+        record.setPos((int)i, r.x_, r.y_, r.z_);
+    }
+    record.write(file, numBytesWritten);
+
+    fclose(file);
+}
+
 void CDCDFile::setCoordinate(int coordinateIndex, int coordinate, double val)
 {
     std::pair<const float*, size_t> xPositions = currentRecord_.getCoordinateDataX();
@@ -649,3 +738,5 @@ void CDCDFile::setCoordinate(int coordinateIndex, int coordinate, double val)
     if((coordinate == 1) && (coordinate < (int)yPositions.second))  currentRecord_.setYPos(coordinateIndex, val);
     if((coordinate == 2) && (coordinate < (int)zPositions.second))  currentRecord_.setZPos(coordinateIndex, val);
 }
+
+END_CUDA_COMPATIBLE()

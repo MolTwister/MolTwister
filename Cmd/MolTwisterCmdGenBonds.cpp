@@ -1,3 +1,23 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include "Utilities/3DRect.h"
 #include "MolTwisterCmdGenBonds.h"
@@ -23,7 +43,7 @@ std::string CCmdGenBonds::getHelpString() const
     text+= "\tGenerate bonds between atoms. A bond is defined as any bond length R that\r\n";
     text+= "\tsatisfies 'minimum R' < r < r1+r2+0.4. In addition, the number of bonds that\r\n";
     text+= "\tare connected to C, N, P, S atoms are restricted to 4. The default minimum\r\n";
-    text+= "\tbond length limit is 0.8Å. The parmeters inside square brackets are optional.\r\n";
+    text+= "\tbond length limit is 0.8AA. The parmeters inside square brackets are optional.\r\n";
     text+= "\tIf the verbose keyword is used, then each detected bond will be displayed as\r\n";
     text+= "\tthey are detected.\r\n";
     text+= "\r\n";

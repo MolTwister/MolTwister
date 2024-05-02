@@ -1,6 +1,70 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFAngle_Class2.h"
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
+
+BEGIN_CUDA_COMPATIBLE()
+
+void CMDFFAngle_Class2::serialize(CSerializer& io, bool saveToStream)
+{
+    CMDFFAngle::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << Ea_.theta0_;
+        io << Ea_.K2_;
+        io << Ea_.K3_;
+        io << Ea_.K4_;
+
+        io << Ebb_.M_;
+        io << Ebb_.r1_;
+        io << Ebb_.r2_;
+
+        io << Eba_.N1_;
+        io << Eba_.N2_;
+        io << Eba_.r1_;
+        io << Eba_.r2_;
+
+        io << toRad_;
+    }
+    else
+    {
+        io >> Ea_.theta0_;
+        io >> Ea_.K2_;
+        io >> Ea_.K3_;
+        io >> Ea_.K4_;
+
+        io >> Ebb_.M_;
+        io >> Ebb_.r1_;
+        io >> Ebb_.r2_;
+
+        io >> Eba_.N1_;
+        io >> Eba_.N2_;
+        io >> Eba_.r1_;
+        io >> Eba_.r2_;
+
+        io >> toRad_;
+    }
+}
 
 size_t CMDFFAngle_Class2::onParse(std::vector<std::string> arguments)
 {
@@ -113,7 +177,7 @@ void CMDFFAngle_Class2::calcForcesHarm(C3DVector r1, C3DVector r2, C3DVector r3,
     C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r1, r2, r3);
     C3DVector   dTheta_dr2 = calcAngularForceCoeffs2(r1, r2, r3);
     C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r3, r2, r1);
-    double      dU_dTheta = double(degree)*k;
+    double      dU_dTheta = -double(degree)*k;
 
     for(int i=0; i<(degree-1); i++)
         dU_dTheta*= deltaTheta;
@@ -176,20 +240,20 @@ void CMDFFAngle_Class2::calcForcesMix(C3DVector r1, C3DVector r2, C3DVector r3, 
     double      R23 = r23.norm();
     double      RInv12 = (R12 == 0.0) ? 1.0 / 1E-10 : 1.0 / R12;
     double      RInv23 = (R23 == 0.0) ? 1.0 / 1E-10 : 1.0 / R23;
-    double      coeff = N1*(R12 - ra)*(R23 - rb);
+    double      coeff = N1*(R12 - ra) + N2*(R23 - rb);
     double      cosTheta = (r21*r23) * (RInv12*RInv23);
     double      Theta = acos(cosTheta);
     double      Theta0 = theta0 * toRad_;
     double      deltaTheta = Theta - Theta0;
     C3DVector   r12xRInv12 = r12*RInv12;
     C3DVector   r23xRInv23 = r23*RInv23;
-    C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r1, r2, r3);
+    C3DVector   dTheta_dr1 = calcAngularForceCoeffs13(r3, r2, r1);
     C3DVector   dTheta_dr2 = calcAngularForceCoeffs2(r1, r2, r3);
-    C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r3, r2, r1);
+    C3DVector   dTheta_dr3 = calcAngularForceCoeffs13(r1, r2, r3);
     
-    f1 = r12xRInv12*(N1*deltaTheta) + dTheta_dr1*coeff;
-    f2 = r12xRInv12*((-1.0)*N1*deltaTheta) + r23xRInv23*(N2*deltaTheta) + dTheta_dr2*coeff;
-    f3 = r23xRInv23*((-1.0)*N2*deltaTheta) + dTheta_dr3*coeff;
+    f1 = r12xRInv12*(N1*deltaTheta) - dTheta_dr1*coeff;
+    f2 = r12xRInv12*((-1.0)*N1*deltaTheta) + r23xRInv23*(N2*deltaTheta) - dTheta_dr2*coeff;
+    f3 = r23xRInv23*((-1.0)*N2*deltaTheta) - dTheta_dr3*coeff;
 }
 
 double CMDFFAngle_Class2::calcPotential(C3DVector r1, C3DVector r2, C3DVector r3) const
@@ -201,7 +265,7 @@ double CMDFFAngle_Class2::calcPotential(C3DVector r1, C3DVector r2, C3DVector r3
     U+= calcPotentialHarm(r1, r2, r3, Ea_.K4_, Ea_.theta0_, 4);
     
     U+= calcPotentialCartesian(r1, r2, r3, Ebb_.M_, Ebb_.r1_, Ebb_.r2_);
-    
+
     U+= calcPotentialMix(r1, r2, r3, Eba_.N1_, Eba_.N2_, Eba_.r1_, Eba_.r2_, Ea_.theta0_);
     
     return U;
@@ -228,3 +292,5 @@ void CMDFFAngle_Class2::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3D
     calcForcesMix(r1, r2, r3, Eba_.N1_, Eba_.N2_, Eba_.r1_, Eba_.r2_, Ea_.theta0_, F1, F2, F3);
     f1+= F1; f2+= F2; f3+= F3;
 }
+
+END_CUDA_COMPATIBLE()

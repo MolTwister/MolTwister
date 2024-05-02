@@ -1,10 +1,35 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #pragma once
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <memory>
+#include "Utilities/Serializer.h"
 #include "Utilities/3DVector.h"
+#include "Utilities/CUDAGeneralizations.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // Note
@@ -22,6 +47,7 @@ public:
     virtual ~CMDFFAngle() {}
     
 public:
+    virtual void serialize(CSerializer& io, bool saveToStream);
     virtual std::string getFFType() const = 0;
     virtual std::string getLammpsDef(int index, bool convertToCal) const = 0;
     virtual int getNumLammpsDef() const = 0;
@@ -44,6 +70,8 @@ public:
     virtual void calcForces(C3DVector, C3DVector, C3DVector, C3DVector& f1, C3DVector& f2, C3DVector& f3) const { f1 = f2 = f3 = C3DVector(0.0, 0.0, 0.0); }
     bool calcForcesNumerically(C3DVector r1, C3DVector r2, C3DVector r3, C3DVector& f1, C3DVector& f2, C3DVector& f3, double error=1E-3, int maxIter=50) const;
     virtual std::vector<std::string> getCmdHelpLines() = 0;
+    std::vector<std::pair<float, float>> calc1DForceProfile(float thetaStart, float thetaEnd, int points) const;
+    std::vector<std::pair<float, float>> calc1DPotentialProfile(float thetaStart, float thetaEnd, int points) const;
 
 protected:
     double J2cal(double val, bool convertToCal) const { return convertToCal ? (val / 4.184) : val; }
@@ -59,3 +87,5 @@ private:
     EDetCrit bondDetectionCriteria_;
     double detCritR0_;
 };
+
+END_CUDA_COMPATIBLE()

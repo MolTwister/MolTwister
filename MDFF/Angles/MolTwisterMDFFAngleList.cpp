@@ -1,4 +1,28 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFAngleList.h"
+#include "MolTwisterMDFFAngle_Harm.h"
+#include "MolTwisterMDFFAngle_Class2.h"
+
+BEGIN_CUDA_COMPATIBLE()
 
 CMDFFAngleList::CMDFFAngleList()
 {
@@ -8,6 +32,44 @@ CMDFFAngleList::CMDFFAngleList()
 
 CMDFFAngleList::~CMDFFAngleList()
 {
+}
+
+void CMDFFAngleList::serialize(CSerializer& io, bool saveToStream)
+{
+    CMDFFList<CMDFFAngle>::serialize(io, saveToStream);
+
+    // Note: we do not serialize registeredForceFieldTypes_, size this is always built in the
+    // class constructor. Moreover, it is used to read from the stream
+    if(saveToStream)
+    {
+        io << angles_.size();
+        for(std::shared_ptr<CMDFFAngle> item : angles_)
+        {
+            io << item->getFFType();
+            item->serialize(io, saveToStream);
+        }
+    }
+    else
+    {
+        size_t size;
+
+        io >> size;
+        angles_.resize(size);
+        for(size_t i=0; i<size; i++)
+        {
+            std::string ffType;
+            io >> ffType;
+            for(const std::shared_ptr<CMDFFAngle>& item : registeredForceFieldTypes_)
+            {
+                if(item->getFFType() == ffType)
+                {
+                    angles_[i] = item->createCopy();
+                    angles_[i]->serialize(io, saveToStream);
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void CMDFFAngleList::add(const CMDFFAngle& angle)
@@ -20,7 +82,7 @@ std::shared_ptr<std::vector<int>> CMDFFAngleList::indexFromNames(std::string aAt
 {
     auto indices = std::make_shared<std::vector<int>>();
 
-    for(int i=0; i<angles_.size(); i++)
+    for(int i=0; i<(int)angles_.size(); i++)
     {
         if(aAtom1 == angles_[i]->getAtomInBond(0))
         {
@@ -52,3 +114,5 @@ std::shared_ptr<std::vector<int>> CMDFFAngleList::indexFromNames(std::string aAt
 
     return indices;
 }
+
+END_CUDA_COMPATIBLE()

@@ -1,7 +1,49 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "MolTwisterMDFFDih_Fourier4t.h"
 #include "Utilities/LennardJonesUnits.h"
 #include "Utilities/ASCIIUtility.h"
 #include <math.h>
+
+BEGIN_CUDA_COMPATIBLE()
+
+void CMDFFDih_Fourier4t::serialize(CSerializer& io, bool saveToStream)
+{
+    CMDFFDih::serialize(io, saveToStream);
+
+    if(saveToStream)
+    {
+        io << V_[0];
+        io << V_[1];
+        io << V_[2];
+        io << V_[3];
+    }
+    else
+    {
+        io >> V_[0];
+        io >> V_[1];
+        io >> V_[2];
+        io >> V_[3];
+    }
+}
 
 size_t CMDFFDih_Fourier4t::onParse(std::vector<std::string> arguments)
 {
@@ -98,3 +140,5 @@ void CMDFFDih_Fourier4t::calcForces(C3DVector r1, C3DVector r2, C3DVector r3, C3
     f3 = dPhi_dr3*dU_dPhi;
     f4 = dPhi_dr4*dU_dPhi;
 }
+
+END_CUDA_COMPATIBLE()

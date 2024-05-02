@@ -1,17 +1,53 @@
+//
+// Copyright (C) 2023 Richard Olsen.
+// DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+//
+// This file is part of MolTwister.
+//
+// MolTwister is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MolTwister is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MolTwister.  If not, see <https://www.gnu.org/licenses/>.
+//
+
 #include "3DRect.h"
 
-C3DVector C3DRect::getCenter() const
+BEGIN_CUDA_COMPATIBLE()
+
+HOST_CALLABLE void C3DRect::serialize(CSerializer& io, bool saveToStream)
 {
-    C3DVector   center((rLow_.x_ + rHigh_.x_) / 2.0,
-                       (rLow_.y_ + rHigh_.y_) / 2.0,
-                       (rLow_.z_ + rHigh_.z_) / 2.0);
+    if(saveToStream)
+    {
+        rLow_.serialize(io, saveToStream);
+        rHigh_.serialize(io, saveToStream);
+    }
+    else
+    {
+        rLow_.serialize(io, saveToStream);
+        rHigh_.serialize(io, saveToStream);
+    }
+}
+
+HOSTDEV_CALLABLE C3DVector C3DRect::getCenter() const
+{
+    C3DVector center((rLow_.x_ + rHigh_.x_) / 2.0,
+                     (rLow_.y_ + rHigh_.y_) / 2.0,
+                     (rLow_.z_ + rHigh_.z_) / 2.0);
 
     return center;
 }
 
-double C3DRect::getLargestWidth() const
+HOSTDEV_CALLABLE double C3DRect::getLargestWidth() const
 {
-    double  largest = getWidthX();
+    double largest = getWidthX();
 
     if(getWidthY() > largest) largest = getWidthY();
     if(getWidthZ() > largest) largest = getWidthZ();
@@ -19,14 +55,14 @@ double C3DRect::getLargestWidth() const
     return largest;
 }
 
-void C3DRect::expandByFactor(double factor)
+HOSTDEV_CALLABLE void C3DRect::expandByFactor(double factor)
 {
-    double  expX = getWidthX() * factor;
-    double  expY = getWidthY() * factor;
-    double  expZ = getWidthZ() * factor;
-    double  expXHalf = expX / 2.0;
-    double  expYHalf = expY / 2.0;
-    double  expZHalf = expZ / 2.0;
+    double expX = getWidthX() * factor;
+    double expY = getWidthY() * factor;
+    double expZ = getWidthZ() * factor;
+    double expXHalf = expX / 2.0;
+    double expYHalf = expY / 2.0;
+    double expZHalf = expZ / 2.0;
 
     rLow_.x_-= expXHalf;
     rLow_.y_-= expYHalf;
@@ -37,7 +73,7 @@ void C3DRect::expandByFactor(double factor)
     rHigh_.z_+= expZHalf;
 }
 
-void C3DRect::expandByLength(double length)
+HOSTDEV_CALLABLE void C3DRect::expandByLength(double length)
 {
     rLow_.x_-= length;
     rLow_.y_-= length;
@@ -48,7 +84,7 @@ void C3DRect::expandByLength(double length)
     rHigh_.z_+= length;
 }
 
-void C3DRect::shrinkByLength(double length)
+HOSTDEV_CALLABLE void C3DRect::shrinkByLength(double length)
 {
     rLow_.x_+= length;
     rLow_.y_+= length;
@@ -59,7 +95,7 @@ void C3DRect::shrinkByLength(double length)
     rHigh_.z_-= length;
 }
 
-bool C3DRect::isWithin(C3DVector r) const
+HOSTDEV_CALLABLE bool C3DRect::isWithin(C3DVector r) const
 {
     if((r.x_ >= rLow_.x_) && ((r.x_ <= rHigh_.x_)))
     {
@@ -74,3 +110,5 @@ bool C3DRect::isWithin(C3DVector r) const
 
     return false;
 }
+
+END_CUDA_COMPATIBLE()
