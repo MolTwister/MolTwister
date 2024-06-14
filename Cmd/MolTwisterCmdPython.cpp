@@ -122,5 +122,7 @@ void CCmdPython::execute(std::string commandLine)
     // https://docs.python.org/2/extending/embedding.html
     /////////////////////////////////////////////////////////
     
+    PyGILState_STATE gilState = PyGILState_Ensure();
     PyRun_SimpleString(pythonCodeSnippet.data());
+    PyGILState_Release(gilState);
 }

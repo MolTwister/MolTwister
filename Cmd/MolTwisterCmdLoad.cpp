@@ -1221,13 +1221,15 @@ bool CCmdLoad::readPythonFile(std::string scriptFileName)
     unsigned long size = ftell(fileHandle);
 
     fseek(fileHandle, 0L, SEEK_SET);
-    std::string fileName;
-    fileName.resize(size + 10);
-    fread((char*)fileName.data(), sizeof(char), (size_t)size, fileHandle);
-    fileName[size] = '\0';
+    std::string pythonString;
+    pythonString.resize(size + 10);
+    fread((char*)pythonString.data(), sizeof(char), (size_t)size, fileHandle);
+    pythonString[size] = '\0';
     fclose(fileHandle);
 
-    PyRun_SimpleString(fileName.data());
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    PyRun_SimpleString(pythonString.data());
+    PyGILState_Release(gilState);
     return true;
 }
 

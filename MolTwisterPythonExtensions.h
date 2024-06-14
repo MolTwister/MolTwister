@@ -29,12 +29,18 @@
 CMolTwister* g_pMT = nullptr;
 CProgressBar g_progBar;
 
-static PyObject* moltwister_mt_exec(PyObject* , PyObject* args)
+static PyObject* moltwister_mt_exec(PyObject*, PyObject* args)
 {
     const char* argLinePtr;
     std::string stringArgLine, stringCommand, stringRet;
-       
-    if(!PyArg_ParseTuple(args, "s", &argLinePtr)) return nullptr;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "s", &argLinePtr))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+    PyGILState_Release(gilState);
     stringArgLine = argLinePtr;
     
     std::vector<std::shared_ptr<CCmd>> cmdList;
@@ -83,114 +89,263 @@ static PyObject* moltwister_mt_exec(PyObject* , PyObject* args)
         }
     }
 
-    return Py_BuildValue("s", stringRet.data());
+    gilState = PyGILState_Ensure();
+    PyObject* ret = Py_BuildValue("s", stringRet.data());
+    PyGILState_Release(gilState);
+
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_num_atoms(PyObject*, PyObject* args)
 {
-    if(!PyArg_ParseTuple(args, ":get_num_atoms")) return nullptr;
-    
-    return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_.size());
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_num_atoms"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->atoms_.size());
+    PyGILState_Release(gilState);
+
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_pos(PyObject*, PyObject* args)
 {
     int index, indexAxis;
 
-    if(!PyArg_ParseTuple(args, "ii", &index, &indexAxis)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ii", &index, &indexAxis))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
     if(indexAxis == 0)
-        return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].x_);
+    {
+        PyObject* ret = Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].x_);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     if(indexAxis == 1)
-        return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].y_);
+    {
+        PyObject* ret = Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].y_);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     if(indexAxis == 2)
-        return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].z_);
+    {
+        PyObject* ret = Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->r_[g_pMT->getCurrentState()->currentFrame_].z_);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("d", 0.0);
+    PyObject* ret = Py_BuildValue("d", 0.0);
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_type(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("s", "");
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("s", "");
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("s", "");
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
     std::string ID = g_pMT->getCurrentState()->atoms_[index]->getID();
     
-    return Py_BuildValue("s", ID.data());
+    PyObject* ret = Py_BuildValue("s", ID.data());
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_mass(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->m_);
+    PyObject* ret = Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->m_);
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_charge(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("d", 0.0);
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("d", 0.0);
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("d", 0.0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->Q_);
+    PyObject* ret = Py_BuildValue("d", g_pMT->getCurrentState()->atoms_[index]->Q_);
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_resname(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("s", "");
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("s", "");
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("s", "");
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("s", "");
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("s", g_pMT->getCurrentState()->atoms_[index]->resname_.data());
+    PyObject* ret = Py_BuildValue("s", g_pMT->getCurrentState()->atoms_[index]->resname_.data());
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_get_atom_molindex(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("i", 0);
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", 0);
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("i", 0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("i", 0);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->getMolIndex());
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->getMolIndex());
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_is_atom_sel(PyObject*, PyObject* args)
 {
     int index;
     
-    if(!PyArg_ParseTuple(args, "i", &index)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &index))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     
-    if(index < 0) return Py_BuildValue("i", -1);
-    if(index >= (int)g_pMT->getCurrentState()->atoms_.size()) return Py_BuildValue("i", -1);
+    if(index < 0)
+    {
+        PyObject* ret = Py_BuildValue("i", -1);
+        PyGILState_Release(gilState);
+        return ret;
+    }
+    if(index >= (int)g_pMT->getCurrentState()->atoms_.size())
+    {
+        PyObject* ret = Py_BuildValue("i", -1);
+        PyGILState_Release(gilState);
+        return ret;
+    }
     
-    return Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->isSelected() ? 1 : 0);
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->atoms_[index]->isSelected() ? 1 : 0);
+    PyGILState_Release(gilState);
+    return ret;
 }
 
 static PyObject* moltwister_mt_create_xyz_file(PyObject*, PyObject* args)
 {
     const char* filePath;
 
-    if(!PyArg_ParseTuple(args, "s", &filePath)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "s", &filePath))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+    PyGILState_Release(gilState);
 
     FILE* file = fopen(filePath, "w");
     if(file)
@@ -198,7 +353,9 @@ static PyObject* moltwister_mt_create_xyz_file(PyObject*, PyObject* args)
         fclose(file);
     }
 
+    gilState = PyGILState_Ensure();
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
@@ -212,9 +369,18 @@ static PyObject* moltwister_mt_append_to_xyz_file(PyObject*, PyObject* args)
     PyObject* atomCoordinates = nullptr;
     bool convertToAU = false;
 
-    if(!PyArg_ParseTuple(args, "sdddpO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &convertToAU, &PyList_Type, &atomCoordinates)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "sdddpO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &convertToAU, &PyList_Type, &atomCoordinates))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     Py_ssize_t numAtoms = PyList_Size(atomCoordinates);
-    if(numAtoms < 0) return nullptr;
+    if(numAtoms < 0)
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
 
     std::vector<std::pair<std::string, C3DVector>> cppAtomCoordinates(numAtoms);
     for(Py_ssize_t i=0; i<numAtoms; i++)
@@ -244,6 +410,7 @@ static PyObject* moltwister_mt_append_to_xyz_file(PyObject*, PyObject* args)
 
         cppAtomCoordinates[i] = { atomType, cppCoordinate };
     }
+    PyGILState_Release(gilState);
 
     FILE* file = fopen(filePath, "a+");
     if(file)
@@ -265,7 +432,9 @@ static PyObject* moltwister_mt_append_to_xyz_file(PyObject*, PyObject* args)
         fclose(file);
     }
 
+    gilState = PyGILState_Ensure();
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
@@ -277,11 +446,19 @@ static PyObject* moltwister_mt_create_dcd_file(PyObject*, PyObject* args)
     double timeStep = 1.0;
     int numAtoms = 1;
 
-    if(!PyArg_ParseTuple(args, "siidi", &filePath, &numTimeSteps, &stride, &timeStep, &numAtoms)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "siidi", &filePath, &numTimeSteps, &stride, &timeStep, &numAtoms))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+    PyGILState_Release(gilState);
 
     CDCDFile::createDCDFileIfNotExists(filePath, numTimeSteps, stride, timeStep, numAtoms);
 
+    gilState = PyGILState_Ensure();
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
@@ -293,9 +470,18 @@ static PyObject* moltwister_mt_append_to_dcd_file(PyObject*, PyObject* args)
     double boxSizeZ = 0.0;
     PyObject* atomCoordinates = nullptr;
 
-    if(!PyArg_ParseTuple(args, "sdddO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &PyList_Type, &atomCoordinates)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "sdddO!", &filePath, &boxSizeX, &boxSizeY, &boxSizeZ, &PyList_Type, &atomCoordinates))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     Py_ssize_t numAtoms = PyList_Size(atomCoordinates);
-    if(numAtoms < 0) return nullptr;
+    if(numAtoms < 0)
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
 
     std::vector<C3DVector> cppAtomCoordinates(numAtoms);
     for(Py_ssize_t i=0; i<numAtoms; i++)
@@ -317,6 +503,7 @@ static PyObject* moltwister_mt_append_to_dcd_file(PyObject*, PyObject* args)
 
         cppAtomCoordinates[i] = cppCoordinate;
     }
+    PyGILState_Release(gilState);
 
     CDCDFile dcdFile;
 
@@ -328,7 +515,9 @@ static PyObject* moltwister_mt_append_to_dcd_file(PyObject*, PyObject* args)
 
     CDCDFile::appendToDCDFile(filePath, (int)numAtoms, { boxSizeX, boxSizeY, boxSizeZ }, getAtomPos);
 
+    gilState = PyGILState_Ensure();
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
@@ -336,10 +525,16 @@ static PyObject* moltwister_mt_begin_progress(PyObject*, PyObject* args)
 {
     const char* argLinePtr;
     
-    if(!PyArg_ParseTuple(args, "s", &argLinePtr)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "s", &argLinePtr))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     g_progBar.beginProgress(argLinePtr);
 
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
@@ -347,19 +542,31 @@ static PyObject* moltwister_mt_update_progress(PyObject*, PyObject* args)
 {
     int step, totSteps;
     
-    if(!PyArg_ParseTuple(args, "ii", &step, &totSteps)) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ii", &step, &totSteps))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     g_progBar.updateProgress(step, totSteps);
     
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
 static PyObject* moltwister_mt_end_progress(PyObject*, PyObject* args)
 {
-    if(!PyArg_ParseTuple(args, ":end_progress")) return nullptr;
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":end_progress"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
     g_progBar.endProgress();
     
     Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
     return Py_None;
 }
 
