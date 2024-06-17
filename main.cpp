@@ -21,6 +21,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "MolTwisterPythonExtensions.h"
 #include "3DView/MolTwister3DView.h"
 
@@ -41,10 +42,12 @@ int main(int argc, char* argv[])
     Py_SetProgramName(argv[0]);
     #endif
     Py_Initialize();
+    PyEval_InitThreads();
     #if PY_MAJOR_VERSION < 3
     Py_InitModule("moltwister", MolTwisterMethods);
     #endif
-    
+    PyEval_SaveThread();
+
     // Parse command line arguments
     std::vector<std::string> arguments;
     for(int i=0; i<argc; i++)
