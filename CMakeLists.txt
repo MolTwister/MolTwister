@@ -154,6 +154,9 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/RestAPI/MolTwisterRestAPI.h
+    ${CMAKE_CURRENT_LIST_DIR}/RestAPI/MolTwisterRestAPI.cpp
+
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.h

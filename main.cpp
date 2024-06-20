@@ -21,54 +21,14 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include "MolTwisterPythonExtensions.h"
 #include "3DView/MolTwister3DView.h"
-
-void* threadRunRestAPI(void*)
-{
-    std::string pythonString =
-R"(
-from flask import Flask, request
-from waitress import serve
-import moltwister as mt
-
-app = Flask(__name__)
-
-@app.get('/api_name')
-def return_api_name():
-    return {"api_name" : "MolTwister"}
-
-@app.route('/exec', methods=['POST'])
-def execute_command():
-    jsonPayload = request.get_json(force=True)
-    commandString = jsonPayload['cmd']
-    return mt.exec(commandString)
-
-if __name__ == "__main__":
-    serve(app, host="127.0.0.1", port=5000)
-    #app.run(port=5000) # Use this for debug output to console, instead of serve()
-)";
-
-    PyGILState_STATE state = PyGILState_Ensure();
-    PyRun_SimpleString(pythonString.data());
-    PyGILState_Release(state);
-    return nullptr;
-}
-
-void runRestAPI()
-{
-    pthread_t threadHandle;
-
-    if(pthread_create(&threadHandle, nullptr, threadRunRestAPI, nullptr))
-    {
-        printf("Error: Could not create REST API thread!\r\n");
-    }
-}
+#include "RestAPI/MolTwisterRestAPI.h"
 
 int main(int argc, char* argv[])
 {
     CMolTwister mt;
+    CMolTwisterRestAPI restAPI;
     C3DView view3D(argc, argv);
     
     // Initialize and configure Python interpreter
@@ -120,7 +80,7 @@ int main(int argc, char* argv[])
 
     // Start MolTwister command loop and 3D View
     mt.run(&view3D);
-    runRestAPI();
+    restAPI.run();
     view3D.show(mt.getAtomsPtr(), mt.getGLObjsPtr(), mt.getCurrFramePtr(), mt.getDefaultAtProp());
 
     // Cleanup
