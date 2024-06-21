@@ -48,11 +48,13 @@ CMolTwister::~CMolTwister()
 {
 }
 
-void CMolTwister::run(C3DView* view3D)
+void CMolTwister::run(C3DView* view3D, const std::string& hostIP, const std::string& hostPort)
 {
     pthread_t threadHandle;
 
     state_.view3D_ = view3D;
+    hostIP_ = hostIP;
+    hostPort_ = hostPort;
     
     if(pthread_create(&threadHandle, nullptr, threadRun, (void*)this))
     {

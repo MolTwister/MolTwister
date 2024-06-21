@@ -570,6 +570,34 @@ static PyObject* moltwister_mt_end_progress(PyObject*, PyObject* args)
     return Py_None;
 }
 
+static PyObject* moltwister_mt_get_host_ip(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_host_ip"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getHostIP().data());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_host_port(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_host_port"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getHostPort().data());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
 static PyMethodDef MolTwisterMethods[] =
 {
     // The mt_.. style commands are there for backward compatibility
@@ -607,6 +635,8 @@ static PyMethodDef MolTwisterMethods[] =
     {"begin_progress", moltwister_mt_begin_progress, METH_VARARGS, "Shows initial progress bar with given text."},
     {"update_progress", moltwister_mt_update_progress, METH_VARARGS, "Updates progress bar according to given step information."},
     {"end_progress", moltwister_mt_end_progress, METH_VARARGS, "Finishes progress bar, showing as 100 percent complete."},
+    {"get_host_ip", moltwister_mt_get_host_ip, METH_VARARGS, "Returns the currently set host IP used for the MolTwister REST API, if this is enabled."},
+    {"get_host_port", moltwister_mt_get_host_port, METH_VARARGS, "Returns the currently set host port used for the MolTwister REST API, if this is enabled."},
 
     {nullptr, nullptr, 0, nullptr}
 };

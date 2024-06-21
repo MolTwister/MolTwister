@@ -49,6 +49,10 @@ int main(int argc, char* argv[])
     #endif
     PyEval_SaveThread();
 
+    // Set default host IP and port for the REST API
+    std::string hostIP = "127.0.0.1";
+    std::string hostPort = "5000";
+
     // Parse command line arguments
     std::vector<std::string> arguments;
     for(int i=0; i<argc; i++)
@@ -71,15 +75,29 @@ int main(int argc, char* argv[])
             printf("\t-dirWorking: open MolTwister in working directory (default)\r\n");
             printf("\t-dirHome: open MolTwister in home directory\r\n");
             printf("\t-dirInitFile: open MolTwister in directory specified in MolTwister.shortcuts.\r\n");
-            printf("\t\tIf default entry does not exist MolTwister is opened in home directory.\r\n");
+            printf("\t\tIf default entry does not exist, MolTwister is opened in home directory.\r\n");
+            printf("\t-ip <host ip>: change host IP address for REST API. Default is 127.0.0.1.\r\n");
+            printf("\t-port <host port>: change host port for REST API. Default is 5000.\r\n");
             printf("\r\n");
             Py_Finalize();
             return 0;
         }
+
+        if(strcmp(argv[i], "-ip") == 0)
+        {
+            i++;
+            if(i < argc) hostIP = argv[i];
+        }
+
+        if(strcmp(argv[i], "-port") == 0)
+        {
+            i++;
+            if(i < argc) hostPort = argv[i];
+        }
     }
 
     // Start MolTwister command loop and 3D View
-    mt.run(&view3D);
+    mt.run(&view3D, hostIP, hostPort);
     restAPI.run();
     view3D.show(mt.getAtomsPtr(), mt.getGLObjsPtr(), mt.getCurrFramePtr(), mt.getDefaultAtProp());
 

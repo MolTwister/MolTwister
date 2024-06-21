@@ -15,5 +15,5 @@ def execute_command():
     return mt.exec(commandString)
 
 if __name__ == "__main__":
-    serve(app, host="127.0.0.1", port=5000) # :TODO: Need to implement mt.get_host_ip() and mt.get_host_port()
+    serve(app, host=mt.get_host_ip(), port=int(mt.get_host_port()))
     #app.run(port=5000) # Use this for debug output to console, instead of serve()
