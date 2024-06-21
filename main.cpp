@@ -28,7 +28,7 @@
 int main(int argc, char* argv[])
 {
     CMolTwister mt;
-    CMolTwisterRestAPI restAPI;
+    CMolTwisterRestAPI restAPI({ "./moltwister-api/Python", "/usr/local/bin/moltwister-api/Python" });
     C3DView view3D(argc, argv);
     
     // Initialize and configure Python interpreter
