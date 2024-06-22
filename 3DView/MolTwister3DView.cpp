@@ -33,6 +33,7 @@
 
 BEGIN_CUDA_COMPATIBLE()
 
+bool C3DView::headless_ = false;
 int C3DView::updateRequested_ = 0;
 int C3DView::fullscreenRequested_ = 0;
 bool C3DView::requestQuit_ = false;
@@ -153,7 +154,7 @@ void C3DView::CArg::serialize(CSerializer& io, bool saveToStream)
     }
 }
 
-C3DView::C3DView(int argc, char *argv[])
+C3DView::C3DView(int argc, char* argv[])
 {
     progArg_ = CArg(argc, argv);
 
@@ -1118,8 +1119,10 @@ void C3DView::serialize(CSerializer& io, bool saveToStream,
     }
 }
 
-void C3DView::show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp)
+void C3DView::show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp, bool headless)
 {
+    headless_ = headless;
+
     atoms_ = atoms;
     glObjects_ = glObjects;
     currentFrame_ = currentFrame;
@@ -1218,6 +1221,7 @@ void C3DView::onRender()
     drawScene(selmodeNone);
     
     glutSwapBuffers();
+    if(headless_) glutHideWindow();
 }
 
 void C3DView::onReshape(int w, int h)
