@@ -154,6 +154,9 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.h
 
+    ${CMAKE_CURRENT_LIST_DIR}/RestAPI/MolTwisterRestAPI.h
+    ${CMAKE_CURRENT_LIST_DIR}/RestAPI/MolTwisterRestAPI.cpp
+
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.h
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwister3DView.cpp
     ${CMAKE_CURRENT_LIST_DIR}/3DView/MolTwisterGLObject.h
@@ -505,6 +508,10 @@ endif()
 target_link_libraries(MolTwister ${CUDA_MT_LIB} Threads::Threads Python3::Python GLUT::GLUT OpenGL::GL readline util ${GROMACS_LIB})
 target_compile_options(MolTwister PRIVATE -Wno-deprecated -Wno-c++11-extensions -Wno-sign-conversion -Wno-sign-compare -Wno-old-style-cast -Wno-deprecated-declarations -Wno-weak-vtables -Wno-vla-extension -Wno-vla -Wno-padded -Wno-cast-align -Wno-cast-qual -Wno-missing-variable-declarations)
 
+add_custom_target(PythonRestAPI ALL SOURCES "${CMAKE_SOURCE_DIR}/RestAPI/Python/MolTwisterAPI.py")
+
 file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)
+file(COPY ${CMAKE_SOURCE_DIR}/RestAPI/Python DESTINATION ${CMAKE_BINARY_DIR}/moltwister-api/)
 install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION /usr/local/bin/moltwister-tutorials/)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/RestAPI/Python DESTINATION /usr/local/bin/moltwister-api/)

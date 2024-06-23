@@ -103,14 +103,14 @@ private:
     };
     
 public:
-    C3DView(int argc, char *argv[]);
+    C3DView(int argc, char* argv[]);
     
 public:
     void serialize(CSerializer& io, bool saveToStream,
                    std::vector<std::shared_ptr<CAtom>>* atoms=nullptr, std::vector<std::shared_ptr<CGLObject>>* glObjects=nullptr,
                    int* currentFrame=nullptr, CDefaultAtomicProperties* defAtProp=nullptr);
 
-    void show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp);
+    void show(std::vector<std::shared_ptr<CAtom>>* atoms, std::vector<std::shared_ptr<CGLObject>>* glObjects, int* currentFrame, CDefaultAtomicProperties* defAtProp, bool headless);
     void requestUpdate(bool updateCameraPos) { if(updateCameraPos) updateRequested_ = 2; else updateRequested_ = 1; }
     void requestFullScreen(bool on) { if(on) fullscreenRequested_ = 1; else fullscreenRequested_ = 2; }
     void setOrthoView(bool set=true) { orthoView_ = set; }
@@ -167,6 +167,7 @@ private:
     static C3DVector worldCoordsToViewportCoords(const C3DVector& worldCoords);
     
 private:
+    static bool headless_;
     static int updateRequested_;
     static int fullscreenRequested_;
     static bool requestQuit_;

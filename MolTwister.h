@@ -34,15 +34,17 @@ public:
     ~CMolTwister();
     
 public:
-    void run(C3DView* view3D);
+    void run(C3DView* view3D, const std::string& hostIP, const std::string& hostPort);
     std::vector<std::shared_ptr<CAtom>>* getAtomsPtr() { return &state_.atoms_; }
     std::vector<std::shared_ptr<CGLObject>>* getGLObjsPtr() { return &state_.glObjects_; }
     int* getCurrFramePtr() { return &state_.currentFrame_; }
     CDefaultAtomicProperties* getDefaultAtProp() { return &state_.defaultAtProp_; }
     CMolTwisterState* getCurrentState() { return &state_; }
-    
+    std::string getHostIP() { return hostIP_; }
+    std::string getHostPort() { return hostPort_; }
+
 protected:
-    
+
 private:
     bool _run();
     static void* threadRun(void* arg);
@@ -60,4 +62,6 @@ private:
     CMolTwisterState state_;
     static std::vector<std::shared_ptr<CCmd>> cmdList_;
     CMolTwisterTutorialPool tutorialPool_;
+    std::string hostIP_;
+    std::string hostPort_;
 };
