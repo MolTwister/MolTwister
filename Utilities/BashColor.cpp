@@ -24,15 +24,15 @@
 #include <string.h>
 #include "BashColor.h"
 
-#define CLI_HIDE_CUR            
-#define CLI_SHOW_CUR            
-#define CLI_SAVE_CUR_POS        
-#define CLI_REST_CUR_POS        
-#define CLI_CLR_LAST_LINE       
-#define CLI_MV_CUR_UP           
-#define CLI_MV_CUR_DN           
+#define CLI_HIDE_CUR
+#define CLI_SHOW_CUR
+#define CLI_SAVE_CUR_POS
+#define CLI_REST_CUR_POS
+#define CLI_CLR_LAST_LINE
+#define CLI_MV_CUR_UP
+#define CLI_MV_CUR_DN
 
-void CBashColor::setColor(EColor foreground, EColor background)
+std::string CBashColor::setColor(EColor foreground, EColor background, bool printToStdOut)
 {
 #ifndef DEBUG
     char num[3];
@@ -55,11 +55,14 @@ void CBashColor::setColor(EColor foreground, EColor background)
     }
     
     strcat(escSeq, "m");
-    printf("%s", escSeq);
+    if(printToStdOut) printf("%s", escSeq);
+    return escSeq;
+#else
+    return "";
 #endif
 }
 
-void CBashColor::setSpecial(ESpecial special)
+std::string CBashColor::setSpecial(ESpecial special, bool printToStdOut)
 {
 #ifndef DEBUG
     char num[3];
@@ -69,14 +72,21 @@ void CBashColor::setSpecial(ESpecial special)
     strcat(escSeq, num);
 
     strcat(escSeq, "m");
-    printf("%s", escSeq);
+    if(printToStdOut) printf("%s", escSeq);
+    return escSeq;
+#else
+    return "";
 #endif
 }
 
-void CBashColor::clearScreen()
+std::string CBashColor::clearScreen(bool printToStdOut)
 { 
 #ifndef DEBUG
-    printf("\033[H\033[J");
+    std::string escSeq = "\033[H\033[J";
+    if(printToStdOut) printf("%s", escSeq.c_str());
+    return escSeq;
+#else
+    return "";
 #endif
 }
 
@@ -137,4 +147,3 @@ void CBashControl::moveCursorTo(int x, int y)
     printf("\033[%i;%iH", y, x);
 #endif
 }
-
