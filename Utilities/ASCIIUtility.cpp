@@ -20,6 +20,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+#include <cstdio>
+#include <cstdarg>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -424,4 +427,25 @@ std::string CASCIIUtility::addTabsToDocument(const std::string& document)
     }
 
     return newDocument;
+}
+
+std::string CASCIIUtility::sprintf(const char* format, ...)
+{
+    size_t size = 1024;
+    std::vector<char> buffer(size);
+
+    va_list args;
+    va_start(args, format);
+    int needed = std::vsnprintf(buffer.data(), buffer.size(), format, args);
+    va_end(args);
+
+    if(needed >= static_cast<int>(buffer.size()))
+    {
+        buffer.resize(needed + 1);
+        va_start(args, format);
+        std::vsnprintf(buffer.data(), buffer.size(), format, args);
+        va_end(args);
+    }
+
+    return std::string(buffer.data());
 }

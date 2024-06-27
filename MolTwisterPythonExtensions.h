@@ -598,6 +598,97 @@ static PyObject* moltwister_mt_get_host_port(PyObject*, PyObject* args)
     return ret;
 }
 
+static PyObject* moltwister_mt_get_startup_info(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_startup_info"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->genTerminalStartupInfo().data());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_help(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_help"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->genHelp().data());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_help_for_command(PyObject*, PyObject* args)
+{
+    const char* cmdString;
+    const char* commandLine;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ss", &cmdString, &commandLine))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->genHelpForCommand(cmdString, commandLine).data());
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_help_as_markdown(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_help_as_markdown"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->genMarkdownHelpDoc().data());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_tutorial_count(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":get_tutorial_count"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("i", g_pMT->getTutorialDocCount());
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_tutorial(PyObject*, PyObject* args)
+{
+    int tutorialIndex;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &tutorialIndex))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getTutorialDoc(tutorialIndex).data());
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
 static PyMethodDef MolTwisterMethods[] =
 {
     // The mt_.. style commands are there for backward compatibility
@@ -637,6 +728,12 @@ static PyMethodDef MolTwisterMethods[] =
     {"end_progress", moltwister_mt_end_progress, METH_VARARGS, "Finishes progress bar, showing as 100 percent complete."},
     {"get_host_ip", moltwister_mt_get_host_ip, METH_VARARGS, "Returns the currently set host IP used for the MolTwister REST API, if this is enabled."},
     {"get_host_port", moltwister_mt_get_host_port, METH_VARARGS, "Returns the currently set host port used for the MolTwister REST API, if this is enabled."},
+    {"get_startup_info", moltwister_mt_get_startup_info, METH_VARARGS, "Returns startup info of MolTwister, such as lincensing and version."},
+    {"get_help", moltwister_mt_get_help, METH_VARARGS, "Returns top-level help for MolTwister."},
+    {"get_help_for_command", moltwister_mt_get_help_for_command, METH_VARARGS, "Returns command-level help for MolTwister."},
+    {"get_help_as_markdown", moltwister_mt_get_help_as_markdown, METH_VARARGS, "Returns help as a Markdown formatted string."},
+    {"get_tutorial_count", moltwister_mt_get_tutorial_count, METH_VARARGS, "Returns the number of available tutorials."},
+    {"get_tutorial", moltwister_mt_get_tutorial, METH_VARARGS, "Returns the tutorial with the given index."},
 
     {nullptr, nullptr, 0, nullptr}
 };

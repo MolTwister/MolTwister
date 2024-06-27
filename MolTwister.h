@@ -35,6 +35,12 @@ public:
     
 public:
     void run(C3DView* view3D, const std::string& hostIP, const std::string& hostPort);
+    std::string genTerminalStartupInfo() const;
+    std::string genHelp() const;
+    std::string genHelpForCommand(const std::string& cmdString, const std::string& commandLine) const;
+    std::string genMarkdownHelpDoc() const;
+    int getTutorialDocCount() const { return (int)tutorialPool_.getCount(); }
+    std::string getTutorialDoc(const int& index) { return tutorialPool_.getDocument(index); }
     std::vector<std::shared_ptr<CAtom>>* getAtomsPtr() { return &state_.atoms_; }
     std::vector<std::shared_ptr<CGLObject>>* getGLObjsPtr() { return &state_.glObjects_; }
     int* getCurrFramePtr() { return &state_.currentFrame_; }

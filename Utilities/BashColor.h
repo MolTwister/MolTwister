@@ -19,6 +19,7 @@
 //
 
 #pragma once
+#include <string>
 
 class CBashControl
 {
@@ -43,10 +44,10 @@ public:
     enum ESpecial { specReset = 0, specBright, specDim, specUnderscore, specBlink, specReverese, SpecHidden };
     
 public:
-    CBashColor() {}
+    CBashColor() = default;
     
 public:
-    static void setColor(EColor foreground = colNone, EColor background = colNone);
-    static void setSpecial(ESpecial special = specReset);
-    static void clearScreen();
+    static std::string setColor(EColor foreground = colNone, EColor background = colNone, bool printToStdOut = true);
+    static std::string setSpecial(ESpecial special = specReset, bool printToStdOut = true);
+    static std::string clearScreen(bool printToStdOut = true);
 };
