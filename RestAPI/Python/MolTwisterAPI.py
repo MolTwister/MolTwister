@@ -19,6 +19,7 @@
 #
 
 from flask import Flask, request
+from flask_cors import CORS
 from waitress import serve
 import moltwister as mt
 
@@ -30,6 +31,7 @@ for i in range(0, tutorialCount):
     tutorials.append(mt.get_tutorial(i).replace('\r', '').split('\n'))
 
 app = Flask(__name__)
+CORS(app)
 
 @app.get('/api_name')
 def return_api_name():
@@ -43,7 +45,7 @@ def return_startup_info():
 def return_help():
     return {"help" : mt.get_help()}
 
-@app.get('/help_cmd')
+@app.route('/help_cmd', methods=['POST'])
 def return_help_cmd():
     jsonPayload = request.get_json(force=True)
     commandString = jsonPayload['cmd']

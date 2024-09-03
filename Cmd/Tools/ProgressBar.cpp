@@ -38,7 +38,7 @@ void CProgressBar::updateProgress(int step, int totSteps)
         for(int i=0; i<maxDots; i++)
         {
             if(i < numDots) printf("*");
-            else             printf(" ");
+            else            printf(" ");
         }
         printf("| [%.3i%%]", (int)(fracDone*100.0));
         fflush(stdout);
