@@ -152,6 +152,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/LennardJonesUnits.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/MolDB.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/UniqueNumberGen.h
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/UniqueNumberGen.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/Serializer.h
 
     ${CMAKE_CURRENT_LIST_DIR}/RestAPI/MolTwisterRestAPI.h

@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023 Richard Olsen.
+// Copyright (C) 2024 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -21,6 +21,7 @@
 #include <iostream>
 #include <float.h>
 #include <climits>
+#include "Utilities/ASCIIUtility.h"
 #include "MolTwisterState.h"
 
 BEGIN_CUDA_COMPATIBLE()
@@ -66,7 +67,7 @@ void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
         }
 
         io << shortcutDirs_.size();
-        for(std::string str : shortcutDirs_)
+        for(std::string& str : shortcutDirs_)
         {
             io << str;
         }
@@ -110,7 +111,7 @@ void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
         for(size_t i=0; i<size; i++)
         {
             io >> type;
-            for(std::shared_ptr<CVar> item : registeredVariableTypes_)
+            for(std::shared_ptr<CVar>& item : registeredVariableTypes_)
             {
                 if(int(item->getType()) == type)
                 {
@@ -144,7 +145,7 @@ void CMolTwisterState::serialize(CSerializer& io, bool saveToStream)
         for(size_t i=0; i<size; i++)
         {
             io >> type;
-            for(std::shared_ptr<CGLObject> item : registeredGLObjectTypes_)
+            for(std::shared_ptr<CGLObject>& item : registeredGLObjectTypes_)
             {
                 if(int(item->getType()) == type)
                 {
@@ -250,7 +251,7 @@ int CMolTwisterState::addFrame()
 int CMolTwisterState::addGLObject(CGLObject& glObject)
 {
     bool foundGLType = false;
-    for(std::shared_ptr<CGLObject> item : registeredGLObjectTypes_)
+    for(std::shared_ptr<CGLObject>& item : registeredGLObjectTypes_)
     {
         if(glObject.getType() == item->getType())
         {
@@ -278,6 +279,118 @@ void CMolTwisterState::padFrames(int atomIndex, double X, double Y, double Z)
             atoms_[atomIndex]->r_.emplace_back(C3DVector(X, Y, Z));
         }
     }
+}
+
+std::shared_ptr<std::vector<std::pair<size_t, int>>> CMolTwisterState::getDeletedAtomsChunkSinceLastChunkTransfer() const
+{
+    auto deletedElements = std::make_shared<std::vector<std::pair<size_t, int>>>();
+
+    // Detect deleted elements by comparing the list already retrieved by the original / modified atom list
+    // Note! We are here assuming that the atoms will keep their same order in both lists
+    size_t j = 0;
+    size_t sizeBeforeChange = atomsRetrievedAsChunks_.size();
+    for(size_t i=0; i<sizeBeforeChange; i++)
+    {
+        std::shared_ptr<CAtom> atomFromBeforeChange = atomsRetrievedAsChunks_[i];
+        std::shared_ptr<CAtom> atomFromAfterChange = nullptr;
+        if(j < sizeBeforeChange)
+        {
+            atomFromAfterChange = atoms_[j];
+        }
+
+        if(atomFromBeforeChange == atomFromAfterChange)
+        {
+            j++;
+        }
+        else
+        {
+            deletedElements->emplace_back(std::pair<size_t, int>(i, atomFromBeforeChange->getUniqueID()));
+        }
+    }
+
+    return deletedElements;
+}
+
+std::shared_ptr<std::vector<std::shared_ptr<CAtom>>> CMolTwisterState::getAddedAtomsChunkSinceLastChunkTransfer() const
+{
+    auto addedElements = std::make_shared<std::vector<std::shared_ptr<CAtom>>>();
+
+    // Detect added elements by comparing the list already retrieved by the original / modified atom list
+    // Note! We are here assuming that the atoms will keep their same order in both lists
+    size_t j = 0;
+    size_t sizeAfterChange = atoms_.size();
+    size_t sizeBeforeChange = atomsRetrievedAsChunks_.size(); // :TODO: Should we rename to atomsTransferredAsChunks_?
+    for(size_t i=0; i<sizeAfterChange; i++)
+    {
+        std::shared_ptr<CAtom> atomFromAfterChange = atoms_[i];
+        if(j >= sizeBeforeChange)
+        {
+            addedElements->emplace_back(atomFromAfterChange);
+        }
+        else
+        {
+            std::shared_ptr<CAtom> atomFromBeforeChange = atomsRetrievedAsChunks_[j++];
+            while(atomFromBeforeChange && (atomFromBeforeChange != atomFromAfterChange))
+            {
+                atomFromBeforeChange = (j < sizeBeforeChange) ? atomsRetrievedAsChunks_[j] : nullptr;
+                j++;
+            }
+        }
+    }
+
+    return addedElements;
+}
+
+template<class T>
+int CMolTwisterState::getChunkCountOfArray(const std::vector<T>& array, const int& numAtomsInChunk) const
+{
+    return array.size() / numAtomsInChunk + ((array.size() % numAtomsInChunk) ? 1 : 0);
+}
+
+template<class T>
+void CMolTwisterState::getChunkOfArray(const std::vector<T>& array, const int& numItemsInChunk, const int& chunkIndex,
+                                     std::function<void(const T item, const int& index, const bool& firstItemInChunk)> onItemInChunk) const
+{
+    const int startItemIndex = chunkIndex * numItemsInChunk;
+    const int nextItemIndex = startItemIndex + numItemsInChunk;
+    const int nextItemIndexAjusted = (nextItemIndex > (int)array.size()) ? (int)array.size() : nextItemIndex;
+
+    for(int i=startItemIndex; i<nextItemIndexAjusted; i++)
+    {
+        const T item = array[i];
+        onItemInChunk(item, i, i == startItemIndex);
+    }
+}
+
+template<class T>
+std::string CMolTwisterState::getChunkOfArrayAsJson(const std::vector<T>& array, const int& numItemsInChunk, const int& chunkIndex, const std::string& jsonObjName,
+                                                    std::function<std::string(const T item, const int& index)> onRequestListJsonItem, std::vector<T>* arrayOfRetrievedItemsInChunk) const
+{
+    std::function<bool(const T, const std::vector<T>&)> alreadyExits = [](const T item, const std::vector<T>& list)
+    {
+        for(const T& listItem : list)
+        {
+            if(listItem == item) return true;
+        }
+        return false;
+    };
+
+    std::string jsonItemList = R"({")";
+    jsonItemList+= jsonObjName;
+    jsonItemList+= R"(":[)";
+
+    std::function<void(const T, const int&, const bool&)> onItemInChunk
+        = [&](const T item, const int& index, const bool& firstItemInChunk)
+    {
+        if(!firstItemInChunk) jsonItemList+= ",";
+        jsonItemList+= "{";
+        jsonItemList+= onRequestListJsonItem(item, index);
+        jsonItemList+= "}";
+
+        if(arrayOfRetrievedItemsInChunk && !alreadyExits(item, *arrayOfRetrievedItemsInChunk)) arrayOfRetrievedItemsInChunk->emplace_back(item);
+    };
+    getChunkOfArray(array, numItemsInChunk, chunkIndex, onItemInChunk);
+    return jsonItemList + "]}";
 }
 
 int CMolTwisterState::addAtom(double X, double Y, double Z, std::string ID)
@@ -372,7 +485,7 @@ int CMolTwisterState::addVariable(CVar& variable)
     if(existingVar)
     {
         bool foundVariableType = false;
-        for(std::shared_ptr<CVar> item : registeredVariableTypes_)
+        for(std::shared_ptr<CVar>& item : registeredVariableTypes_)
         {
             if(variable.getType() == item->getType())
             {
@@ -393,7 +506,7 @@ int CMolTwisterState::addVariable(CVar& variable)
     else
     {
         bool foundVariableType = false;
-        for(std::shared_ptr<CVar> item : registeredVariableTypes_)
+        for(std::shared_ptr<CVar>& item : registeredVariableTypes_)
         {
             if(variable.getType() == item->getType())
             {
@@ -630,6 +743,181 @@ int CMolTwisterState::getAtomIndex(const CAtom* atom) const
     }
     
     return -1;
+}
+
+int CMolTwisterState::getAtomsChunkCount(const int& numAtomsInChunk) const
+{
+    return getChunkCountOfArray<std::shared_ptr<CAtom>>(atoms_, numAtomsInChunk);
+}
+
+std::string CMolTwisterState::getAtomsChunkAsJson(const int& numAtomsInChunk, const int& chunkIndex)
+{
+    std::function<std::string(std::shared_ptr<CAtom>, const int&)> onRequestListJsonItem =
+        [&](std::shared_ptr<CAtom> atom, const int& index)
+    {
+        std::string jsonItem;
+        std::tuple<double, double, double> color = CDefaultAtomicProperties().getCPKColor(atom->getID());
+
+        jsonItem+= CASCIIUtility::sprintf(R"("id":"%lu",)", atom->getUniqueID());
+        jsonItem+= CASCIIUtility::sprintf(R"("rx":"%g","ry":"%g","rz":"%g",)",
+                                               atom->r_[currentFrame_].x_,
+                                               atom->r_[currentFrame_].y_,
+                                               atom->r_[currentFrame_].z_);
+        jsonItem+= CASCIIUtility::sprintf(R"("cr":"%g","cg":"%g","cb":"%g")",
+                                               std::get<0>(color),
+                                               std::get<1>(color),
+                                               std::get<2>(color));
+        return jsonItem;
+    };
+
+    return getChunkOfArrayAsJson<std::shared_ptr<CAtom>>(atoms_, numAtomsInChunk, chunkIndex, "AtomsChunk", onRequestListJsonItem, &atomsRetrievedAsChunks_);
+}
+
+/* :TODO: Remove after testing the above function
+//        const CAtom* atom = atoms_[i].get();
+std::string CMolTwisterState::getAtomsChunkAsJson(const int& numAtomsInChunk, const int& chunkIndex)
+{
+    std::string jsonAtomList = R"({"AtomsChunk":[)";
+    std::function<void(const CAtom* atom, const int& index, const bool& firstAtomInChunk)> onAtomInChunk
+        = [&](const CAtom* atom, const int& index, const bool& firstAtomInChunk)
+        {
+            if(!firstAtomInChunk) jsonAtomList+= ",";
+            jsonAtomList+= "{";
+            std::tuple<double, double, double> color = CDefaultAtomicProperties().getCPKColor(atom->getID());
+
+            jsonAtomList+= CASCIIUtility::sprintf(R"("rx":"%g","ry":"%g","rz":"%g",)",
+                                                 atom->r_[currentFrame_].x_,
+                                                 atom->r_[currentFrame_].y_,
+                                                 atom->r_[currentFrame_].z_);
+
+            jsonAtomList+= CASCIIUtility::sprintf(R"("cr":"%g","cg":"%g","cb":"%g")",
+                                                 std::get<0>(color),
+                                                 std::get<1>(color),
+                                                 std::get<2>(color));
+            jsonAtomList+= "}";
+        };
+    getAtomsChunk(numAtomsInChunk, chunkIndex, onAtomInChunk);
+    return jsonAtomList + "]}";
+}
+*/
+/*
+std::string CMolTwisterState::getAtomsChunkAsJson(const int& numAtomsInChunk, const int& chunkIndex)
+{
+    const int startAtomIndex = chunkIndex * numAtomsInChunk;
+    const int nextAtomIndex = startAtomIndex + numAtomsInChunk;
+    const int nextAtomIndexAjusted = (nextAtomIndex > (int)atoms_.size()) ? (int)atoms_.size() : nextAtomIndex;
+
+    std::string jsonAtomList = R"({"AtomsChunk":[)";
+    for(int i=startAtomIndex; i<nextAtomIndexAjusted; i++)
+    {
+        if(i != startAtomIndex) jsonAtomList+= ",";
+
+        jsonAtomList+= "{";
+        const CAtom* atom = atoms_[i].get();
+        std::tuple<double, double, double> color = CDefaultAtomicProperties().getCPKColor(atom->getID());
+
+        jsonAtomList+= CASCIIUtility::sprintf(R"("rx":"%g","ry":"%g","rz":"%g",)",
+                                               atom->r_[currentFrame_].x_,
+                                               atom->r_[currentFrame_].y_,
+                                               atom->r_[currentFrame_].z_);
+
+        jsonAtomList+= CASCIIUtility::sprintf(R"("cr":"%g","cg":"%g","cb":"%g")",
+                                               std::get<0>(color),
+                                               std::get<1>(color),
+                                               std::get<2>(color));
+        jsonAtomList+= "}";
+    }
+
+    return jsonAtomList + "]}";
+}
+*/
+
+void CMolTwisterState::resetRetrievedChunksStatus()
+{
+    atomsRetrievedAsChunks_.erase(atomsRetrievedAsChunks_.begin(), atomsRetrievedAsChunks_.end());
+}
+
+int CMolTwisterState::getDeletedAtomsChunkCount(const int& numAtomsInChunk) const
+{
+    std::shared_ptr<std::vector<std::pair<size_t, int>>> deletedElements = getDeletedAtomsChunkSinceLastChunkTransfer();
+    return getChunkCountOfArray<std::pair<size_t, int>>(*deletedElements, numAtomsInChunk);
+}
+
+std::string CMolTwisterState::getDeletedAtomsChunkSinceLastChunkTransferAsJson(const int& numAtomsInChunk, const int& chunkIndex)
+{
+    if(chunkIndex < 0) return R"({"DeletedIndicesChunk":[]})";
+
+    // Detect deleted elements by comparing the list already retrieved by the original / modified atom list
+    // Note! We are here assuming that the atoms will keep their same order in both lists
+    std::shared_ptr<std::vector<std::pair<size_t, int>>> deletedElements = getDeletedAtomsChunkSinceLastChunkTransfer();
+
+    // Remove all the detected elements from the state, but start from the highest index to avoid shifting index positions.
+    // Note that the highest index is always last in the state list. However, only do this when the last chunk is reveived.
+    if(chunkIndex >= (getChunkCountOfArray<std::pair<size_t, int>>(*deletedElements, numAtomsInChunk)-1))
+    {
+        for(int i=(int)deletedElements->size()-1; i>=0; i--)
+        {
+            atomsRetrievedAsChunks_.erase(atomsRetrievedAsChunks_.begin() + (*deletedElements)[(size_t)i].first);
+        }
+    }
+
+    // Create a JSON list of the deleted indices and return it using the defined chunk size.
+    // The first element of deletedElementIndex is the index into the array before deleting
+    // and the second is the unique id of the atom
+    std::function<std::string(std::pair<size_t, int>, const int&)> onRequestListJsonItem =
+        [&](std::pair<size_t, int> deletedElement, const int& index)
+    {
+        const unsigned long uniqueID = deletedElement.second;
+        return CASCIIUtility::sprintf(R"("id":"%lu")", uniqueID);
+    };
+
+    return getChunkOfArrayAsJson<std::pair<size_t, int>>(*deletedElements, numAtomsInChunk, chunkIndex, "DeletedIndicesChunk", onRequestListJsonItem);
+}
+
+int CMolTwisterState::getAddedAtomsChunkCount(const int& numAtomsInChunk) const
+{
+    std::shared_ptr<std::vector<std::shared_ptr<CAtom>>> addedElements = getAddedAtomsChunkSinceLastChunkTransfer();
+    return getChunkCountOfArray<std::shared_ptr<CAtom>>(*addedElements, numAtomsInChunk);
+}
+
+std::string CMolTwisterState::getAddedAtomsChunkSinceLastChunkTransferAsJson(const int& numAtomsInChunk, const int& chunkIndex)
+{
+    if(chunkIndex < 0) return R"({"AddedAtomsChunk":[]})";
+
+    // Detect added elements by comparing the list already retrieved by the original / modified atom list
+    // Note! We are here assuming that the atoms will keep their same order in both lists
+    std::shared_ptr<std::vector<std::shared_ptr<CAtom>>> addedElements = getAddedAtomsChunkSinceLastChunkTransfer();
+
+    // Add all the added elements to the end of the state list. However, only do this when the last chunk is reveived.
+    if(chunkIndex >= (getChunkCountOfArray<std::shared_ptr<CAtom>>(*addedElements, numAtomsInChunk)-1))
+    {
+        for(const std::shared_ptr<CAtom>& atom : *addedElements)
+        {
+            atomsRetrievedAsChunks_.emplace_back(atom);
+        }
+    }
+
+    // Create a JSON list of the added atoms and return it using the defined chunk size
+    std::function<std::string(std::shared_ptr<CAtom>, const int&)> onRequestListJsonItem =
+        [&](std::shared_ptr<CAtom> atom, const int& index)
+    {
+        // :TODO: There is a similar chunk of code above, create a common function for this!
+        std::string jsonItem;
+        std::tuple<double, double, double> color = CDefaultAtomicProperties().getCPKColor(atom->getID());
+
+        jsonItem+= CASCIIUtility::sprintf(R"("id":"%lu",)", atom->getUniqueID());
+        jsonItem+= CASCIIUtility::sprintf(R"("rx":"%g","ry":"%g","rz":"%g",)",
+                                           atom->r_[currentFrame_].x_,
+                                           atom->r_[currentFrame_].y_,
+                                           atom->r_[currentFrame_].z_);
+        jsonItem+= CASCIIUtility::sprintf(R"("cr":"%g","cg":"%g","cb":"%g")",
+                                           std::get<0>(color),
+                                           std::get<1>(color),
+                                           std::get<2>(color));
+        return jsonItem;
+    };
+
+    return getChunkOfArrayAsJson<std::shared_ptr<CAtom>>(*addedElements, numAtomsInChunk, chunkIndex, "AddedAtomsChunk", onRequestListJsonItem);
 }
 
 END_CUDA_COMPATIBLE()

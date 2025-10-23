@@ -130,6 +130,7 @@ public:
     void addBondLabel(CAtom* bondDest, const CLabel& label) { bondLabels_[bondDest] = label; }
     void addBondLabel(CAtom* bondDest, const std::string& name, const C3DVector& displacement, const C3DVector& color) { addBondLabel(bondDest, CLabel(name, displacement, color)); }
     CLabel getBondLabel(CAtom* bondDest) const;
+    unsigned long getUniqueID() const;
 
 private:
     void searchForLeafAtomsConnToBond(int bondDest, std::vector<CAtom*>& leafAtoms) const;
@@ -150,6 +151,7 @@ public:
     bool ignoreBondFrom_ = false;
 
 private:
+    unsigned long uniqueID_ = 0;
     std::string ID_;
     std::vector<CBondDest> bonds_;
     CLabel atomLabel_;

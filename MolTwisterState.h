@@ -77,9 +77,22 @@ public:
     void getAtomsWithResname(std::string resname, std::vector<int>& atomIndices);
     int getAtomIndex(const CAtom* atom) const;
 
+    int getAtomsChunkCount(const int& numAtomsInChunk) const;
+    std::string getAtomsChunkAsJson(const int& numAtomsInChunk, const int& chunkIndex);
+    void resetRetrievedChunksStatus();
+    int getDeletedAtomsChunkCount(const int& numAtomsInChunk) const;
+    std::string getDeletedAtomsChunkSinceLastChunkTransferAsJson(const int& numAtomsInChunk, const int& chunkIndex);
+    int getAddedAtomsChunkCount(const int& numAtomsInChunk) const;
+    std::string getAddedAtomsChunkSinceLastChunkTransferAsJson(const int& numAtomsInChunk, const int& chunkIndex);
+
 private:
     void padFrames(int atomIndex, double X, double Y, double Z);
-    
+    std::shared_ptr<std::vector<std::pair<size_t, int>>> getDeletedAtomsChunkSinceLastChunkTransfer() const;
+    std::shared_ptr<std::vector<std::shared_ptr<CAtom>>> getAddedAtomsChunkSinceLastChunkTransfer() const;
+    template<class T> int getChunkCountOfArray(const std::vector<T>& array, const int& numAtomsInChunk) const;
+    template<class T> void getChunkOfArray(const std::vector<T>& array, const int& numItemsInChunk, const int& chunkIndex, std::function<void(const T item, const int& index, const bool& firstItemInChunk)> onItemInChunk) const;
+    template<class T> std::string getChunkOfArrayAsJson(const std::vector<T>& array, const int& numItemsInChunk, const int& chunkIndex, const std::string& jsonObjName, std::function<std::string(const T item, const int& index)> onRequestListJsonItem, std::vector<T>* arrayOfRetrievedItemsInChunk=nullptr) const;
+
 public:
     CMDFFNonBondedList mdFFNonBondedList_;
     CMDFFBondList mdFFBondList_;
@@ -88,6 +101,7 @@ public:
     std::vector<std::shared_ptr<CVar>> variables_;
     std::vector<std::string> shortcutDirs_;
     std::vector<std::shared_ptr<CAtom>> atoms_;
+    std::vector<std::shared_ptr<CAtom>> atomsRetrievedAsChunks_;
     std::vector<std::shared_ptr<CGLObject>> glObjects_;
     std::vector<C3DVector> savedCoordinates_;
     CDefaultAtomicProperties defaultAtProp_;

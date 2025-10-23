@@ -689,6 +689,126 @@ static PyObject* moltwister_mt_get_tutorial(PyObject*, PyObject* args)
     return ret;
 }
 
+static PyObject* moltwister_mt_get_atom_chunk_count(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &numAtomsInAChunk))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->getAtomsChunkCount(numAtomsInAChunk));
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_atom_chunk(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+    int chunkIndex;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ii", &numAtomsInAChunk, &chunkIndex))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getCurrentState()->getAtomsChunkAsJson(numAtomsInAChunk, chunkIndex).data());
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_reset_retrieved_chunks_state(PyObject*, PyObject* args)
+{
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, ":reset_retrieved_chunks_state"))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    g_pMT->getCurrentState()->resetRetrievedChunksStatus();
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return Py_None;
+}
+
+static PyObject* moltwister_mt_get_deleted_atoms_chunk_count(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &numAtomsInAChunk))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->getDeletedAtomsChunkCount(numAtomsInAChunk));
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_deleted_atoms_chunk_since_last_chunk_transfer(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+    int chunkIndex;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ii", &numAtomsInAChunk, &chunkIndex))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getCurrentState()->getDeletedAtomsChunkSinceLastChunkTransferAsJson(numAtomsInAChunk, chunkIndex).data());
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_added_atoms_chunk_count(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "i", &numAtomsInAChunk))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("i", g_pMT->getCurrentState()->getAddedAtomsChunkCount(numAtomsInAChunk));
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
+static PyObject* moltwister_mt_get_added_atoms_chunk_since_last_chunk_transfer(PyObject*, PyObject* args)
+{
+    int numAtomsInAChunk;
+    int chunkIndex;
+
+    PyGILState_STATE gilState = PyGILState_Ensure();
+    if(!PyArg_ParseTuple(args, "ii", &numAtomsInAChunk, &chunkIndex))
+    {
+        PyGILState_Release(gilState);
+        return nullptr;
+    }
+
+    PyObject* ret = Py_BuildValue("s", g_pMT->getCurrentState()->getAddedAtomsChunkSinceLastChunkTransferAsJson(numAtomsInAChunk, chunkIndex).data());
+    Py_INCREF(Py_None);
+    PyGILState_Release(gilState);
+    return ret;
+}
+
 static PyMethodDef MolTwisterMethods[] =
 {
     // The mt_.. style commands are there for backward compatibility
@@ -734,6 +854,13 @@ static PyMethodDef MolTwisterMethods[] =
     {"get_help_as_markdown", moltwister_mt_get_help_as_markdown, METH_VARARGS, "Returns help as a Markdown formatted string."},
     {"get_tutorial_count", moltwister_mt_get_tutorial_count, METH_VARARGS, "Returns the number of available tutorials."},
     {"get_tutorial", moltwister_mt_get_tutorial, METH_VARARGS, "Returns the tutorial with the given index."},
+    {"get_atom_chunk_count", moltwister_mt_get_atom_chunk_count, METH_VARARGS, "Returns the available number of atomic chunks, given the number of atoms in a chunk."},
+    {"get_atom_chunk", moltwister_mt_get_atom_chunk, METH_VARARGS, "Returns an atom chunk as JSON, given the number of atoms in a chunk and the chunk index."},
+    {"reset_retrieved_chunks_state", moltwister_mt_reset_retrieved_chunks_state, METH_VARARGS, "The received chunks state is kept, such that we can determine deleted and added atoms since last update. This mehod resets the state."},
+    {"get_deleted_atoms_chunk_count", moltwister_mt_get_deleted_atoms_chunk_count, METH_VARARGS, "Returns the available number of deleted atomic chunks, given the number of atoms in a chunk."},
+    {"get_deleted_atoms_chunk_since_last_chunk_transfer", moltwister_mt_get_deleted_atoms_chunk_since_last_chunk_transfer, METH_VARARGS, "Get deleted atoms since the last call to reset_retrieved_chunks_state() as a JSON formatted index list. The list can be retrieved in the specified chunks."},
+    {"get_added_atoms_chunk_count", moltwister_mt_get_added_atoms_chunk_count, METH_VARARGS, "Returns the available number of added atomic chunks, given the number of atoms in a chunk."},
+    {"get_added_atoms_chunk_since_last_chunk_transfer", moltwister_mt_get_added_atoms_chunk_since_last_chunk_transfer, METH_VARARGS, "Get added atoms since the last call to reset_retrieved_chunks_state() as a JSON formatted index list. The list can be retrieved in the specified chunks."},
 
     {nullptr, nullptr, 0, nullptr}
 };

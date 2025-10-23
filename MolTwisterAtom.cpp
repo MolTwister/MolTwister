@@ -22,6 +22,7 @@
 #include <math.h>
 #include <assert.h>
 #include "Utilities/3DRect.h"
+#include "Utilities/UniqueNumberGen.h"
 #include "MolTwisterAtom.h"
 
 BEGIN_CUDA_COMPATIBLE()
@@ -39,6 +40,8 @@ CAtom::CAtom()
     ID_ = "NA";
     isMobile_ = true;
     ignoreBondFrom_ = false;
+
+    uniqueID_ = CUniqueNumberGen::genNumber();
 }
 
 CAtom::CAtom(double X, double Y, double Z, std::string ID, int atomIndex)
@@ -55,6 +58,8 @@ CAtom::CAtom(double X, double Y, double Z, std::string ID, int atomIndex)
     ID_ = ID;
     isMobile_ = true;
     ignoreBondFrom_ = false;
+
+    uniqueID_ = CUniqueNumberGen::genNumber();
 }
 
 CAtom::CAtom(const C3DVector &R, std::string ID, int atomIndex)
@@ -71,6 +76,8 @@ CAtom::CAtom(const C3DVector &R, std::string ID, int atomIndex)
     ID_ = ID;
     isMobile_ = true;
     ignoreBondFrom_ = false;
+
+    uniqueID_ = CUniqueNumberGen::genNumber();
 }
 
 CAtom::CAtom(const CAtom& src)
@@ -128,6 +135,7 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         io << atomIndex_;
         io << molIndex_;
         io << isSelected_;
+        io << uniqueID_;
     }
     else
     {
@@ -192,6 +200,7 @@ void CAtom::serialize(CSerializer& io, bool saveToStream, const std::vector<std:
         io >> atomIndex_;
         io >> molIndex_;
         io >> isSelected_;
+        io >> uniqueID_;
     }
 }
 
@@ -479,6 +488,8 @@ void CAtom::copy(const CAtom& src)
 
     listOf1to4Connections_.clear();
     for(int i=0; i<(int)listOf1to4Connections_.size(); i++) listOf1to4Connections_.emplace_back(src.listOf1to4Connections_[i]);
+
+    uniqueID_ = src.uniqueID_;
 }
 
 void CAtom::copyIntrinsicAtomProperties(const CAtom& src)
@@ -490,6 +501,7 @@ void CAtom::copyIntrinsicAtomProperties(const CAtom& src)
     atomLabel_ = src.atomLabel_;
     isMobile_ = src.isMobile_;
     ignoreBondFrom_ = src.ignoreBondFrom_;
+    uniqueID_ = src.uniqueID_;
 
     bondLabels_.clear();
     for(auto item : src.bondLabels_) { bondLabels_[item.first] = item.second; }
@@ -505,6 +517,11 @@ CAtom::CLabel CAtom::getBondLabel(CAtom* bondDest) const
     {
         return CLabel();
     }
+}
+
+unsigned long CAtom::getUniqueID() const
+{
+    return uniqueID_;
 }
 
 int CAtom::detectLongestBond(int frame, double& lenghtX, double& lenghtY, double& lenghtZ) const
