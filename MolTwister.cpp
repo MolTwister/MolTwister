@@ -39,7 +39,11 @@ std::vector<std::shared_ptr<CCmd>> CMolTwister::cmdList_;
 
 
 CMolTwister::CMolTwister()
-    : tutorialPool_({ "./moltwister-tutorials/", "/usr/local/bin/moltwister-tutorials/" })
+    : tutorialPool_({ "./moltwister-tutorials/",
+                      "/usr/share/moltwister-tutorials/",
+                      "/usr/local/share/moltwister-tutorials/",
+                      "/usr/local/bin/moltwister-tutorials/",
+                      "/usr/bin/moltwister-tutorials/" })
 {
     startDir_ = dirWorking;
 }
