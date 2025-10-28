@@ -19,6 +19,7 @@
 #
 
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
+include(GNUInstallDirs)
 
 # ************************************************************************************
 # Function declataions
@@ -512,6 +513,6 @@ add_custom_target(PythonRestAPI ALL SOURCES "${CMAKE_SOURCE_DIR}/RestAPI/Python/
 
 file(COPY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_BINARY_DIR}/moltwister-tutorials/)
 file(COPY ${CMAKE_SOURCE_DIR}/RestAPI/Python DESTINATION ${CMAKE_BINARY_DIR}/moltwister-api/)
-install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION /usr/local/bin RENAME moltwister)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION /usr/local/bin/moltwister-tutorials/)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/RestAPI/Python DESTINATION /usr/local/bin/moltwister-api/)
+install(PROGRAMS ${CMAKE_BINARY_DIR}/MolTwister DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR} RENAME moltwister)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/Tutorials/ DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATAROOTDIR}/moltwister-tutorials/)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/RestAPI/Python DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBEXECDIR}/moltwister-api/)
