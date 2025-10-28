@@ -1,0 +1,30 @@
+moltwister (1.4.9-0ppa1) noble; urgency=medium
+
+  * Re-upload with new version that installs to correct FHS paths.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Tue, 28 Oct 2025 19:08:22 +0100
+
+moltwister (1.4.8-0ppa4) noble; urgency=medium
+
+  * Remove dh-sequence-cmake dependency.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com> Thu, 23 Oct 2025 08:53:35 +0200
+
+moltwister (1.4.8-0ppa3) noble; urgency=medium
+
+  * Build with plain dh + CMake.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Wed, 22 Oct 2025 23:55:11 +0200
+
+moltwister (1.4.8-0ppa2) noble; urgency=medium
+
+  * Re-upload with corrected metadata and Launchpad key.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Mon, 20 Oct 2025 23:19:27 +0200
+
+moltwister (1.4.8-0ppa1) noble; urgency=medium
+
+  * Initial PPA build.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Wed, 17 Oct 2025 12:00:00 +0200
+

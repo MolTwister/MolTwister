@@ -1,0 +1,27 @@
+Source: moltwister
+Section: science
+Priority: optional
+Maintainer: Richard Olsen <contact@moltwister.com>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake (>= 3.11),
+ g++,
+ pkg-config,
+ libreadline-dev,
+ libopengl-dev,
+ libglu1-mesa-dev,
+ freeglut3-dev,
+ mesa-common-dev,
+ python3,
+ libpython3-dev
+Standards-Version: 4.7.0
+Homepage: http://www.moltwister.com
+Rules-Requires-Root: no
+
+Package: moltwister
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3
+Description: Molecular system builder and molecular dynamics post-processing 
+ tool that can be used to build molecular systems and provide molecular 
+ dynamics analysis (RDF, VACF, VDOS, etc.).
+
