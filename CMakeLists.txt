@@ -144,6 +144,8 @@ set(MT_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/ConditionalOnXYZ.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/DCDFile.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/LammpsTrjFile.h
+    ${CMAKE_CURRENT_LIST_DIR}/Utilities/LammpsTrjFile.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/XTCFile.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.h
     ${CMAKE_CURRENT_LIST_DIR}/Utilities/FFT1D.cpp

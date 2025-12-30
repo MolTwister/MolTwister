@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023 Richard Olsen.
+// Copyright (C) 2025 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -29,6 +29,7 @@
 #include "Tools/MolTwisterStateTools.h"
 #include "Tools/ProgressBar.h"
 #include "../Utilities/DCDFile.h"
+#include "../Utilities/LammpsTrjFile.h"
 #include "../Utilities/XTCFile.h"
 
 void CCmdLoad::onAddKeywords()
@@ -36,6 +37,7 @@ void CCmdLoad::onAddKeywords()
     addKeyword("load");
     addKeyword("xyz");
     addKeyword("dcd");
+    addKeyword("lammpstrj");
     addKeyword("pdb");
     addKeyword("mtt");
     addKeyword("script");
@@ -65,6 +67,10 @@ std::string CCmdLoad::getHelpString() const
     szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
     szText+= "\t             Use 'stride <stride>' to only load every <stride> frame.\r\n";
     szText+= "\t             The order of the additional arguments is 'ignore', 'frame', 'stride'.\r\n";
+    szText+= "\tlammpstrj :  LAMMPSTRJ coordinate files. Bonds can be ignored using 'ignore' (\r\n";
+    szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
+    szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
+    szText+= "\t             The order of the additional arguments is 'ignore', 'frame'.\r\n";
     szText+= "\txtc :        XTC-coordinate files. Bonds can be ignored using 'ignore' (\r\n";
     szText+= "\t             see genbonds). Use 'frame <frame>' to select frame to use\r\n";
     szText+= "\t             as basis for generating the bonds. Default is frame zero.\r\n";
@@ -111,6 +117,7 @@ void CCmdLoad::execute(std::string commandLine)
     std::string text = CASCIIUtility::getWord(commandLine, arg++);
     if((text != "xyz") &&
        (text != "dcd") &&
+       (text != "lammpstrj") &&
        (text != "xtc") &&
        (text != "pdb") &&
        (text != "mtt") &&
@@ -122,6 +129,7 @@ void CCmdLoad::execute(std::string commandLine)
         std::string ext = CFileUtility::getExtension(text);
         if(ext == "xyz") { text = "xyz"; arg--; }
         if(ext == "dcd") { text = "dcd"; arg--; }
+        if(ext == "lammpstrj") { text = "lammpstrj"; arg--; }
         if(ext == "xtc") { text = "xtc"; arg--; }
         if(ext == "pdb") { text = "pdb"; arg--; }
         if(ext == "mtt") { text = "mtt"; arg--; }
@@ -136,6 +144,10 @@ void CCmdLoad::execute(std::string commandLine)
     else if(text == "dcd")
     {
         parseDCDCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
+    }
+    else if(text == "lammpstrj")
+    {
+        parseLammpsTrjCommand(commandLine, arg, bondAtomsToIgnore, genBonds, ignoreAllBonds, baseFrameIndex);
     }
     else if(text == "xtc")
     {
@@ -291,6 +303,55 @@ void CCmdLoad::parseDCDCommand(std::string commandLine, int& arg, std::vector<st
 
             if(!readDCDFile(filePath.data(), genBonds, stride))
                 printf("Error loading DCD file!");
+        }
+    }
+}
+
+void CCmdLoad::parseLammpsTrjCommand(std::string commandLine, int& arg, std::vector<std::string>& bondAtomsToIgnore, bool& genBonds, bool& ignoreAllBonds, int& baseFrameIndex)
+{
+    std::string text = CASCIIUtility::getWord(commandLine, arg++);
+    CASCIIUtility::removeWhiteSpace(text);
+    if(text.length() == 0)
+    {
+        printf("Syntax Error: Second argument should be the filename!");
+    }
+    else
+    {
+        std::string ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+        CASCIIUtility::removeWhiteSpace(ignoreString);
+        if(ignoreString == "ignore")
+        {
+            ignoreString = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(ignoreString);
+            bondAtomsToIgnore = CASCIIUtility::getWords(ignoreString, ",");
+        }
+        else arg--;
+
+        std::string baseFrame;
+        CASCIIUtility::removeWhiteSpace(baseFrame);
+        if(baseFrame == "frame")
+        {
+            baseFrame = CASCIIUtility::getWord(commandLine, arg++);
+            CASCIIUtility::removeWhiteSpace(baseFrame);
+            baseFrameIndex = atoi(baseFrame.data());
+        }
+        else
+        {
+            baseFrameIndex = 0;
+            arg--;
+        }
+
+        if(text[0] == '/')
+        {
+            if(!readLammpsTrjFile(text.data(), genBonds))
+                printf("Error loading LAMMPS trajectory file!");
+        }
+        else
+        {
+            std::string filePath = CFileUtility::getCWD() + text;
+
+            if(!readLammpsTrjFile(filePath.data(), genBonds))
+                printf("Error loading LAMMPS trajectory file!");
         }
     }
 }
@@ -697,6 +758,59 @@ bool CCmdLoad::readDCDFile(std::string dcdFileName, bool& genBonds, int stride)
             ID = state_->atoms_[j]->getID();
 
             if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, X, Y, Z);
+            if(j < (int)state_->atoms_.size())
+                state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
+        }
+
+        firstFrameAdded = true;
+        progBar.updateProgress(i+1, numRecords);
+    }
+    progBar.endProgress();
+
+    genBonds = true;
+    return true;
+}
+
+bool CCmdLoad::readLammpsTrjFile(std::string trjFileName, bool& genBonds)
+{
+    CProgressBar progBar;
+    double X, Y, Z;
+    std::string ID;
+
+    genBonds = false;
+    CLammpsTrjFile trjFile;
+
+    if(!trjFile.open(trjFileName.data()))
+    {
+        printf("\r\nCould not open file: %s!\r\n", trjFileName.data());
+        return false;
+    }
+
+    int numAtoms = trjFile.getNumCoordinatesInRecord();
+    if((int)state_->atoms_.size() !=  numAtoms)
+    {
+        printf("\r\nThe file, %s! It was found to have %i atoms per record (based on first record in file), while the loaded system has %i atoms. The number of atoms much match!\r\n", trjFileName.data(), numAtoms, (int)state_->atoms_.size());
+        return false;
+    }
+
+    progBar.beginProgress("Loading LAMMPSTRJ file contents");
+    int numRecords = trjFile.getNumRecords();
+    bool firstFrameAdded = false;
+    for(int i=0; i<numRecords; i++)
+    {
+        trjFile.gotoRecord(i);
+
+        int indexFrame=0;
+        if(firstFrameAdded) indexFrame = state_->addFrame();
+
+        numAtoms = trjFile.getNumCoordinatesInRecord();
+        for(int j=0; j<numAtoms; j++)
+        {
+            C3DVector r = trjFile.getCoordinate(j);
+
+            ID = state_->atoms_[j]->getID();
+
+            if(indexFrame >= 0) state_->setAtomCoordinates(indexFrame, j, r.x_, r.y_, r.z_);
             if(j < (int)state_->atoms_.size())
                 state_->atoms_[j]->sigma_ = state_->defaultAtProp_.getWDWRadius(ID.data());
         }
