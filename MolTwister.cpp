@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023 Richard Olsen.
+// Copyright (C) 2026 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -80,7 +80,7 @@ std::string CMolTwister::genTerminalStartupInfo() const
     introText+= "----------------------------------------------------------------\r\n";
     introText+= CBashColor::setColor(CBashColor::colNone, CBashColor::colNone, false);
     introText+= CBashColor::setColor(CBashColor::colYellow, CBashColor::colNone, false);
-    introText+= " Copyright (C) 2023 Richard Olsen.\r\n";
+    introText+= " Copyright (C) 2026 Richard Olsen.\r\n";
     introText+= "\r\n";
     introText+= " This program is free software: you can redistribute it and/or\r\n";
     introText+= " modify it under the terms of the GNU General Public License as\r\n";
