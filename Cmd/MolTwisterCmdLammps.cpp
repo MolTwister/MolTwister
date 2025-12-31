@@ -27,7 +27,7 @@
 #include "Tools/MolTwisterStateTools.h"
 #include "Tools/ProgressBar.h"
 #include "../Utilities/DCDFile.h"
-#include "../Utilities/LammpsTrjFile.h""
+#include "../Utilities/LammpsTrjFile.h"
 
 void CCmdLammps::onAddKeywords()
 {
