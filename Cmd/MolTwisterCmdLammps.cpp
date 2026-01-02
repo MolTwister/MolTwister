@@ -290,7 +290,7 @@ void CCmdLammps::parseGendataCommand(std::string commandLine, int& arg)
     }
 }
 
-void CCmdLammps::parseLammpstrjtodcdCommand(std::string commandLine, int &arg)
+void CCmdLammps::parseLammpstrjtodcdCommand(std::string commandLine, int& arg)
 {
     CProgressBar progBar;
     std::string trjFileName = CASCIIUtility::getWord(commandLine, arg++);
