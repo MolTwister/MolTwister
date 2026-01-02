@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023 Richard Olsen.
+// Copyright (C) 2025 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -25,6 +25,9 @@
 #include "Utilities/3DRect.h"
 #include "MolTwisterCmdLammps.h"
 #include "Tools/MolTwisterStateTools.h"
+#include "Tools/ProgressBar.h"
+#include "../Utilities/DCDFile.h"
+#include "../Utilities/LammpsTrjFile.h"
 
 void CCmdLammps::onAddKeywords()
 {
@@ -32,6 +35,7 @@ void CCmdLammps::onAddKeywords()
     addKeyword("genff");
     addKeyword("gendata");
     addKeyword("bondacrosspbc");
+    addKeyword("lammpstrjtodcd");
 }
 
 std::string CCmdLammps::getHelpString() const
@@ -40,6 +44,7 @@ std::string CCmdLammps::getHelpString() const
 
     text+= "\tUsage: lammps genff\r\n";
     text+= "\t       lammps gendata [bondacrosspbc]\r\n";
+    text+= "\t       lammps lammpstrjtodcd <lammpstrj filename> <dcd filename> <timestep in fs>\r\n";
     text+= "\r\n";
     text+= "\tThis command provides features that relate to version 5 Sep 2014 version of the LAMMPS MD\r\n";
     text+= "\tsimulator, as well as other versions that support the same input / output structure.\r\n";
@@ -52,7 +57,12 @@ std::string CCmdLammps::getHelpString() const
     text+= "\t<data file>). To make sure bonds are created across PBCs, use the 'bondacrosspbc' keyword.\r\n";
     text+= "\r\n";
     text+= "\tThe generated input files can now be used as a basis for creating the final input files. The\r\n";
-    text+= "\t<ff file> and <data file> should be used as input to the main input file for LAMMPS.";
+    text+= "\t<ff file> and <data file> should be used as input to the main input file for LAMMPS.\r\n";
+    text+= "\r\n";
+    text+= "\tIf the output from LAMMPS is a LAMMPSTRJ file, this can be converted to a DCD file by using\r\n";
+    text+= "\tthe lammpstrjtodcd command, which will read from <lammpstrj filename> and create <dcd filename>.\r\n";
+    text+= "\tNote that, if the DCD file exists, then the header is not changed and any converted records will\r\n";
+    text+= "\tbe added to the existing DCD file.";
 
     return text;
 }
@@ -74,6 +84,11 @@ void CCmdLammps::execute(std::string commandLine)
     else if(text == "gendata")
     {
         parseGendataCommand(commandLine, arg);
+    }
+
+    else if(text == "lammpstrjtodcd")
+    {
+        parseLammpstrjtodcdCommand(commandLine, arg);
     }
 
     else
@@ -272,5 +287,59 @@ void CCmdLammps::parseGendataCommand(std::string commandLine, int& arg)
     for(int i=0; i<(int)dihAtoms1.size(); i++)
     {
         fprintf(stdOut_, "\t%i %i %i %i %i %i\r\n", i+1, dihMDTypeIndices[i]+1, dihAtoms1[i]+1, dihAtoms2[i]+1, dihAtoms3[i]+1, dihAtoms4[i]+1);
+    }
+}
+
+void CCmdLammps::parseLammpstrjtodcdCommand(std::string commandLine, int &arg)
+{
+    CProgressBar progBar;
+    std::string trjFileName = CASCIIUtility::getWord(commandLine, arg++);
+    std::string dcdFileName = CASCIIUtility::getWord(commandLine, arg++);
+    double timeStep = std::atof(CASCIIUtility::getWord(commandLine, arg++).data());
+
+    CDCDFile dcdFile;
+    CLammpsTrjFile trjFile;
+    progBar.beginProgress("Creating DCD file from LAMMPSTRJ file");
+    if(trjFile.open(trjFileName))
+    {
+        // Get record count
+        const int recordCount = trjFile.getNumRecords();
+
+        // Get stride
+        int stride = 1;
+        if(recordCount > 1)
+        {
+            const int timeIndex1 = trjFile.getTimeStepIndex();
+            trjFile.gotoRecord(1);
+            const int timeIndex2 = trjFile.getTimeStepIndex();
+            stride = timeIndex2 - timeIndex1;
+            trjFile.gotoRecord(0);
+        }
+
+        // Get atom count
+        const int atomCount = trjFile.getNumCoordinatesInRecord();
+
+        // Get simulation box extents
+        const C3DRect pbc = trjFile.getCurrentPBC();
+
+        // Create DCD header
+        const int numTimeSteps = recordCount * stride;
+        CDCDFile::createDCDFileIfNotExists(dcdFileName, numTimeSteps, stride, timeStep, atomCount);
+
+        // Convert records to DCD
+        for(int i=0; i<recordCount; i++)
+        {
+            trjFile.gotoRecord(i);
+
+            std::function<std::tuple<double, double, double>(const int&)> getAtomPos = [&trjFile](const int& atomIndex)
+            {
+                C3DVector r = trjFile.getCoordinate(atomIndex);
+                return std::tuple<double, double, double>(r.x_, r.y_, r.z_);
+            };
+            CDCDFile::appendToDCDFile(dcdFileName, atomCount, { pbc.getWidthX(), pbc.getWidthY(), pbc.getWidthZ() }, getAtomPos);
+
+            progBar.updateProgress(i+1, recordCount);
+        }
+        progBar.endProgress();
     }
 }

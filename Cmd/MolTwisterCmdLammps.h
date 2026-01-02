@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2023 Richard Olsen.
+// Copyright (C) 2025 Richard Olsen.
 // DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 //
 // This file is part of MolTwister.
@@ -39,4 +39,5 @@ protected:
 private:
     void parseGenffCommand(std::string commandLine, int& arg);
     void parseGendataCommand(std::string commandLine, int& arg);
+    void parseLammpstrjtodcdCommand(std::string commandLine, int& arg);
 };
