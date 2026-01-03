@@ -24,6 +24,9 @@
 #include <vector>
 #include <tuple>
 #include <functional>
+#include <memory>
+#include <fstream>
+#include <utility>
 #include "3DVector.h"
 #include "3DRect.h"
 
