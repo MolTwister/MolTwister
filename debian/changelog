@@ -1,3 +1,15 @@
+moltwister (1.4.11-0ppa1) noble; urgency=medium
+
+  * Added missing include files
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Sun, 04 Jan 2026 00:17:03 +0100
+
+moltwister (1.4.10-0ppa1) noble; urgency=medium
+
+  * New version of MolTwister with support for LAMMPSTRJ files.
+
+ -- Richard Olsen <richard.olsen.75@gmail.com>  Sat, 03 Jan 2026 20:30:00 +0100
+
 moltwister (1.4.9-0ppa1) noble; urgency=medium
 
   * Re-upload with new version that installs to correct FHS paths.
