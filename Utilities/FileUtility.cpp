@@ -36,29 +36,25 @@ void CFileUtility::removeTabsFromFile(std::string fileName)
         long size = ftell(file);
         fseek(file, 0L, SEEK_SET);
         std::string text;
-        text.resize(size + 1);
+        text.resize(size);
         fread((char*)text.data(), 1, size, file);
-        text[size] = '\0';
         if(file) fclose(file);
         
         // Modify contents by removing all '\t' characters
         // from the left margine of the text
         std::string modifiedText;
-        modifiedText.resize(size + 1);
-        long lIndex = 0;
         long lColumn = 0;
         size = text.size();
         for(long l=0; l<size; l++)
         {
             if((lColumn != 0) || (text[l] != '\t'))
             {
-                modifiedText[lIndex++] = text[l];
+                modifiedText+= text[l];
             }
             
             lColumn++;
             if(text[l] == '\n') lColumn = 0;
         }
-        modifiedText[lIndex] = '\0';
         
         // Save contents back to file
         file = fopen(fileName.data(), "w");
