@@ -36,7 +36,7 @@
 #include "MDFF/Dihedrals/MolTwisterMDFFDihList.h"
 #include "Utilities/CUDAGeneralizations.h"
 
-#define MOLTWISTER_VER "1.4.11"
+#define MOLTWISTER_VER "1.4.12"
 
 BEGIN_CUDA_COMPATIBLE()
 
